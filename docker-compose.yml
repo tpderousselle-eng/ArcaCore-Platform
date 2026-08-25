@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: arcacore-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: arcacore
+      POSTGRES_PASSWORD: arcacore
+      POSTGRES_DB: arcacore
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

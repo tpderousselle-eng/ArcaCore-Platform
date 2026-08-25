@@ -6,12 +6,13 @@ from backend.app.security.hashing import hash_password
 
 
 def get_user_by_email(db: Session, email: str):
+    email = email.lower()
     return db.query(User).filter(User.email == email).first()
 
 
 def create_user(db: Session, user: UserCreate):
     db_user = User(
-        email=user.email,
+        email=user.email.lower(),
         full_name=user.full_name,
         hashed_password=hash_password(user.password),
     )

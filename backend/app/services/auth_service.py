@@ -15,10 +15,7 @@ def authenticate_user(
     if not user:
         return None
 
-    if not verify_password(
-        password,
-        user.hashed_password,
-    ):
+    if not verify_password(password, user.hashed_password):
         return None
 
     return user
@@ -46,11 +43,12 @@ def login_user(
     )
 
     return {
-    "access_token": token,
-    "token_type": "bearer",
-    "user": {
-        "id": user.id,
-        "email": user.email,
-        "full_name": user.full_name,
-    },
-}
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+        },
+    }

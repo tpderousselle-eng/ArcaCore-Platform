@@ -50,6 +50,16 @@ class User(Base):
         nullable=False,
     )
 
+    verification_token: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+
+    verification_token_expires: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         server_default=func.now(),

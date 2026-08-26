@@ -1,40 +1,64 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.app.crud.user import (
-    create_user,
-    get_user_by_email,
+from backend.app.db.session import SessionLocal
+from backend.app.models.user import User
+from backend.app.schemas.auth import RegisterRequest
+from backend.app.security.hashing import hash_password
+from backend.app.services.auth_service import AuthService
+from backend.app.services.email_service import EmailService
+
+router = APIRouter(tags=["Authentication"])
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@router.post(
+    "/auth/register",
+    status_code=status.HTTP_201_CREATED,
 )
-from backend.app.db.session import get_db
-from backend.app.schemas.user import UserCreate
-router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-
-@router.post("/register")
 def register(
-    email: str,
-    full_name: str,
-    password: str,
+    request: RegisterRequest,
     db: Session = Depends(get_db),
 ):
-    existing = get_user_by_email(db, email)
-
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already registered",
-        )
-
-    user_data = UserCreate(
-        email=email,
-        full_name=full_name,
-        password=password,
+    existing_user = (
+        db.query(User)
+        .filter(User.email == request.email)
+        .first()
     )
 
-    user = create_user(db, user_data)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered.",
+        )
+
+    user = User(
+        email=request.email,
+        full_name=request.full_name,
+        hashed_password=hash_password(request.password),
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    auth_service = AuthService(db)
+    verification_token = auth_service.set_verification_token(user)
+
+    email_service = EmailService()
+
+    email_service.send_verification_email(
+        to_email=user.email,
+        token=verification_token,
+    )
 
     return {
-        "message": "User created successfully",
-        "user_id": user.id,
-        "email": user.email,
+        "message": "Registration successful. Please check your email to verify your account."
     }

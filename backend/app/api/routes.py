@@ -3,6 +3,8 @@ from fastapi import APIRouter
 from backend.app.auth.login import router as login_router
 from backend.app.auth.register import router as register_router
 from backend.app.auth.me import router as me_router
+from backend.app.auth.verify_email import router as verify_email_router
+
 router = APIRouter()
 
 
@@ -10,16 +12,18 @@ router = APIRouter()
 def root():
     return {
         "message": "Welcome to ArcaCore!",
-        "status": "online"
+        "status": "online",
     }
 
 
 @router.get("/health")
 def health():
     return {
-        "status": "healthy"
+        "status": "healthy",
     }
+
 
 router.include_router(register_router)
 router.include_router(login_router)
 router.include_router(me_router)
+router.include_router(verify_email_router)

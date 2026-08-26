@@ -7,7 +7,9 @@ from backend.app.crud.user import get_user_by_email
 from backend.app.security.jwt import verify_access_token
 
 # This MUST match your login endpoint
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl="/auth/login123"
+)
 
 
 def get_current_user(

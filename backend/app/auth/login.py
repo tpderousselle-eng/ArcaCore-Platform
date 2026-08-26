@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from backend.app.db.session import get_db
@@ -11,18 +11,13 @@ router = APIRouter(
 )
 
 
-class LoginData(BaseModel):
-    username: str
-    password: str
-
-
 @router.post("/login123")
 def login(
-    data: LoginData,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
     return login_user(
         db,
-        data.username,
-        data.password,
+        form_data.username,
+        form_data.password,
     )

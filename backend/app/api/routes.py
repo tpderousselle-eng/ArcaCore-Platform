@@ -1,5 +1,8 @@
 from fastapi import APIRouter
 
+from backend.app.auth.change_password import (
+    router as change_password_router,
+)
 from backend.app.auth.forgot_password import (
     router as forgot_password_router,
 )
@@ -41,3 +44,4 @@ router.include_router(verify_email_router)
 router.include_router(forgot_password_router)
 router.include_router(reset_password_router)
 router.include_router(resend_verification_router)
+router.include_router(change_password_router)

@@ -13,7 +13,16 @@ class ForgotPasswordRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    password: str
+    new_password: str
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 class UserResponse(BaseModel):
@@ -28,7 +37,3 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
-
-
-class MessageResponse(BaseModel):
-    message: str

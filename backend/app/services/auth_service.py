@@ -3,10 +3,13 @@ import secrets
 
 from sqlalchemy.orm import Session
 
-from backend.app.models.user import User
-from backend.app.security.hashing import hash_password, verify_password
-from backend.app.security.jwt import create_access_token
 from backend.app.crud.user import get_user_by_email
+from backend.app.models.user import User
+from backend.app.security.hashing import (
+    hash_password,
+    verify_password,
+)
+from backend.app.security.jwt import create_access_token
 
 
 class AuthService:
@@ -20,8 +23,15 @@ class AuthService:
     def create_password_hash(self, password: str) -> str:
         return hash_password(password)
 
-    def verify_user_password(self, password: str, hashed_password: str) -> bool:
-        return verify_password(password, hashed_password)
+    def verify_user_password(
+        self,
+        password: str,
+        hashed_password: str,
+    ) -> bool:
+        return verify_password(
+            password,
+            hashed_password,
+        )
 
     # ------------------------------------------------------------------
     # Authentication
@@ -32,12 +42,18 @@ class AuthService:
         email: str,
         password: str,
     ):
-        user = get_user_by_email(self.db, email)
+        user = get_user_by_email(
+            self.db,
+            email,
+        )
 
         if not user:
             return None
 
-        if not verify_password(password, user.hashed_password):
+        if not verify_password(
+            password,
+            user.hashed_password,
+        ):
             return None
 
         return user
@@ -47,7 +63,10 @@ class AuthService:
         email: str,
         password: str,
     ):
-        user = self.authenticate_user(email, password)
+        user = self.authenticate_user(
+            email,
+            password,
+        )
 
         if not user:
             return None
@@ -76,18 +95,51 @@ class AuthService:
         }
 
     # ------------------------------------------------------------------
+    # Change Password
+    # ------------------------------------------------------------------
+
+    def change_password(
+        self,
+        user: User,
+        current_password: str,
+        new_password: str,
+    ):
+        if not verify_password(
+            current_password,
+            user.hashed_password,
+        ):
+            raise ValueError(
+                "Current password is incorrect."
+            )
+
+        user.hashed_password = hash_password(
+            new_password
+        )
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        return {
+            "message": "Password changed successfully."
+        }
+
+    # ------------------------------------------------------------------
     # Email Verification
     # ------------------------------------------------------------------
 
     def generate_verification_token(self) -> str:
         return secrets.token_urlsafe(48)
 
-    def set_verification_token(self, user: User) -> str:
+    def set_verification_token(
+        self,
+        user: User,
+    ) -> str:
         token = self.generate_verification_token()
 
         user.verification_token = token
         user.verification_token_expires = (
-            datetime.utcnow() + timedelta(hours=24)
+            datetime.utcnow()
+            + timedelta(hours=24)
         )
 
         self.db.commit()
@@ -95,10 +147,15 @@ class AuthService:
 
         return token
 
-    def verify_email_token(self, token: str) -> User | None:
+    def verify_email_token(
+        self,
+        token: str,
+    ) -> User | None:
         user = (
             self.db.query(User)
-            .filter(User.verification_token == token)
+            .filter(
+                User.verification_token == token
+            )
             .first()
         )
 
@@ -106,8 +163,10 @@ class AuthService:
             return None
 
         if (
-            user.verification_token_expires is None
-            or user.verification_token_expires < datetime.utcnow()
+            user.verification_token_expires
+            is None
+            or user.verification_token_expires
+            < datetime.utcnow()
         ):
             return None
 

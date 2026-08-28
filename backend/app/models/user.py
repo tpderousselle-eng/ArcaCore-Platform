@@ -37,6 +37,13 @@ class User(Base):
         nullable=False,
     )
 
+    status = Column(
+        String,
+        default="active",
+        nullable=False,
+        index=True,
+    )
+
     is_verified = Column(
         Boolean,
         default=False,

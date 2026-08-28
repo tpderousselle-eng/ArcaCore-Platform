@@ -7,6 +7,15 @@ class RegisterRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
+
 class UserResponse(BaseModel):
     id: int
     email: EmailStr
@@ -19,3 +28,7 @@ class LoginResponse(BaseModel):
     access_token: str
     token_type: str
     user: UserResponse
+
+
+class MessageResponse(BaseModel):
+    message: str

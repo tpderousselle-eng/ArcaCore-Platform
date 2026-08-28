@@ -1,74 +1,77 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, String, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 
-from backend.app.auth.roles import Role
 from backend.app.db.base import Base
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(
+    id = Column(
+        Integer,
         primary_key=True,
         index=True,
     )
 
-    email: Mapped[str] = mapped_column(
-        String(255),
+    email = Column(
+        String,
         unique=True,
+        nullable=False,
         index=True,
+    )
+
+    full_name = Column(
+        String,
         nullable=False,
     )
 
-    full_name: Mapped[str] = mapped_column(
-        String(255),
+    hashed_password = Column(
+        String,
         nullable=False,
     )
 
-    hashed_password: Mapped[str] = mapped_column(
-        String(255),
+    role = Column(
+        String,
+        default="user",
         nullable=False,
     )
 
-    role: Mapped[str] = mapped_column(
-        String(50),
-        default=Role.USER.value,
-        nullable=False,
-    )
-
-    is_active: Mapped[bool] = mapped_column(
-        Boolean,
-        default=True,
-        nullable=False,
-    )
-
-    is_verified: Mapped[bool] = mapped_column(
+    is_verified = Column(
         Boolean,
         default=False,
         nullable=False,
     )
 
-    verification_token: Mapped[str | None] = mapped_column(
-        String(255),
+    verification_token = Column(
+        String,
         nullable=True,
     )
 
-    verification_token_expires: Mapped[datetime | None] = mapped_column(
+    verification_token_expires = Column(
         DateTime,
         nullable=True,
     )
 
-    created_at: Mapped[datetime] = mapped_column(
+    password_reset_token = Column(
+        String,
+        nullable=True,
+    )
+
+    password_reset_token_expires = Column(
         DateTime,
-        server_default=func.now(),
+        nullable=True,
+    )
+
+    created_at = Column(
+        DateTime,
+        default=datetime.utcnow,
         nullable=False,
     )
 
-    updated_at: Mapped[datetime] = mapped_column(
+    updated_at = Column(
         DateTime,
-        server_default=func.now(),
-        onupdate=func.now(),
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
         nullable=False,
     )

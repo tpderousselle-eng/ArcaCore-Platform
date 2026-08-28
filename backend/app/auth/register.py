@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.app.db.session import SessionLocal
+from backend.app.db.session import get_db
 from backend.app.models.user import User
 from backend.app.schemas.auth import RegisterRequest
 from backend.app.security.hashing import hash_password
@@ -9,14 +9,6 @@ from backend.app.services.auth_service import AuthService
 from backend.app.services.email_service import EmailService
 
 router = APIRouter(tags=["Authentication"])
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 @router.post(
@@ -60,5 +52,8 @@ def register(
     )
 
     return {
-        "message": "Registration successful. Please check your email to verify your account."
+        "message": (
+            "Registration successful. "
+            "Please check your email to verify your account."
+        )
     }

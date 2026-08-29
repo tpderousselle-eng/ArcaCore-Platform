@@ -12,8 +12,8 @@ from sqlalchemy.orm import relationship
 from backend.app.db.base import Base
 
 
-class Organization(Base):
-    __tablename__ = "organizations"
+class OrganizationInvitation(Base):
+    __tablename__ = "organization_invitations"
 
     id = Column(
         Integer,
@@ -21,19 +21,31 @@ class Organization(Base):
         index=True,
     )
 
-    name = Column(
-        String,
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
         nullable=False,
     )
 
-    slug = Column(
+    email = Column(
         String,
-        unique=True,
         nullable=False,
         index=True,
     )
 
-    owner_id = Column(
+    role = Column(
+        String,
+        nullable=False,
+    )
+
+    token = Column(
+        String,
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    invited_by = Column(
         Integer,
         ForeignKey("users.id"),
         nullable=False,
@@ -45,26 +57,22 @@ class Organization(Base):
         nullable=False,
     )
 
-    updated_at = Column(
+    expires_at = Column(
         DateTime,
-        default=lambda: datetime.now(UTC).replace(tzinfo=None),
-        onupdate=lambda: datetime.now(UTC).replace(tzinfo=None),
         nullable=False,
     )
 
-    owner = relationship(
+    accepted_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
+    organization = relationship(
+        "Organization",
+        back_populates="invitations",
+    )
+
+    inviter = relationship(
         "User",
-        foreign_keys=[owner_id],
-    )
-
-    members = relationship(
-        "OrganizationMember",
-        back_populates="organization",
-        cascade="all, delete-orphan",
-    )
-
-    invitations = relationship(
-        "OrganizationInvitation",
-        back_populates="organization",
-        cascade="all, delete-orphan",
+        foreign_keys=[invited_by],
     )

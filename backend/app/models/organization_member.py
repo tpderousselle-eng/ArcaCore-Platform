@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.db.base import Base
 
@@ -33,4 +33,14 @@ class OrganizationMember(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
         default=datetime.utcnow,
+    )
+
+    organization = relationship(
+        "Organization",
+        back_populates="members",
+    )
+
+    user = relationship(
+        "User",
+        back_populates="organization_members",
     )

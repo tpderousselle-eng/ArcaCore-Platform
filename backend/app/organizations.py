@@ -1,11 +1,15 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from backend.app.auth.dependencies import get_current_user
 from backend.app.auth.permissions import require_admin
 from backend.app.db.session import get_db
+from backend.app.models.user import User
 from backend.app.schemas.organization import (
+    OrganizationCreate,
     OrganizationDetailResponse,
     OrganizationListResponse,
+    OrganizationResponse,
 )
 from backend.app.services.organization import OrganizationService
 
@@ -13,6 +17,24 @@ router = APIRouter(
     prefix="/organizations",
     tags=["Organizations"],
 )
+
+
+@router.post(
+    "/",
+    response_model=OrganizationResponse,
+    status_code=201,
+)
+def create_organization(
+    request: OrganizationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = OrganizationService(db)
+
+    return service.create_organization(
+        organization=request,
+        owner_id=current_user.id,
+    )
 
 
 @router.get(

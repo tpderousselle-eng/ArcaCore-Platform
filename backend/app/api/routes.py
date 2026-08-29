@@ -24,6 +24,7 @@ from backend.app.auth.verify_email import (
 from backend.app.auth.change_password import (
     router as change_password_router,
 )
+
 from backend.app.admin import (
     router as admin_router,
 )
@@ -32,6 +33,9 @@ from backend.app.users import (
 )
 from backend.app.organizations import (
     router as organizations_router,
+)
+from backend.app.organization_members import (
+    router as organization_members_router,
 )
 
 router = APIRouter()
@@ -70,3 +74,6 @@ router.include_router(users_router)
 
 # Organizations
 router.include_router(organizations_router)
+
+# Organization Members
+router.include_router(organization_members_router)

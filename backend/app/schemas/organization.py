@@ -3,35 +3,12 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict
 
 
-# ---------------------------------------------------------
-# Requests
-# ---------------------------------------------------------
-
 class OrganizationCreate(BaseModel):
     name: str
     slug: str
 
 
-class OrganizationUpdate(BaseModel):
-    name: str
-
-
-# ---------------------------------------------------------
-# Responses
-# ---------------------------------------------------------
-
-class OrganizationSummaryResponse(BaseModel):
-    id: int
-    name: str
-    slug: str
-    owner_id: int
-
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
-
-
-class OrganizationDetailResponse(BaseModel):
+class OrganizationResponse(BaseModel):
     id: int
     name: str
     slug: str
@@ -39,15 +16,13 @@ class OrganizationDetailResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(
-        from_attributes=True,
-    )
+    model_config = ConfigDict(from_attributes=True)
+
+
+class OrganizationDetailResponse(OrganizationResponse):
+    pass
 
 
 class OrganizationListResponse(BaseModel):
     message: str
-    data: list[OrganizationSummaryResponse]
-
-
-class OrganizationResponse(OrganizationDetailResponse):
-    pass
+    data: list[OrganizationResponse]

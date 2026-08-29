@@ -1,9 +1,7 @@
 from sqlalchemy.orm import Session
 
 from backend.app.models.organization import Organization
-from backend.app.schemas.organization import (
-    OrganizationCreate,
-)
+from backend.app.schemas.organization import OrganizationCreate
 
 
 # ---------------------------------------------------------
@@ -16,7 +14,7 @@ def create_organization(
     owner_id: int,
 ):
     db_organization = Organization(
-        name=organization.name,
+        name=organization.name.strip(),
         slug=organization.slug.lower().strip(),
         owner_id=owner_id,
     )

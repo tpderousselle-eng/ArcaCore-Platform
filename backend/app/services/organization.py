@@ -2,11 +2,13 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from backend.app.crud.organization import (
+    create_organization,
     get_organization_by_id,
     get_organization_by_slug,
     get_organizations,
 )
 from backend.app.models.organization import Organization
+from backend.app.schemas.organization import OrganizationCreate
 
 
 class OrganizationService:
@@ -14,7 +16,34 @@ class OrganizationService:
         self.db = db
 
     # ---------------------------------------------------------
-    # Organizations
+    # Create
+    # ---------------------------------------------------------
+
+    def create_organization(
+        self,
+        organization: OrganizationCreate,
+        owner_id: int,
+    ) -> Organization:
+
+        existing = get_organization_by_slug(
+            self.db,
+            organization.slug,
+        )
+
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Organization slug already exists.",
+            )
+
+        return create_organization(
+            self.db,
+            organization,
+            owner_id,
+        )
+
+    # ---------------------------------------------------------
+    # Read
     # ---------------------------------------------------------
 
     def list_organizations(
@@ -32,6 +61,7 @@ class OrganizationService:
         self,
         organization_id: int,
     ) -> Organization:
+
         organization = get_organization_by_id(
             self.db,
             organization_id,
@@ -49,6 +79,7 @@ class OrganizationService:
         self,
         slug: str,
     ) -> Organization | None:
+
         return get_organization_by_slug(
             self.db,
             slug,

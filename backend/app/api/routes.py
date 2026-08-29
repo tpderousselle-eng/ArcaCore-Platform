@@ -30,6 +30,9 @@ from backend.app.admin import (
 from backend.app.users import (
     router as users_router,
 )
+from backend.app.organizations import (
+    router as organizations_router,
+)
 
 router = APIRouter()
 
@@ -64,3 +67,6 @@ router.include_router(admin_router)
 
 # Users
 router.include_router(users_router)
+
+# Organizations
+router.include_router(organizations_router)

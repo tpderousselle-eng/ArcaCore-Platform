@@ -8,6 +8,10 @@ class OrganizationMemberCreate(BaseModel):
     role: str = "member"
 
 
+class OrganizationMemberRoleUpdate(BaseModel):
+    role: str
+
+
 class OrganizationMemberResponse(BaseModel):
     id: int
     organization_id: int

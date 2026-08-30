@@ -1,15 +1,14 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.app.auth.dependencies import get_current_user
-from backend.app.auth.permissions import require_admin
 from backend.app.db.session import get_db
-from backend.app.models.user import User
 from backend.app.schemas.organization_invitation import (
-    AcceptInvitationRequest,
     OrganizationInvitationCreate,
     OrganizationInvitationListResponse,
     OrganizationInvitationResponse,
+)
+from backend.app.security.organization_permissions import (
+    require_admin,
 )
 from backend.app.services.organization_invitation import (
     OrganizationInvitationService,
@@ -21,59 +20,69 @@ router = APIRouter(
 )
 
 
+# ---------------------------------------------------------
+# Invite Member
+# ---------------------------------------------------------
+
 @router.post(
     "/{organization_id}/invitations",
     response_model=OrganizationInvitationResponse,
     status_code=201,
 )
-def create_invitation(
+def invite_member(
     organization_id: int,
     request: OrganizationInvitationCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user=Depends(require_admin),
 ):
     service = OrganizationInvitationService(db)
 
-    return service.create_invitation(
+    return service.invite_member(
         organization_id=organization_id,
-        invitation=request,
         invited_by=current_user.id,
+        request=request,
     )
 
+
+# ---------------------------------------------------------
+# List Invitations
+# ---------------------------------------------------------
 
 @router.get(
     "/{organization_id}/invitations",
     response_model=OrganizationInvitationListResponse,
 )
-def list_pending_invitations(
+def list_invitations(
     organization_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin),
+    current_user=Depends(require_admin),
 ):
     service = OrganizationInvitationService(db)
 
-    invitations = service.list_pending_invitations(
+    invitations = service.list_invitations(
         organization_id,
     )
 
     return {
-        "message": "Pending invitations retrieved successfully.",
+        "message": "Organization invitations retrieved successfully.",
         "data": invitations,
     }
 
 
+# ---------------------------------------------------------
+# Accept Invitation
+# ---------------------------------------------------------
+
 @router.post(
-    "/accept-invitation",
+    "/invitations/{token}/accept",
     response_model=OrganizationInvitationResponse,
 )
 def accept_invitation(
-    request: AcceptInvitationRequest,
+    token: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ):
     service = OrganizationInvitationService(db)
 
     return service.accept_invitation(
-        invitation_request=request,
-        current_user_id=current_user.id,
+        token,
     )

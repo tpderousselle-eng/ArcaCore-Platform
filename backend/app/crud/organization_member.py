@@ -48,3 +48,11 @@ def get_organization_members(
         )
         .all()
     )
+
+
+def delete_organization_member(
+    db: Session,
+    member: OrganizationMember,
+) -> None:
+    db.delete(member)
+    db.commit()

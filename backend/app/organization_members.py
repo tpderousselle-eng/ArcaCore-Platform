@@ -1,12 +1,17 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from backend.app.auth.permissions import require_admin
+from backend.app.auth.dependencies import get_current_user
 from backend.app.db.session import get_db
+from backend.app.models.user import User
 from backend.app.schemas.organization_member import (
     OrganizationMemberCreate,
     OrganizationMemberListResponse,
     OrganizationMemberResponse,
+    OrganizationMemberRoleUpdate,
+)
+from backend.app.security.organization_permissions import (
+    require_admin,
 )
 from backend.app.services.organization_member import (
     OrganizationMemberService,
@@ -56,3 +61,56 @@ def list_members(
         "message": "Organization members retrieved successfully.",
         "data": members,
     }
+
+
+@router.patch(
+    "/{organization_id}/members/{user_id}/role",
+    response_model=OrganizationMemberResponse,
+)
+def change_member_role(
+    organization_id: int,
+    user_id: int,
+    request: OrganizationMemberRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    service = OrganizationMemberService(db)
+
+    return service.change_member_role(
+        organization_id=organization_id,
+        user_id=user_id,
+        request=request,
+    )
+
+
+@router.delete(
+    "/{organization_id}/members/{user_id}",
+)
+def remove_member(
+    organization_id: int,
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_admin),
+):
+    service = OrganizationMemberService(db)
+
+    return service.remove_member(
+        organization_id=organization_id,
+        user_id=user_id,
+    )
+
+
+@router.post(
+    "/{organization_id}/leave",
+)
+def leave_organization(
+    organization_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = OrganizationMemberService(db)
+
+    return service.leave_organization(
+        organization_id=organization_id,
+        current_user_id=current_user.id,
+    )

@@ -40,6 +40,9 @@ from backend.app.organization_members import (
 from backend.app.organization_invitations import (
     router as organization_invitations_router,
 )
+from backend.app.workspaces import (
+    router as workspaces_router,
+)
 
 router = APIRouter()
 
@@ -83,3 +86,6 @@ router.include_router(organization_members_router)
 
 # Organization Invitations
 router.include_router(organization_invitations_router)
+
+# Workspaces
+router.include_router(workspaces_router)

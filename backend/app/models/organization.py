@@ -68,3 +68,9 @@ class Organization(Base):
         back_populates="organization",
         cascade="all, delete-orphan",
     )
+
+    workspaces = relationship(
+        "Workspace",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+    )

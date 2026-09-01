@@ -68,6 +68,12 @@ class Workspace(Base):
         back_populates="workspaces",
     )
 
+    projects = relationship(
+        "Project",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+    )
+
     creator = relationship(
         "User",
         foreign_keys=[created_by],

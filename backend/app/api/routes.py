@@ -1,5 +1,11 @@
 from fastapi import APIRouter
 
+from backend.app.admin import (
+    router as admin_router,
+)
+from backend.app.auth.change_password import (
+    router as change_password_router,
+)
 from backend.app.auth.forgot_password import (
     router as forgot_password_router,
 )
@@ -21,24 +27,23 @@ from backend.app.auth.reset_password import (
 from backend.app.auth.verify_email import (
     router as verify_email_router,
 )
-from backend.app.auth.change_password import (
-    router as change_password_router,
-)
-
-from backend.app.admin import (
-    router as admin_router,
-)
-from backend.app.users import (
-    router as users_router,
-)
-from backend.app.organizations import (
-    router as organizations_router,
+from backend.app.organization_invitations import (
+    router as organization_invitations_router,
 )
 from backend.app.organization_members import (
     router as organization_members_router,
 )
-from backend.app.organization_invitations import (
-    router as organization_invitations_router,
+from backend.app.organizations import (
+    router as organizations_router,
+)
+from backend.app.api.project import (
+    router as projects_router,
+)
+from backend.app.users import (
+    router as users_router,
+)
+from backend.app.workspace_members import (
+    router as workspace_members_router,
 )
 from backend.app.workspaces import (
     router as workspaces_router,
@@ -89,3 +94,9 @@ router.include_router(organization_invitations_router)
 
 # Workspaces
 router.include_router(workspaces_router)
+
+# Workspace Members
+router.include_router(workspace_members_router)
+
+# Projects
+router.include_router(projects_router)

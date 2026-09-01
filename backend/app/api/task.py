@@ -6,41 +6,41 @@ from fastapi import (
 from sqlalchemy.orm import Session
 
 from backend.app.db.session import get_db
-from backend.app.schemas.project import (
-    ProjectCreate,
-    ProjectListResponse,
-    ProjectResponse,
-    ProjectUpdate,
+from backend.app.schemas.task import (
+    TaskCreate,
+    TaskListResponse,
+    TaskResponse,
+    TaskUpdate,
 )
-from backend.app.security.resource_permissions import (
+from backend.app.security.project_permissions import (
     require_project_admin,
 )
-from backend.app.services.project import ProjectService
+from backend.app.services.task import TaskService
 
 router = APIRouter(
-    prefix="/workspaces/{workspace_id}/projects",
-    tags=["Projects"],
+    prefix="/projects/{project_id}/tasks",
+    tags=["Tasks"],
 )
 
 
 @router.post(
     "",
-    response_model=ProjectResponse,
+    response_model=TaskResponse,
     status_code=201,
 )
-def create_project(
-    workspace_id: int,
-    project: ProjectCreate,
+def create_task(
+    project_id: int,
+    task: TaskCreate,
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ):
-    service = ProjectService(db)
+    service = TaskService(db)
 
     try:
-        return service.create_project(
-            workspace_id=workspace_id,
+        return service.create_task(
+            project_id=project_id,
             user_id=current_user.id,
-            project=project,
+            task=task,
         )
     except ValueError as e:
         raise HTTPException(
@@ -51,35 +51,35 @@ def create_project(
 
 @router.get(
     "",
-    response_model=ProjectListResponse,
+    response_model=TaskListResponse,
 )
-def list_projects(
-    workspace_id: int,
-    db: Session = Depends(get_db),
-    current_user=Depends(require_project_admin),
-):
-    service = ProjectService(db)
-
-    return {
-        "message": "Projects retrieved successfully.",
-        "data": service.list_projects(workspace_id),
-    }
-
-
-@router.get(
-    "/{project_id}",
-    response_model=ProjectResponse,
-)
-def get_project(
-    workspace_id: int,
+def list_tasks(
     project_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ):
-    service = ProjectService(db)
+    service = TaskService(db)
+
+    return {
+        "message": "Tasks retrieved successfully.",
+        "data": service.list_tasks(project_id),
+    }
+
+
+@router.get(
+    "/{task_id}",
+    response_model=TaskResponse,
+)
+def get_task(
+    project_id: int,
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(require_project_admin),
+):
+    service = TaskService(db)
 
     try:
-        return service.get_project(project_id)
+        return service.get_task(task_id)
     except ValueError as e:
         raise HTTPException(
             status_code=404,
@@ -88,22 +88,22 @@ def get_project(
 
 
 @router.put(
-    "/{project_id}",
-    response_model=ProjectResponse,
+    "/{task_id}",
+    response_model=TaskResponse,
 )
-def update_project(
-    workspace_id: int,
+def update_task(
     project_id: int,
-    project: ProjectUpdate,
+    task_id: int,
+    task: TaskUpdate,
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ):
-    service = ProjectService(db)
+    service = TaskService(db)
 
     try:
-        return service.update_project(
-            project_id,
-            project,
+        return service.update_task(
+            task_id,
+            task,
         )
     except ValueError as e:
         raise HTTPException(
@@ -113,18 +113,18 @@ def update_project(
 
 
 @router.delete(
-    "/{project_id}",
+    "/{task_id}",
 )
-def delete_project(
-    workspace_id: int,
+def delete_task(
     project_id: int,
+    task_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(require_project_admin),
 ):
-    service = ProjectService(db)
+    service = TaskService(db)
 
     try:
-        return service.delete_project(project_id)
+        return service.delete_task(task_id)
     except ValueError as e:
         raise HTTPException(
             status_code=404,

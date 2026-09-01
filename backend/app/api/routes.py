@@ -3,6 +3,12 @@ from fastapi import APIRouter
 from backend.app.admin import (
     router as admin_router,
 )
+from backend.app.api.project import (
+    router as projects_router,
+)
+from backend.app.api.task import (
+    router as tasks_router,
+)
 from backend.app.auth.change_password import (
     router as change_password_router,
 )
@@ -35,9 +41,6 @@ from backend.app.organization_members import (
 )
 from backend.app.organizations import (
     router as organizations_router,
-)
-from backend.app.api.project import (
-    router as projects_router,
 )
 from backend.app.users import (
     router as users_router,
@@ -100,3 +103,6 @@ router.include_router(workspace_members_router)
 
 # Projects
 router.include_router(projects_router)
+
+# Tasks
+router.include_router(tasks_router)

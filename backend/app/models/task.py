@@ -15,8 +15,8 @@ from sqlalchemy.orm import (
 from backend.app.db.base import Base
 
 
-class Workspace(Base):
-    __tablename__ = "workspaces"
+class Task(Base):
+    __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(
         Integer,
@@ -24,12 +24,17 @@ class Workspace(Base):
         index=True,
     )
 
-    organization_id: Mapped[int] = mapped_column(
-        ForeignKey("organizations.id"),
+    project_id: Mapped[int] = mapped_column(
+        ForeignKey("projects.id"),
         nullable=False,
     )
 
-    name: Mapped[str] = mapped_column(
+    parent_task_id: Mapped[int | None] = mapped_column(
+        ForeignKey("tasks.id"),
+        nullable=True,
+    )
+
+    title: Mapped[str] = mapped_column(
         String,
         nullable=False,
     )
@@ -45,9 +50,41 @@ class Workspace(Base):
         nullable=True,
     )
 
+    status: Mapped[str] = mapped_column(
+        String,
+        default="todo",
+        nullable=False,
+    )
+
+    priority: Mapped[str] = mapped_column(
+        String,
+        default="medium",
+        nullable=False,
+    )
+
     created_by: Mapped[int] = mapped_column(
         ForeignKey("users.id"),
         nullable=False,
+    )
+
+    assigned_to: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+
+    start_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    due_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+    )
+
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -63,24 +100,21 @@ class Workspace(Base):
         nullable=False,
     )
 
-    organization = relationship(
-        "Organization",
-        back_populates="workspaces",
-    )
-
-    projects = relationship(
+    project = relationship(
         "Project",
-        back_populates="workspace",
-        cascade="all, delete-orphan",
-    )
-
-    members = relationship(
-        "WorkspaceMember",
-        back_populates="workspace",
-        cascade="all, delete-orphan",
     )
 
     creator = relationship(
         "User",
         foreign_keys=[created_by],
+    )
+
+    assignee = relationship(
+        "User",
+        foreign_keys=[assigned_to],
+    )
+
+    parent_task = relationship(
+        "Task",
+        remote_side=[id],
     )

@@ -1,0 +1,13 @@
+from backend.app.crud.{{ module }} import {{ class_name }}CRUD
+
+
+class {{ class_name }}Service:
+
+    def __init__(self, db):
+        self.crud = {{ class_name }}CRUD(db)
+
+    def get(self, item_id: int):
+        return self.crud.get(item_id)
+
+    def list(self):
+        return self.crud.list()

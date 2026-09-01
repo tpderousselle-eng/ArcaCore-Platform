@@ -1,3 +1,4 @@
+from backend.app.core.base_service import BaseService
 from backend.app.crud.project import ProjectCRUD
 from backend.app.schemas.project import (
     ProjectCreate,
@@ -5,9 +6,9 @@ from backend.app.schemas.project import (
 )
 
 
-class ProjectService:
+class ProjectService(BaseService):
     def __init__(self, db):
-        self.crud = ProjectCRUD(db)
+        super().__init__(ProjectCRUD(db))
 
     def create_project(
         self,
@@ -35,12 +36,10 @@ class ProjectService:
         self,
         project_id: int,
     ):
-        project = self.crud.get_project(project_id)
-
-        if project is None:
-            raise ValueError("Project not found.")
-
-        return project
+        return self.get_or_404(
+            self.crud.get_project(project_id),
+            "Project not found.",
+        )
 
     def update_project(
         self,

@@ -1,0 +1,57 @@
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
+
+{% if has_relationships %}
+from sqlalchemy.orm import relationship
+{% endif %}
+
+from backend.app.db.base import Base
+
+
+class {{ class_name }}(Base):
+    __tablename__ = "{{ table_name }}"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True,
+    )
+
+{% for field in fields %}
+    {{ field.name }} = Column(
+{% for argument in field.arguments %}
+        {{ argument }},
+{% endfor %}
+    )
+
+{% endfor %}
+{% for field in fields %}
+{% if field.relationship_arguments %}
+    {{ field.relationship_name }} = relationship(
+{% for argument in field.relationship_arguments %}
+        {{ argument }},
+{% endfor %}
+    )
+
+{% endif %}
+{% endfor %}
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )

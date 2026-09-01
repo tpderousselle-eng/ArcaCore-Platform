@@ -1,0 +1,49 @@
+{
+    "Invoice": {
+        "table": "invoices",
+        "fields": [
+            {
+                "name": "title",
+                "python_type": "str",
+                "sqlalchemy_type": "String",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            },
+            {
+                "name": "amount",
+                "python_type": "float",
+                "sqlalchemy_type": "Float",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            },
+            {
+                "name": "paid",
+                "python_type": "bool",
+                "sqlalchemy_type": "Boolean",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": "False",
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            }
+        ]
+    }
+}

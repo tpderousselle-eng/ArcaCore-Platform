@@ -1,0 +1,22 @@
+from sqlalchemy.orm import Session
+
+from backend.app.models.{{ module }} import {{ class_name }}
+
+
+class {{ class_name }}CRUD:
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get(self, item_id: int):
+        return (
+            self.db.query({{ class_name }})
+            .filter({{ class_name }}.id == item_id)
+            .first()
+        )
+
+    def list(self):
+        return (
+            self.db.query({{ class_name }})
+            .all()
+        )

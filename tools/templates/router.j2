@@ -1,0 +1,13 @@
+from fastapi import APIRouter
+
+router = APIRouter(
+    prefix="/{{ module }}s",
+    tags=["{{ class_name }}"],
+)
+
+
+@router.get("/")
+def list_{{ module }}s():
+    return {
+        "message": "{{ class_name }} router generated successfully."
+    }

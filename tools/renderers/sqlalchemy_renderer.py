@@ -49,7 +49,9 @@ class SQLAlchemyRenderer:
             arguments.append("primary_key=True")
         if field.nullable:
             arguments.append("nullable=True")
-        elif field.computed_expression is not None or (field.relationship_type == "many_to_one" and field.backref):
+        elif field.computed_expression is not None or (
+            field.relationship_type in {"many_to_one", "self_many_to_one"} and field.backref
+        ):
             arguments.append("nullable=False")
         if field.unique:
             arguments.append("unique=True")
@@ -73,9 +75,11 @@ class SQLAlchemyRenderer:
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
             arguments.append(f"backref=backref({field.backref!r}, uselist=False)")
-        elif field.relationship_type == "many_to_one" and field.backref:
+        elif field.relationship_type in {"many_to_one", "self_many_to_one"} and field.backref:
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
+            if field.relationship_type == "self_many_to_one":
+                arguments.append(f"remote_side=[{field.relationship_key}]")
             arguments.append(f"backref={field.backref!r}")
         elif field.back_populates:
             arguments.append(f'back_populates="{field.back_populates}"')

@@ -4,6 +4,7 @@ from typing import Any
 
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.relationship_parser import configure_one_to_many, validate_one_to_many_names
+from tools.core.self_relationship_parser import configure_self_relationship, validate_self_relationships
 
 
 @dataclass
@@ -117,6 +118,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 raise ValueError("decimal() requires precision and scale.")
         one_to_one = False
         one_to_many = None
+        self_relationship = None
         seen_validation = set()
         for modifier in parts[2:]:
             key, _, value = modifier.partition("=")
@@ -138,6 +140,10 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 if one_to_many is not None:
                     raise ValueError(f"{name}: duplicate one_to_many modifier.")
                 one_to_many = modifier
+            elif modifier == "self_relationship" or modifier.startswith("self_relationship("):
+                if self_relationship is not None:
+                    raise ValueError(f"{name}: duplicate self_relationship modifier.")
+                self_relationship = modifier
             elif modifier.startswith("length="):
                 parsed.max_length = int(value)
             elif modifier.startswith("min_length="):
@@ -172,9 +178,14 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             parsed.unique = True
             parsed.back_populates = None
             parsed.backref = module_name.lower()
+        if self_relationship is not None:
+            if one_to_one or one_to_many is not None:
+                raise ValueError(f"{name}: self_relationship cannot be combined with other relationship modifiers.")
+            configure_self_relationship(parsed, module_name, self_relationship)
         if one_to_many is not None:
             configure_one_to_many(parsed, module_name, one_to_many)
         fields.append(parsed)
     validate_one_to_many_names(fields)
+    validate_self_relationships(fields)
     validate_computed_fields(fields)
     return fields

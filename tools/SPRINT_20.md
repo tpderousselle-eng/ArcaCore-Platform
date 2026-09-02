@@ -11,9 +11,9 @@ One-to-One and Many-to-Many are already implemented and are not new batch items.
 
 | Order | Feature | Status |
 | --- | --- | --- |
-| 1 | One-to-Many | Prepared for local testing and commit |
-| 2 | Self Relationships | Queued; not started |
-| 3 | Cascade Delete | Queued; not started |
+| 1 | One-to-Many | Local 71-test suite passed; user committed 1810fd3 |
+| 2 | Self Relationships | 80-test suite passed here; prepared for local testing and commit |
+| 3 | Cascade Delete | Queued; awaiting feature 2 local test and commit |
 
 After each feature, deliver complete replacement files in a ZIP and wait for the
 user's local smoke-test and commit result before implementing the next feature.

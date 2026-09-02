@@ -114,6 +114,14 @@ class {{ class_name }}(Base):
 
 {% endif %}
 {% endfor %}
+{% if soft_delete %}
+    deleted_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        index=True,
+    )
+
+{% endif %}
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),

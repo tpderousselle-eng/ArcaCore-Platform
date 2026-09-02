@@ -17,6 +17,21 @@ class ModuleDefinition:
     table_name: str
     fields: list[Field]
     indexes: list[CompositeIndex] = dataclass_field(default_factory=list)
+    soft_delete: bool = False
+
+    def __post_init__(self):
+        if self.soft_delete:
+            if any(
+                field.name == "deleted_at" or field.relationship_name == "deleted_at"
+                for field in self.fields
+            ):
+                raise ValueError("deleted_at is reserved when soft_delete is enabled.")
+            if sum(field.primary_key for field in self.fields) > 1:
+                raise ValueError("soft_delete requires a single primary key.")
+
+    @property
+    def primary_key_name(self) -> str:
+        return next((field.name for field in self.fields if field.primary_key), "id")
 
     @property
     def has_relationships(self) -> bool:

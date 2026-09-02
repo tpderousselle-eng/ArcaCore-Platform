@@ -6,8 +6,22 @@ class {{ class_name }}Service:
     def __init__(self, db):
         self.crud = {{ class_name }}CRUD(db)
 
+{% if soft_delete %}
+    def get(self, item_id, include_deleted: bool = False):
+        return self.crud.get(item_id, include_deleted=include_deleted)
+
+    def list(self, include_deleted: bool = False):
+        return self.crud.list(include_deleted=include_deleted)
+
+    def delete(self, item_id):
+        return self.crud.delete(item_id)
+
+    def restore(self, item_id):
+        return self.crud.restore(item_id)
+{% else %}
     def get(self, item_id: int):
         return self.crud.get(item_id)
 
     def list(self):
         return self.crud.list()
+{% endif %}

@@ -64,6 +64,7 @@ def generate_model(module: ModuleDefinition):
         fields=rendered_fields,
         associations=associations,
         indexes=[SQLAlchemyRenderer.render_index(index) for index in module.indexes],
+        soft_delete=module.soft_delete,
         has_relationships=has_relationships,
         has_one_to_one=has_one_to_one,
         has_primary_key=module.has_primary_key,

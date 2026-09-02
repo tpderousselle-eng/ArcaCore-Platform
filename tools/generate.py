@@ -20,8 +20,13 @@ def generate_module(
 ):
     field_definitions = []
     index_definitions = []
+    soft_delete = False
     for definition in field_strings:
-        if definition == "index" or definition.startswith("index("):
+        if definition == "soft_delete":
+            if soft_delete:
+                raise ValueError("soft_delete can only be specified once.")
+            soft_delete = True
+        elif definition == "index" or definition.startswith("index("):
             index_definitions.append(definition)
         else:
             field_definitions.append(definition)
@@ -29,7 +34,7 @@ def generate_module(
     fields = parse_fields(name, field_definitions)
     FieldValidator.validate(fields)
     table_name = f"{name.lower()}s"
-    indexes = parse_indexes(table_name, index_definitions, fields)
+    indexes = parse_indexes(table_name, index_definitions, fields, soft_delete=soft_delete)
 
     module = ModuleDefinition(
         name=name,
@@ -38,6 +43,7 @@ def generate_module(
         table_name=table_name,
         fields=fields,
         indexes=indexes,
+        soft_delete=soft_delete,
     )
 
     print("=" * 60)
@@ -62,7 +68,7 @@ def generate_module(
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
-        print("python -m tools.generate <ModuleName> field:type [additional fields or indexes]")
+        print("python -m tools.generate <ModuleName> field:type [additional fields or options]")
         sys.exit(1)
 
     generate_module(sys.argv[1], sys.argv[2:])

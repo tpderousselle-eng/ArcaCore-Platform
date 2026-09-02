@@ -9,11 +9,14 @@ def parse_indexes(
     table_name: str,
     definitions: list[str],
     fields: list[Field],
+    soft_delete: bool = False,
 ) -> list[CompositeIndex]:
     columns = {
         field.name for field in fields if field.relationship_type != "many_to_many"
     }
     columns.update({"created_at", "updated_at"})
+    if soft_delete:
+        columns.add("deleted_at")
     if not any(field.primary_key for field in fields):
         columns.add("id")
 

@@ -14,55 +14,28 @@ REGISTRY_PATH = (
 
 
 class Registry:
-
     @staticmethod
     def load() -> dict:
-
         if not REGISTRY_PATH.exists():
             return {}
-
-        with open(
-            REGISTRY_PATH,
-            "r",
-            encoding="utf-8",
-        ) as f:
-
+        with open(REGISTRY_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
 
     @staticmethod
-    def save(
-        data: dict,
-    ):
-
-        with open(
-            REGISTRY_PATH,
-            "w",
-            encoding="utf-8",
-        ) as f:
-
-            json.dump(
-                data,
-                f,
-                indent=4,
-            )
+    def save(data: dict):
+        with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
 
     @staticmethod
-    def register(
-        module: ModuleDefinition,
-    ):
-
+    def register(module: ModuleDefinition):
         registry = Registry.load()
-
         registry[module.class_name] = {
             "table": module.table_name,
             "fields": [],
         }
 
         for field in module.fields:
-
-            registry[module.class_name][
-                "fields"
-            ].append(
+            registry[module.class_name]["fields"].append(
                 {
                     "name": field.name,
                     "python_type": field.python_type,
@@ -76,9 +49,11 @@ class Registry:
                     "relationship_class": field.relationship_class,
                     "relationship_type": field.relationship_type,
                     "back_populates": field.back_populates,
+                    "backref": field.backref,
+                    "association_table": field.association_table,
+                    "relationship_table": field.relationship_table,
+                    "relationship_key": field.relationship_key,
                 }
             )
 
-        Registry.save(
-            registry,
-        )
+        Registry.save(registry)

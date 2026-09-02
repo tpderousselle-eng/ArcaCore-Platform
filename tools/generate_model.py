@@ -14,11 +14,27 @@ def generate_model(module: ModuleDefinition):
     )
 
     rendered_fields = []
+    associations = []
     has_relationships = False
     has_one_to_one = False
     required_types = set()
+    primary_keys = [field.name for field in module.fields if field.primary_key]
+    many_targets = set()
 
     for field in module.fields:
+        if field.relationship_type == "many_to_many":
+            if len(primary_keys) > 1:
+                raise ValueError("many_to_many requires a single source primary key.")
+            if field.relationship_class in many_targets:
+                raise ValueError("Only one many_to_many relationship per target model is supported.")
+            many_targets.add(field.relationship_class)
+            source_key = primary_keys[0] if primary_keys else "id"
+            associations.append({
+                "name": field.association_table,
+                "source_reference": f"{module.table_name}.{source_key}",
+                "target_reference": f"{field.relationship_table}.{field.relationship_key}",
+            })
+
         relationship_arguments = SQLAlchemyRenderer.render_relationship(field)
         if relationship_arguments:
             has_relationships = True
@@ -46,6 +62,7 @@ def generate_model(module: ModuleDefinition):
         class_name=module.class_name,
         table_name=module.table_name,
         fields=rendered_fields,
+        associations=associations,
         has_relationships=has_relationships,
         has_one_to_one=has_one_to_one,
         has_primary_key=module.has_primary_key,

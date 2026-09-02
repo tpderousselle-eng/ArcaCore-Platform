@@ -24,6 +24,9 @@ from sqlalchemy import (
     JSON,
 {% endif %}
     String,
+{% if associations %}
+    Table,
+{% endif %}
     Text,
 {% if has_uuid %}
     UUID,
@@ -43,6 +46,15 @@ from sqlalchemy.orm import backref
 {% endif %}
 from backend.app.db.base import Base
 
+{% for association in associations %}
+{{ association.name }} = Table(
+    "{{ association.name }}",
+    Base.metadata,
+    Column("source_id", ForeignKey("{{ association.source_reference }}"), primary_key=True),
+    Column("target_id", ForeignKey("{{ association.target_reference }}"), primary_key=True),
+)
+
+{% endfor %}
 {% if has_enum %}
 {% for enum_name, enum_values in enums %}
 class {{ enum_name }}(str, Enum):
@@ -65,6 +77,7 @@ class {{ class_name }}(Base):
 
 {% endif %}
 {% for field in fields %}
+{% if field.arguments %}
     {{ field.name }} = Column(
 {% for argument in field.arguments %}
 {% if argument.startswith("Enum(") %}
@@ -78,6 +91,7 @@ class {{ class_name }}(Base):
 {% endif %}
     )
 
+{% endif %}
 {% endfor %}
 {% for field in fields %}
 {% if field.relationship_arguments %}

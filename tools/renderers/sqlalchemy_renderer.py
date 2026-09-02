@@ -6,6 +6,9 @@ class SQLAlchemyRenderer:
     def render(field: Field) -> list[str]:
         arguments: list[str] = []
 
+        if field.relationship_type == "many_to_many":
+            return arguments
+
         if field.sqlalchemy_type == "String":
             if field.max_length:
                 arguments.append(f"String({field.max_length})")
@@ -56,7 +59,10 @@ class SQLAlchemyRenderer:
             return []
 
         arguments = [f'"{field.relationship_class}"']
-        if field.relationship_type == "one_to_one":
+        if field.relationship_type == "many_to_many":
+            arguments.append(f"secondary={field.association_table}")
+            arguments.append(f"backref={field.backref!r}")
+        elif field.relationship_type == "one_to_one":
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
             arguments.append(f"backref=backref({field.backref!r}, uselist=False)")

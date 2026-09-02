@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from keyword import iskeyword
 from typing import Any
 
 
@@ -31,6 +32,8 @@ class Field:
     relationship_type: str | None = None
     back_populates: str | None = None
     backref: str | None = None
+    association_table: str | None = None
+    relationship_key: str | None = None
 
 
 TYPE_MAP = {
@@ -47,13 +50,14 @@ TYPE_MAP = {
     "json": "JSON",
     "array": "ARRAY",
     "choice": "Choice",
+    "many_to_many": "Relationship",
 }
 
 # Array elements use simple types; parameterized elements are excluded.
 ARRAY_ELEMENT_TYPES = {
     name: sqlalchemy_type
     for name, sqlalchemy_type in TYPE_MAP.items()
-    if name not in {"array", "enum", "decimal", "choice"}
+    if name not in {"array", "enum", "decimal", "choice", "many_to_many"}
 }
 
 
@@ -81,7 +85,7 @@ def parse_fields(
                 if arg.strip()
             ]
 
-            if base_type in {"array", "choice"}:
+            if base_type in {"array", "choice", "many_to_many"}:
                 # Keep empty arguments so trailing commas are rejected.
                 type_arguments = [arg.strip() for arg in arguments.split(",")]
         else:
@@ -110,6 +114,31 @@ def parse_fields(
             sqlalchemy_type=TYPE_MAP[base_type],
             type_arguments=type_arguments,
         )
+
+        if base_type == "many_to_many":
+            if not type_arguments or len(type_arguments) not in {1, 2} or not all(type_arguments):
+                raise ValueError("many_to_many() requires Model and optionally table.column.")
+            target = type_arguments[0]
+            if any(not value.isidentifier() or iskeyword(value) for value in (name, module_name, target)):
+                raise ValueError("many_to_many() requires valid field and model identifiers.")
+            if len(parts) != 2:
+                raise ValueError(f"{name}: column modifiers are not valid for many_to_many.")
+            target_reference = (
+                type_arguments[1] if len(type_arguments) == 2 else f"{target.lower()}s.id"
+            )
+            target_parts = target_reference.split(".")
+            if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):
+                raise ValueError("many_to_many() target must be table.column.")
+            if target.lower() == module_name.lower() or target_parts[0] == f"{module_name.lower()}s":
+                raise ValueError("Self-referencing many_to_many relationships are not supported yet.")
+            parsed.relationship_name = name
+            parsed.relationship_class = target.capitalize()
+            parsed.relationship_table, parsed.relationship_key = target_parts
+            parsed.relationship_type = "many_to_many"
+            parsed.association_table = f"{module_name.lower()}_{name}"
+            parsed.backref = f"{module_name.lower()}s"
+            fields.append(parsed)
+            continue
 
         if parsed.python_type == "enum" and parsed.type_arguments:
             parsed.enum_name = f"{module_name.capitalize()}{name.capitalize()}"

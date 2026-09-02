@@ -6,25 +6,21 @@ from typing import Any
 @dataclass
 class Field:
     name: str
-
     python_type: str
     sqlalchemy_type: str
-
-    # Parameterized types
     type_arguments: list[str] | None = None
-
-    # Enum metadata
     enum_name: str | None = None
     enum_values: list[str] | None = None
-
     primary_key: bool = False
     nullable: bool = False
     unique: bool = False
     index: bool = False
-
     default: Any = None
     max_length: int | None = None
-
+    minimum: str | None = None
+    maximum: str | None = None
+    min_length: int | None = None
+    pattern: str | None = None
     foreign_key: str | None = None
     relationship_name: str | None = None
     relationship_class: str | None = None
@@ -37,23 +33,11 @@ class Field:
 
 
 TYPE_MAP = {
-    "str": "String",
-    "int": "Integer",
-    "float": "Float",
-    "bool": "Boolean",
-    "datetime": "DateTime",
-    "date": "Date",
-    "text": "Text",
-    "uuid": "UUID",
-    "enum": "Enum",
-    "decimal": "Numeric",
-    "json": "JSON",
-    "array": "ARRAY",
-    "choice": "Choice",
-    "many_to_many": "Relationship",
+    "str": "String", "int": "Integer", "float": "Float", "bool": "Boolean",
+    "datetime": "DateTime", "date": "Date", "text": "Text", "uuid": "UUID",
+    "enum": "Enum", "decimal": "Numeric", "json": "JSON", "array": "ARRAY",
+    "choice": "Choice", "many_to_many": "Relationship",
 }
-
-# Array elements use simple types; parameterized elements are excluded.
 ARRAY_ELEMENT_TYPES = {
     name: sqlalchemy_type
     for name, sqlalchemy_type in TYPE_MAP.items()
@@ -61,45 +45,34 @@ ARRAY_ELEMENT_TYPES = {
 }
 
 
-def parse_fields(
-    module_name: str,
-    field_strings: list[str],
-) -> list[Field]:
+def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
     fields: list[Field] = []
-
     for field in field_strings:
-        parts = field.split(":")
+        # Regex is the last modifier; its colons and backslashes are literal.
+        prefix, separator, pattern = field.partition(":regex=")
+        parts = prefix.split(":")
+        if separator:
+            parts.append("regex=" + pattern)
         if len(parts) < 2:
             raise ValueError(f"Invalid field definition: {field}")
-
         name = parts[0]
         raw_type = parts[1]
         type_arguments = None
-
         if "(" in raw_type and raw_type.endswith(")"):
             base_type = raw_type.split("(", 1)[0]
             arguments = raw_type[raw_type.index("(") + 1 : -1]
-            type_arguments = [
-                arg.strip()
-                for arg in arguments.split(",")
-                if arg.strip()
-            ]
-
+            type_arguments = [arg.strip() for arg in arguments.split(",") if arg.strip()]
             if base_type in {"array", "choice", "many_to_many"}:
-                # Keep empty arguments so trailing commas are rejected.
                 type_arguments = [arg.strip() for arg in arguments.split(",")]
         else:
             base_type = raw_type
-
         if base_type not in TYPE_MAP:
             raise ValueError(f"Unsupported type: {base_type}")
-
         if base_type == "array":
             if not type_arguments or len(type_arguments) != 1 or not type_arguments[0]:
                 raise ValueError("array() requires exactly one element type.")
             if type_arguments[0] not in ARRAY_ELEMENT_TYPES:
                 raise ValueError(f"Unsupported array element type: {type_arguments[0]}")
-
         if base_type == "choice":
             if not type_arguments or any(not value for value in type_arguments):
                 raise ValueError("choice() requires non-empty string values.")
@@ -107,14 +80,8 @@ def parse_fields(
                 raise ValueError("choice() values must be unique.")
             if any("(" in value or ")" in value for value in type_arguments):
                 raise ValueError("choice() values cannot contain parentheses.")
-
-        parsed = Field(
-            name=name,
-            python_type=base_type,
-            sqlalchemy_type=TYPE_MAP[base_type],
-            type_arguments=type_arguments,
-        )
-
+        parsed = Field(name=name, python_type=base_type,
+                       sqlalchemy_type=TYPE_MAP[base_type], type_arguments=type_arguments)
         if base_type == "many_to_many":
             if not type_arguments or len(type_arguments) not in {1, 2} or not all(type_arguments):
                 raise ValueError("many_to_many() requires Model and optionally table.column.")
@@ -123,9 +90,7 @@ def parse_fields(
                 raise ValueError("many_to_many() requires valid field and model identifiers.")
             if len(parts) != 2:
                 raise ValueError(f"{name}: column modifiers are not valid for many_to_many.")
-            target_reference = (
-                type_arguments[1] if len(type_arguments) == 2 else f"{target.lower()}s.id"
-            )
+            target_reference = type_arguments[1] if len(type_arguments) == 2 else f"{target.lower()}s.id"
             target_parts = target_reference.split(".")
             if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):
                 raise ValueError("many_to_many() target must be table.column.")
@@ -139,17 +104,20 @@ def parse_fields(
             parsed.backref = f"{module_name.lower()}s"
             fields.append(parsed)
             continue
-
         if parsed.python_type == "enum" and parsed.type_arguments:
             parsed.enum_name = f"{module_name.capitalize()}{name.capitalize()}"
             parsed.enum_values = parsed.type_arguments
-
         if parsed.python_type == "decimal" and parsed.type_arguments:
             if len(parsed.type_arguments) != 2:
                 raise ValueError("decimal() requires precision and scale.")
-
         one_to_one = False
+        seen_validation = set()
         for modifier in parts[2:]:
+            key, _, value = modifier.partition("=")
+            if key in {"min", "max", "min_length", "length", "regex"}:
+                if key in seen_validation:
+                    raise ValueError(f"{name}: duplicate {key} modifier.")
+                seen_validation.add(key)
             if modifier == "pk":
                 parsed.primary_key = True
             elif modifier == "nullable":
@@ -161,24 +129,27 @@ def parse_fields(
             elif modifier == "one_to_one":
                 one_to_one = True
             elif modifier.startswith("length="):
-                parsed.max_length = int(modifier.split("=")[1])
+                parsed.max_length = int(value)
+            elif modifier.startswith("min_length="):
+                parsed.min_length = int(value)
+            elif modifier.startswith("min="):
+                parsed.minimum = value
+            elif modifier.startswith("max="):
+                parsed.maximum = value
+            elif modifier.startswith("regex="):
+                parsed.pattern = value
             elif modifier.startswith("default="):
-                parsed.default = modifier.split("=", 1)[1]
+                parsed.default = value
             elif modifier.startswith("fk="):
-                fk = modifier.split("=", 1)[1]
-                parsed.foreign_key = fk
-                table = fk.split(".")[0]
+                parsed.foreign_key = value
+                table = value.split(".")[0]
                 parsed.relationship_table = table
-                if parsed.name.endswith("_id"):
-                    parsed.relationship_name = parsed.name[:-3]
-                else:
-                    parsed.relationship_name = table
+                parsed.relationship_name = parsed.name[:-3] if parsed.name.endswith("_id") else table
                 parsed.relationship_class = parsed.relationship_name.capitalize()
                 parsed.relationship_type = "many_to_one"
                 parsed.back_populates = f"{module_name.lower()}s"
             else:
                 raise ValueError(f"Unknown modifier: {modifier}")
-
         if one_to_one:
             target_parts = (parsed.foreign_key or "").split(".")
             if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):
@@ -189,7 +160,5 @@ def parse_fields(
             parsed.unique = True
             parsed.back_populates = None
             parsed.backref = module_name.lower()
-
         fields.append(parsed)
-
     return fields

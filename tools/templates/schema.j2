@@ -1,21 +1,43 @@
-from pydantic import BaseModel
+import datetime as _datetime
+import decimal as _decimal
+import re as _re
+import typing as _typing
+import uuid as _uuid
+
+import pydantic as _pydantic
 
 
-class {{ class_name }}Base(BaseModel):
-    pass
+class {{ class_name }}Base(_pydantic.BaseModel):
+{% for field in fields %}
+    {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['create'] }})
+{% endfor %}
+
+    @_pydantic.field_validator("*", mode="before")
+    @classmethod
+    def _validate_nonnullable(cls, value, info):
+        if value is None and info.field_name in {{ nonnullable }}:
+            raise ValueError("This field cannot be null.")
+        return value
 
 
 class {{ class_name }}Create({{ class_name }}Base):
     pass
 
 
-class {{ class_name }}Update(BaseModel):
+class {{ class_name }}Update({{ class_name }}Base):
+{% for field in fields %}
+    {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['update'] }})
+{% else %}
     pass
+{% endfor %}
 
 
 class {{ class_name }}Response({{ class_name }}Base):
+{% for field in fields %}
+    {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['response'] }})
+{% endfor %}
+{% if implicit_id %}
     id: int
+{% endif %}
 
-    model_config = {
-        "from_attributes": True,
-    }
+    model_config = {"from_attributes": True}

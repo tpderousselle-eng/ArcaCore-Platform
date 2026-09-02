@@ -5,12 +5,7 @@ from tools.core.engine import PROJECT_ROOT
 from tools.core.module_definition import ModuleDefinition
 
 
-REGISTRY_PATH = (
-    PROJECT_ROOT
-    / "tools"
-    / "registry"
-    / "models.json"
-)
+REGISTRY_PATH = PROJECT_ROOT / "tools" / "registry" / "models.json"
 
 
 class Registry:
@@ -46,27 +41,28 @@ class Registry:
                 for item in module.check_constraints
             ],
         }
-
         for field in module.fields:
-            registry[module.class_name]["fields"].append(
-                {
-                    "name": field.name,
-                    "python_type": field.python_type,
-                    "sqlalchemy_type": field.sqlalchemy_type,
-                    "nullable": field.nullable,
-                    "unique": field.unique,
-                    "index": field.index,
-                    "default": field.default,
-                    "foreign_key": field.foreign_key,
-                    "relationship_name": field.relationship_name,
-                    "relationship_class": field.relationship_class,
-                    "relationship_type": field.relationship_type,
-                    "back_populates": field.back_populates,
-                    "backref": field.backref,
-                    "association_table": field.association_table,
-                    "relationship_table": field.relationship_table,
-                    "relationship_key": field.relationship_key,
-                }
-            )
-
+            registry[module.class_name]["fields"].append({
+                "name": field.name,
+                "python_type": field.python_type,
+                "sqlalchemy_type": field.sqlalchemy_type,
+                "nullable": field.nullable,
+                "unique": field.unique,
+                "index": field.index,
+                "default": field.default,
+                "min": field.minimum,
+                "max": field.maximum,
+                "min_length": field.min_length,
+                "max_length": field.max_length,
+                "regex": field.pattern,
+                "foreign_key": field.foreign_key,
+                "relationship_name": field.relationship_name,
+                "relationship_class": field.relationship_class,
+                "relationship_type": field.relationship_type,
+                "back_populates": field.back_populates,
+                "backref": field.backref,
+                "association_table": field.association_table,
+                "relationship_table": field.relationship_table,
+                "relationship_key": field.relationship_key,
+            })
         Registry.save(registry)

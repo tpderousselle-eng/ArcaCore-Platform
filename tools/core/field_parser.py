@@ -3,6 +3,7 @@ from keyword import iskeyword
 from typing import Any
 
 from tools.core.computed_parser import validate_computed_fields
+from tools.core.relationship_parser import configure_one_to_many, validate_one_to_many_names
 
 
 @dataclass
@@ -115,6 +116,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             if len(parsed.type_arguments) != 2:
                 raise ValueError("decimal() requires precision and scale.")
         one_to_one = False
+        one_to_many = None
         seen_validation = set()
         for modifier in parts[2:]:
             key, _, value = modifier.partition("=")
@@ -132,6 +134,10 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.index = True
             elif modifier == "one_to_one":
                 one_to_one = True
+            elif modifier == "one_to_many" or modifier.startswith("one_to_many("):
+                if one_to_many is not None:
+                    raise ValueError(f"{name}: duplicate one_to_many modifier.")
+                one_to_many = modifier
             elif modifier.startswith("length="):
                 parsed.max_length = int(value)
             elif modifier.startswith("min_length="):
@@ -166,6 +172,9 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             parsed.unique = True
             parsed.back_populates = None
             parsed.backref = module_name.lower()
+        if one_to_many is not None:
+            configure_one_to_many(parsed, module_name, one_to_many)
         fields.append(parsed)
+    validate_one_to_many_names(fields)
     validate_computed_fields(fields)
     return fields

@@ -56,6 +56,10 @@ class SQLAlchemyRenderer:
             return []
 
         arguments = [f'"{field.relationship_class}"']
-        if field.back_populates:
+        if field.relationship_type == "one_to_one":
+            arguments.append("uselist=False")
+            arguments.append(f"foreign_keys=[{field.name}]")
+            arguments.append(f"backref=backref({field.backref!r}, uselist=False)")
+        elif field.back_populates:
             arguments.append(f'back_populates="{field.back_populates}"')
         return arguments

@@ -36,6 +36,9 @@ from sqlalchemy import (
 
 {% if has_relationships %}
 from sqlalchemy.orm import relationship
+{% if has_one_to_one %}
+from sqlalchemy.orm import backref
+{% endif %}
 
 {% endif %}
 from backend.app.db.base import Base

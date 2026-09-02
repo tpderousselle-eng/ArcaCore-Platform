@@ -30,6 +30,7 @@ class Field:
     relationship_table: str | None = None
     relationship_type: str | None = None
     back_populates: str | None = None
+    backref: str | None = None
 
 
 TYPE_MAP = {
@@ -118,6 +119,7 @@ def parse_fields(
             if len(parsed.type_arguments) != 2:
                 raise ValueError("decimal() requires precision and scale.")
 
+        one_to_one = False
         for modifier in parts[2:]:
             if modifier == "pk":
                 parsed.primary_key = True
@@ -127,6 +129,8 @@ def parse_fields(
                 parsed.unique = True
             elif modifier == "index":
                 parsed.index = True
+            elif modifier == "one_to_one":
+                one_to_one = True
             elif modifier.startswith("length="):
                 parsed.max_length = int(modifier.split("=")[1])
             elif modifier.startswith("default="):
@@ -145,6 +149,17 @@ def parse_fields(
                 parsed.back_populates = f"{module_name.lower()}s"
             else:
                 raise ValueError(f"Unknown modifier: {modifier}")
+
+        if one_to_one:
+            target_parts = (parsed.foreign_key or "").split(".")
+            if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):
+                raise ValueError(f"{name}: one_to_one requires fk=table.column.")
+            if parsed.sqlalchemy_type in {"ARRAY", "JSON"}:
+                raise ValueError(f"{name}: one_to_one requires a scalar foreign key.")
+            parsed.relationship_type = "one_to_one"
+            parsed.unique = True
+            parsed.back_populates = None
+            parsed.backref = module_name.lower()
 
         fields.append(parsed)
 

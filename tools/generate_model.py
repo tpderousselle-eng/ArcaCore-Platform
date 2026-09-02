@@ -15,12 +15,15 @@ def generate_model(module: ModuleDefinition):
 
     rendered_fields = []
     has_relationships = False
+    has_one_to_one = False
     required_types = set()
 
     for field in module.fields:
         relationship_arguments = SQLAlchemyRenderer.render_relationship(field)
         if relationship_arguments:
             has_relationships = True
+        if field.relationship_type == "one_to_one":
+            has_one_to_one = True
 
         required_types.add(field.sqlalchemy_type)
         if field.sqlalchemy_type == "ARRAY":
@@ -44,6 +47,7 @@ def generate_model(module: ModuleDefinition):
         table_name=module.table_name,
         fields=rendered_fields,
         has_relationships=has_relationships,
+        has_one_to_one=has_one_to_one,
         has_primary_key=module.has_primary_key,
         has_uuid="UUID" in required_types,
         has_enum=module.has_enum,

@@ -17,6 +17,9 @@ from sqlalchemy import (
 {% if has_numeric %}
     Numeric,
 {% endif %}
+{% if has_json %}
+    JSON,
+{% endif %}
     String,
     Text,
 {% if has_uuid %}

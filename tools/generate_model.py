@@ -26,6 +26,7 @@ def generate_model(module: ModuleDefinition):
 
     has_relationships = False
     has_numeric = False
+    has_json = False
 
     for field in module.fields:
 
@@ -40,6 +41,9 @@ def generate_model(module: ModuleDefinition):
 
         if field.sqlalchemy_type == "Numeric":
             has_numeric = True
+
+        if field.sqlalchemy_type == "JSON":
+            has_json = True
 
         rendered_fields.append(
             {
@@ -65,5 +69,6 @@ def generate_model(module: ModuleDefinition):
         has_uuid=module.has_uuid,
         has_enum=module.has_enum,
         has_numeric=has_numeric,
+        has_json=has_json,
         enums=module.enums,
     )

@@ -46,15 +46,17 @@ class SQLAlchemyRenderer:
                 f"Numeric({precision}, {scale})"
             )
 
+        elif field.sqlalchemy_type == "JSON":
+
+            arguments.append(
+                "JSON"
+            )
+
         else:
 
             arguments.append(
                 field.sqlalchemy_type
             )
-
-        #
-        # Foreign Key
-        #
 
         if field.foreign_key:
 
@@ -62,19 +64,11 @@ class SQLAlchemyRenderer:
                 f'ForeignKey("{field.foreign_key}")'
             )
 
-        #
-        # Primary Key
-        #
-
         if field.primary_key:
 
             arguments.append(
                 "primary_key=True"
             )
-
-        #
-        # Nullable
-        #
 
         if field.nullable:
 
@@ -82,29 +76,17 @@ class SQLAlchemyRenderer:
                 "nullable=True"
             )
 
-        #
-        # Unique
-        #
-
         if field.unique:
 
             arguments.append(
                 "unique=True"
             )
 
-        #
-        # Index
-        #
-
         if field.index:
 
             arguments.append(
                 "index=True"
             )
-
-        #
-        # Default
-        #
 
         if field.default is not None:
 
@@ -120,7 +102,6 @@ class SQLAlchemyRenderer:
     ) -> list[str]:
 
         if not field.relationship_name:
-
             return []
 
         arguments = [
@@ -128,7 +109,6 @@ class SQLAlchemyRenderer:
         ]
 
         if field.back_populates:
-
             arguments.append(
                 f'back_populates="{field.back_populates}"'
             )

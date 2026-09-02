@@ -6,7 +6,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
-    Numeric,
+    JSON,
     String,
     Text,
     func,
@@ -25,8 +25,8 @@ class Product(Base):
         index=True,
     )
 
-    price = Column(
-        Numeric(10, 2),
+    metadata = Column(
+        JSON,
     )
 
     created_at = Column(

@@ -168,9 +168,9 @@
         "table": "products",
         "fields": [
             {
-                "name": "price",
-                "python_type": "decimal",
-                "sqlalchemy_type": "Numeric",
+                "name": "metadata",
+                "python_type": "json",
+                "sqlalchemy_type": "JSON",
                 "nullable": false,
                 "unique": false,
                 "index": false,

@@ -51,6 +51,7 @@ TYPE_MAP = {
     "uuid": "UUID",
     "enum": "Enum",
     "decimal": "Numeric",
+    "json": "JSON",
 }
 
 
@@ -105,33 +106,21 @@ def parse_fields(
             type_arguments=type_arguments,
         )
 
-        #
-        # Enum metadata
-        #
-
         if (
             parsed.python_type == "enum"
             and parsed.type_arguments
         ):
-
             parsed.enum_name = (
                 f"{module_name.capitalize()}"
                 f"{name.capitalize()}"
             )
 
-            parsed.enum_values = (
-                parsed.type_arguments
-            )
-
-        #
-        # Decimal validation
-        #
+            parsed.enum_values = parsed.type_arguments
 
         if (
             parsed.python_type == "decimal"
             and parsed.type_arguments
         ):
-
             if len(parsed.type_arguments) != 2:
                 raise ValueError(
                     "decimal() requires precision and scale."

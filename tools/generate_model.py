@@ -1,19 +1,10 @@
-from tools.core.engine import (
-    PROJECT_ROOT,
-    render_template,
-)
-
-from tools.core.module_definition import (
-    ModuleDefinition,
-)
-
-from tools.renderers.sqlalchemy_renderer import (
-    SQLAlchemyRenderer,
-)
+from tools.core.engine import PROJECT_ROOT, render_template
+from tools.core.field_parser import ARRAY_ELEMENT_TYPES
+from tools.core.module_definition import ModuleDefinition
+from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
 
 def generate_model(module: ModuleDefinition):
-
     output = (
         PROJECT_ROOT
         / "backend"
@@ -23,34 +14,22 @@ def generate_model(module: ModuleDefinition):
     )
 
     rendered_fields = []
-
     has_relationships = False
-    has_numeric = False
-    has_json = False
+    required_types = set()
 
     for field in module.fields:
-
-        relationship_arguments = (
-            SQLAlchemyRenderer.render_relationship(
-                field,
-            )
-        )
-
+        relationship_arguments = SQLAlchemyRenderer.render_relationship(field)
         if relationship_arguments:
             has_relationships = True
 
-        if field.sqlalchemy_type == "Numeric":
-            has_numeric = True
-
-        if field.sqlalchemy_type == "JSON":
-            has_json = True
+        required_types.add(field.sqlalchemy_type)
+        if field.sqlalchemy_type == "ARRAY":
+            required_types.add(ARRAY_ELEMENT_TYPES[field.type_arguments[0]])
 
         rendered_fields.append(
             {
                 "name": field.name,
-                "arguments": SQLAlchemyRenderer.render(
-                    field,
-                ),
+                "arguments": SQLAlchemyRenderer.render(field),
                 "relationship_name": field.relationship_name,
                 "relationship_arguments": relationship_arguments,
                 "sqlalchemy_type": field.sqlalchemy_type,
@@ -66,9 +45,10 @@ def generate_model(module: ModuleDefinition):
         fields=rendered_fields,
         has_relationships=has_relationships,
         has_primary_key=module.has_primary_key,
-        has_uuid=module.has_uuid,
+        has_uuid="UUID" in required_types,
         has_enum=module.has_enum,
-        has_numeric=has_numeric,
-        has_json=has_json,
+        has_numeric="Numeric" in required_types,
+        has_json="JSON" in required_types,
+        has_array="ARRAY" in required_types,
         enums=module.enums,
     )

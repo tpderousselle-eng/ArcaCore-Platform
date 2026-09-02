@@ -7,6 +7,9 @@ from enum import Enum
 
 {% endif %}
 from sqlalchemy import (
+{% if has_array %}
+    ARRAY,
+{% endif %}
     Boolean,
     Column,
     Date,

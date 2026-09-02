@@ -1,3 +1,4 @@
+from tools.core.cascade_parser import validate_delete_cascades
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES
@@ -7,6 +8,7 @@ from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
 def generate_model(module: ModuleDefinition):
     validate_computed_fields(module.fields)
+    validate_delete_cascades(module.fields, module.table_name)
     output = (
         PROJECT_ROOT
         / "backend"
@@ -71,6 +73,7 @@ def generate_model(module: ModuleDefinition):
         soft_delete=module.soft_delete,
         has_relationships=has_relationships,
         has_one_to_one=has_one_to_one,
+        has_cascade_delete=any(field.cascade_delete for field in module.fields),
         has_primary_key=module.has_primary_key,
         has_uuid="UUID" in required_types,
         has_enum=module.has_enum,

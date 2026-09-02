@@ -44,7 +44,8 @@ class SQLAlchemyRenderer:
                 raise ValueError(f"{field.name}: computed expression has not been validated.")
             arguments.append(f"Computed({field.computed_sql!r}, persisted=True)")
         if field.foreign_key:
-            arguments.append(f'ForeignKey("{field.foreign_key}")')
+            ondelete = ', ondelete="CASCADE"' if field.cascade_delete else ""
+            arguments.append(f'ForeignKey("{field.foreign_key}"{ondelete})')
         if field.primary_key:
             arguments.append("primary_key=True")
         if field.nullable:
@@ -74,13 +75,17 @@ class SQLAlchemyRenderer:
         elif field.relationship_type == "one_to_one":
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
-            arguments.append(f"backref=backref({field.backref!r}, uselist=False)")
+            cascade = ', cascade="save-update, merge, delete"' if field.cascade_delete else ""
+            arguments.append(f"backref=backref({field.backref!r}, uselist=False{cascade})")
         elif field.relationship_type in {"many_to_one", "self_many_to_one"} and field.backref:
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
             if field.relationship_type == "self_many_to_one":
                 arguments.append(f"remote_side=[{field.relationship_key}]")
-            arguments.append(f"backref={field.backref!r}")
+            if field.cascade_delete:
+                arguments.append(f'backref=backref({field.backref!r}, cascade="save-update, merge, delete")')
+            else:
+                arguments.append(f"backref={field.backref!r}")
         elif field.back_populates:
             arguments.append(f'back_populates="{field.back_populates}"')
         return arguments

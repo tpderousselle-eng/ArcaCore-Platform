@@ -51,7 +51,7 @@ from sqlalchemy import (
 
 {% if has_relationships %}
 from sqlalchemy.orm import relationship
-{% if has_one_to_one %}
+{% if has_one_to_one or has_cascade_delete %}
 from sqlalchemy.orm import backref
 {% endif %}
 

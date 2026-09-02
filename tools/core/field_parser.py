@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from keyword import iskeyword
 from typing import Any
 
+from tools.core.cascade_parser import validate_delete_cascades
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.relationship_parser import configure_one_to_many, validate_one_to_many_names
 from tools.core.self_relationship_parser import configure_self_relationship, validate_self_relationships
@@ -36,6 +37,7 @@ class Field:
     backref: str | None = None
     association_table: str | None = None
     relationship_key: str | None = None
+    cascade_delete: bool = False
 
 
 TYPE_MAP = {
@@ -134,6 +136,10 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.unique = True
             elif modifier == "index":
                 parsed.index = True
+            elif modifier == "cascade_delete":
+                if parsed.cascade_delete:
+                    raise ValueError(f"{name}: duplicate cascade_delete modifier.")
+                parsed.cascade_delete = True
             elif modifier == "one_to_one":
                 one_to_one = True
             elif modifier == "one_to_many" or modifier.startswith("one_to_many("):
@@ -188,4 +194,5 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
     validate_one_to_many_names(fields)
     validate_self_relationships(fields)
     validate_computed_fields(fields)
+    validate_delete_cascades(fields, f"{module_name.lower()}s")
     return fields

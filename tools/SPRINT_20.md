@@ -11,13 +11,14 @@ One-to-One and Many-to-Many are already implemented and are not new batch items.
 
 | Order | Feature | Status |
 | --- | --- | --- |
-| 1 | One-to-Many | Local 71-test suite passed; user committed 1810fd3 |
-| 2 | Self Relationships | 80-test suite passed here; prepared for local testing and commit |
-| 3 | Cascade Delete | Queued; awaiting feature 2 local test and commit |
+| 1 | One-to-Many | Local 71-test suite passed; committed and pushed as 1810fd8 |
+| 2 | Self Relationships | Local 80-test suite passed; committed and pushed as cf46b70 |
+| 3 | Cascade Delete | 94-test suite passed here; prepared for local testing and commit |
 
-After each feature, deliver complete replacement files in a ZIP and wait for the
-user's local smoke-test and commit result before implementing the next feature.
-Stop after the third new feature. Passive Deletes, a fourth feature, and later
-sprints require an explicit new instruction to continue.
+The third feature completes implementation of this authorized batch. Wait for the
+user's local smoke-test and commit result. Remain stopped after that result:
+Passive Deletes, any fourth feature, and later sprints require an explicit new
+instruction to continue.
 
-All framework changes stay inside tools/. No manual backend modifications.
+Every delivery contains complete replacement files in a ZIP. All framework
+changes stay inside tools/. No manual backend modifications.

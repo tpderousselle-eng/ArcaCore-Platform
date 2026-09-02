@@ -1,3 +1,4 @@
+from tools.core.computed_parser import validate_computed_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES
 from tools.core.module_definition import ModuleDefinition
@@ -5,6 +6,7 @@ from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
 
 def generate_model(module: ModuleDefinition):
+    validate_computed_fields(module.fields)
     output = (
         PROJECT_ROOT
         / "backend"
@@ -76,5 +78,6 @@ def generate_model(module: ModuleDefinition):
         has_json="JSON" in required_types,
         has_array="ARRAY" in required_types,
         has_choice="Choice" in required_types,
+        has_computed=any(field.computed_expression is not None for field in module.fields),
         enums=module.enums,
     )

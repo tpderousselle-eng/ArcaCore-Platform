@@ -1,6 +1,7 @@
 import ast
 from decimal import Decimal
 
+from tools.core.computed_parser import validate_computed_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.module_definition import ModuleDefinition
 
@@ -63,22 +64,30 @@ def schema_fields(module):
             default = ["default=None", "validate_default=False"]
         elif field.nullable:
             default = ["default=None"]
+        response = list(constraints)
+        if field.computed_expression is not None:
+            response.append("json_schema_extra={'readOnly': True}")
         result.append({
             "name": field.name,
             "annotation": annotation,
             "create": ", ".join(default + constraints),
             "update": ", ".join(["default=None", "validate_default=False"] + constraints),
-            "response": ", ".join(constraints),
+            "response": ", ".join(response),
             "nullable": field.nullable,
+            "computed": field.computed_expression is not None,
         })
     return result
 
 
 def generate_schema(module: ModuleDefinition):
+    validate_computed_fields(module.fields)
     fields = schema_fields(module)
+    readonly = tuple(field["name"] for field in fields if field["computed"])
     output = PROJECT_ROOT / "backend" / "app" / "schemas" / f"{module.module_name}.py"
     render_template(
         template_name="schema.j2", output_path=output, class_name=module.class_name,
-        fields=fields, implicit_id=not module.has_primary_key,
+        fields=fields, writable_fields=[field for field in fields if not field["computed"]],
+        has_computed=bool(readonly), readonly=repr(readonly),
+        implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
     )

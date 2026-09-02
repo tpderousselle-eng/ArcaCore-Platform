@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from keyword import iskeyword
 from typing import Any
 
+from tools.core.computed_parser import validate_computed_fields
+
 
 @dataclass
 class Field:
@@ -21,6 +23,8 @@ class Field:
     maximum: str | None = None
     min_length: int | None = None
     pattern: str | None = None
+    computed_expression: str | None = None
+    computed_sql: str | None = None
     foreign_key: str | None = None
     relationship_name: str | None = None
     relationship_class: str | None = None
@@ -114,7 +118,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
         seen_validation = set()
         for modifier in parts[2:]:
             key, _, value = modifier.partition("=")
-            if key in {"min", "max", "min_length", "length", "regex"}:
+            if key in {"min", "max", "min_length", "length", "regex", "computed"}:
                 if key in seen_validation:
                     raise ValueError(f"{name}: duplicate {key} modifier.")
                 seen_validation.add(key)
@@ -138,6 +142,8 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.maximum = value
             elif modifier.startswith("regex="):
                 parsed.pattern = value
+            elif modifier.startswith("computed="):
+                parsed.computed_expression = value.strip()
             elif modifier.startswith("default="):
                 parsed.default = value
             elif modifier.startswith("fk="):
@@ -161,4 +167,5 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             parsed.back_populates = None
             parsed.backref = module_name.lower()
         fields.append(parsed)
+    validate_computed_fields(fields)
     return fields

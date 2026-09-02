@@ -15,6 +15,9 @@ from sqlalchemy import (
     CheckConstraint,
 {% endif %}
     Column,
+{% if has_computed %}
+    Computed,
+{% endif %}
     Date,
     DateTime,
     Float,

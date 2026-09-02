@@ -39,12 +39,18 @@ class SQLAlchemyRenderer:
         else:
             arguments.append(field.sqlalchemy_type)
 
+        if field.computed_expression is not None:
+            if not field.computed_sql:
+                raise ValueError(f"{field.name}: computed expression has not been validated.")
+            arguments.append(f"Computed({field.computed_sql!r}, persisted=True)")
         if field.foreign_key:
             arguments.append(f'ForeignKey("{field.foreign_key}")')
         if field.primary_key:
             arguments.append("primary_key=True")
         if field.nullable:
             arguments.append("nullable=True")
+        elif field.computed_expression is not None:
+            arguments.append("nullable=False")
         if field.unique:
             arguments.append("unique=True")
         if field.index:

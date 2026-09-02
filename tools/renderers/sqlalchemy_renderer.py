@@ -12,14 +12,42 @@ class SQLAlchemyRenderer:
         # SQLAlchemy Type
         #
 
-        if (
-            field.sqlalchemy_type == "String"
-            and field.max_length
-        ):
+        if field.sqlalchemy_type == "String":
+
+            if field.max_length:
+
+                arguments.append(
+                    f"String({field.max_length})"
+                )
+
+            else:
+
+                arguments.append(
+                    "String"
+                )
+
+        elif field.sqlalchemy_type == "UUID":
+
             arguments.append(
-                f"String({field.max_length})"
+                "UUID(as_uuid=True)"
             )
+
+        elif field.sqlalchemy_type == "Enum":
+
+            arguments.append(
+                f"Enum({field.enum_name})"
+            )
+
+        elif field.sqlalchemy_type == "Numeric":
+
+            precision, scale = field.type_arguments
+
+            arguments.append(
+                f"Numeric({precision}, {scale})"
+            )
+
         else:
+
             arguments.append(
                 field.sqlalchemy_type
             )
@@ -29,6 +57,7 @@ class SQLAlchemyRenderer:
         #
 
         if field.foreign_key:
+
             arguments.append(
                 f'ForeignKey("{field.foreign_key}")'
             )
@@ -38,6 +67,7 @@ class SQLAlchemyRenderer:
         #
 
         if field.primary_key:
+
             arguments.append(
                 "primary_key=True"
             )
@@ -47,6 +77,7 @@ class SQLAlchemyRenderer:
         #
 
         if field.nullable:
+
             arguments.append(
                 "nullable=True"
             )
@@ -56,6 +87,7 @@ class SQLAlchemyRenderer:
         #
 
         if field.unique:
+
             arguments.append(
                 "unique=True"
             )
@@ -65,6 +97,7 @@ class SQLAlchemyRenderer:
         #
 
         if field.index:
+
             arguments.append(
                 "index=True"
             )
@@ -74,6 +107,7 @@ class SQLAlchemyRenderer:
         #
 
         if field.default is not None:
+
             arguments.append(
                 f"default={field.default}"
             )
@@ -86,6 +120,7 @@ class SQLAlchemyRenderer:
     ) -> list[str]:
 
         if not field.relationship_name:
+
             return []
 
         arguments = [
@@ -93,6 +128,7 @@ class SQLAlchemyRenderer:
         ]
 
         if field.back_populates:
+
             arguments.append(
                 f'back_populates="{field.back_populates}"'
             )

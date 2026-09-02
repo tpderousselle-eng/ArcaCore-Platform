@@ -8,7 +8,7 @@ from backend.app.crud.organization_member import (
     get_organization_member,
     get_organization_members,
 )
-from backend.app.crud.user import get_user_by_id
+from backend.app.crud.user import UserCRUD
 from backend.app.models.organization_member import OrganizationMember
 from backend.app.schemas.organization_member import (
     OrganizationMemberCreate,
@@ -19,6 +19,7 @@ from backend.app.schemas.organization_member import (
 class OrganizationMemberService:
     def __init__(self, db: Session):
         self.db = db
+        self.user_crud = UserCRUD(db)
 
     # ---------------------------------------------------------
     # Create
@@ -41,8 +42,7 @@ class OrganizationMemberService:
                 detail="Organization not found.",
             )
 
-        user = get_user_by_id(
-            self.db,
+        user = self.user_crud.get(
             request.user_id,
         )
 

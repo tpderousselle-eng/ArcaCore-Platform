@@ -25,6 +25,7 @@ def generate_model(module: ModuleDefinition):
     rendered_fields = []
 
     has_relationships = False
+    has_numeric = False
 
     for field in module.fields:
 
@@ -37,6 +38,9 @@ def generate_model(module: ModuleDefinition):
         if relationship_arguments:
             has_relationships = True
 
+        if field.sqlalchemy_type == "Numeric":
+            has_numeric = True
+
         rendered_fields.append(
             {
                 "name": field.name,
@@ -45,6 +49,8 @@ def generate_model(module: ModuleDefinition):
                 ),
                 "relationship_name": field.relationship_name,
                 "relationship_arguments": relationship_arguments,
+                "sqlalchemy_type": field.sqlalchemy_type,
+                "primary_key": field.primary_key,
             }
         )
 
@@ -55,4 +61,9 @@ def generate_model(module: ModuleDefinition):
         table_name=module.table_name,
         fields=rendered_fields,
         has_relationships=has_relationships,
+        has_primary_key=module.has_primary_key,
+        has_uuid=module.has_uuid,
+        has_enum=module.has_enum,
+        has_numeric=has_numeric,
+        enums=module.enums,
     )

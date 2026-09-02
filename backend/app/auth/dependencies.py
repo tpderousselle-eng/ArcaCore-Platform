@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from backend.app.db.session import get_db
-from backend.app.crud.user import get_user_by_email
+from backend.app.crud.user import UserCRUD
 from backend.app.security.jwt import verify_access_token
 
 # This MUST match your login endpoint
@@ -32,7 +32,9 @@ def get_current_user(
             detail="Invalid token payload",
         )
 
-    user = get_user_by_email(db, email)
+    crud = UserCRUD(db)
+
+    user = crud.get_by_email(email)
 
     if not user:
         raise HTTPException(

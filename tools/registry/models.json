@@ -45,5 +45,142 @@
                 "back_populates": null
             }
         ]
+    },
+    "Testmodel": {
+        "table": "testmodels",
+        "fields": [
+            {
+                "name": "identifier",
+                "python_type": "uuid",
+                "sqlalchemy_type": "UUID",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            },
+            {
+                "name": "name",
+                "python_type": "str",
+                "sqlalchemy_type": "String",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            }
+        ]
+    },
+    "Customer": {
+        "table": "customers",
+        "fields": [
+            {
+                "name": "email",
+                "python_type": "str",
+                "sqlalchemy_type": "String",
+                "nullable": false,
+                "unique": true,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            },
+            {
+                "name": "name",
+                "python_type": "str",
+                "sqlalchemy_type": "String",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            }
+        ]
+    },
+    "User": {
+        "table": "users",
+        "fields": [
+            {
+                "name": "identifier",
+                "python_type": "uuid",
+                "sqlalchemy_type": "UUID",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            },
+            {
+                "name": "email",
+                "python_type": "str",
+                "sqlalchemy_type": "String",
+                "nullable": false,
+                "unique": true,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            }
+        ]
+    },
+    "Order": {
+        "table": "orders",
+        "fields": [
+            {
+                "name": "status",
+                "python_type": "enum",
+                "sqlalchemy_type": "Enum",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            }
+        ]
+    },
+    "Product": {
+        "table": "products",
+        "fields": [
+            {
+                "name": "price",
+                "python_type": "decimal",
+                "sqlalchemy_type": "Numeric",
+                "nullable": false,
+                "unique": false,
+                "index": false,
+                "default": null,
+                "foreign_key": null,
+                "relationship_name": null,
+                "relationship_class": null,
+                "relationship_type": null,
+                "back_populates": null
+            }
+        ]
     }
 }

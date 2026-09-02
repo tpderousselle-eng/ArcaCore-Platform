@@ -19,8 +19,8 @@ from sqlalchemy import (
 from backend.app.db.base import Base
 
 
-class User(Base):
-    __tablename__ = "users"
+class Testmodel(Base):
+    __tablename__ = "testmodels"
 
     identifier = Column(
         UUID(as_uuid=True),
@@ -28,9 +28,8 @@ class User(Base):
         default=uuid.uuid4,
     )
 
-    email = Column(
-        String,
-        unique=True,
+    name = Column(
+        String(100),
     )
 
     created_at = Column(

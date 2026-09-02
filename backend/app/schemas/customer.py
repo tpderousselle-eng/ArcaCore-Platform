@@ -1,19 +1,19 @@
 from pydantic import BaseModel
 
 
-class UserBase(BaseModel):
+class CustomerBase(BaseModel):
     pass
 
 
-class UserCreate(UserBase):
+class CustomerCreate(CustomerBase):
     pass
 
 
-class UserUpdate(BaseModel):
+class CustomerUpdate(BaseModel):
     pass
 
 
-class UserResponse(UserBase):
+class CustomerResponse(CustomerBase):
     id: int
 
     model_config = {

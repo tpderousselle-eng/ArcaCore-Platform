@@ -5,8 +5,22 @@ from typing import Any
 @dataclass
 class Field:
     name: str
+
     python_type: str
     sqlalchemy_type: str
+
+    #
+    # Parameterized types
+    #
+
+    type_arguments: list[str] | None = None
+
+    #
+    # Enum metadata
+    #
+
+    enum_name: str | None = None
+    enum_values: list[str] | None = None
 
     primary_key: bool = False
     nullable: bool = False
@@ -34,6 +48,9 @@ TYPE_MAP = {
     "datetime": "DateTime",
     "date": "Date",
     "text": "Text",
+    "uuid": "UUID",
+    "enum": "Enum",
+    "decimal": "Numeric",
 }
 
 
@@ -54,18 +71,71 @@ def parse_fields(
             )
 
         name = parts[0]
-        field_type = parts[1]
+        raw_type = parts[1]
 
-        if field_type not in TYPE_MAP:
+        type_arguments = None
+
+        if "(" in raw_type and raw_type.endswith(")"):
+
+            base_type = raw_type.split("(", 1)[0]
+
+            arguments = raw_type[
+                raw_type.index("(") + 1 : -1
+            ]
+
+            type_arguments = [
+                arg.strip()
+                for arg in arguments.split(",")
+                if arg.strip()
+            ]
+
+        else:
+
+            base_type = raw_type
+
+        if base_type not in TYPE_MAP:
             raise ValueError(
-                f"Unsupported type: {field_type}"
+                f"Unsupported type: {base_type}"
             )
 
         parsed = Field(
             name=name,
-            python_type=field_type,
-            sqlalchemy_type=TYPE_MAP[field_type],
+            python_type=base_type,
+            sqlalchemy_type=TYPE_MAP[base_type],
+            type_arguments=type_arguments,
         )
+
+        #
+        # Enum metadata
+        #
+
+        if (
+            parsed.python_type == "enum"
+            and parsed.type_arguments
+        ):
+
+            parsed.enum_name = (
+                f"{module_name.capitalize()}"
+                f"{name.capitalize()}"
+            )
+
+            parsed.enum_values = (
+                parsed.type_arguments
+            )
+
+        #
+        # Decimal validation
+        #
+
+        if (
+            parsed.python_type == "decimal"
+            and parsed.type_arguments
+        ):
+
+            if len(parsed.type_arguments) != 2:
+                raise ValueError(
+                    "decimal() requires precision and scale."
+                )
 
         for modifier in parts[2:]:
 

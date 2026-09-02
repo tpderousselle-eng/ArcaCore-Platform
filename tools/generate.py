@@ -22,10 +22,6 @@ def generate_module(
         field_strings,
     )
 
-    #
-    # Validate before generating anything.
-    #
-
     FieldValidator.validate(
         fields,
     )

@@ -1,3 +1,11 @@
+{% if has_uuid %}
+import uuid
+
+{% endif %}
+{% if has_enum %}
+from enum import Enum
+
+{% endif %}
 from sqlalchemy import (
     Boolean,
     Column,
@@ -6,32 +14,59 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+{% if has_numeric %}
+    Numeric,
+{% endif %}
     String,
     Text,
+{% if has_uuid %}
+    UUID,
+{% endif %}
+{% if has_enum %}
+    Enum as SQLEnum,
+{% endif %}
     func,
 )
 
 {% if has_relationships %}
 from sqlalchemy.orm import relationship
-{% endif %}
 
+{% endif %}
 from backend.app.db.base import Base
 
+{% if has_enum %}
+{% for enum_name, enum_values in enums %}
+class {{ enum_name }}(str, Enum):
+{% for value in enum_values %}
+    {{ value.upper().replace(" ", "_") }} = "{{ value }}"
+{% endfor %}
+
+{% endfor %}
+{% endif %}
 
 class {{ class_name }}(Base):
     __tablename__ = "{{ table_name }}"
 
+{% if not has_primary_key %}
     id = Column(
         Integer,
         primary_key=True,
         index=True,
     )
 
+{% endif %}
 {% for field in fields %}
     {{ field.name }} = Column(
 {% for argument in field.arguments %}
+{% if "Enum(" in argument %}
+        {{ argument.replace("Enum(", "SQLEnum(") }},
+{% else %}
         {{ argument }},
+{% endif %}
 {% endfor %}
+{% if field.sqlalchemy_type == "UUID" and field.primary_key %}
+        default=uuid.uuid4,
+{% endif %}
     )
 
 {% endfor %}

@@ -1,6 +1,3 @@
-import uuid
-
-
 from sqlalchemy import (
     Boolean,
     Column,
@@ -11,7 +8,6 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UUID,
     func,
 )
 
@@ -19,18 +15,22 @@ from sqlalchemy import (
 from backend.app.db.base import Base
 
 
-class User(Base):
-    __tablename__ = "users"
+class Customer(Base):
+    __tablename__ = "customers"
 
-    identifier = Column(
-        UUID(as_uuid=True),
+    id = Column(
+        Integer,
         primary_key=True,
-        default=uuid.uuid4,
+        index=True,
     )
 
     email = Column(
         String,
         unique=True,
+    )
+
+    name = Column(
+        String(100),
     )
 
     created_at = Column(

@@ -1,4 +1,4 @@
-import uuid
+from enum import Enum
 
 
 from sqlalchemy import (
@@ -11,7 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    UUID,
+    Enum as SQLEnum,
     func,
 )
 
@@ -19,18 +19,26 @@ from sqlalchemy import (
 from backend.app.db.base import Base
 
 
-class User(Base):
-    __tablename__ = "users"
+class OrderStatus(str, Enum):
 
-    identifier = Column(
-        UUID(as_uuid=True),
+    PENDING = "Pending"
+
+    PROCESSING = "Processing"
+
+    COMPLETED = "Completed"
+
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(
+        Integer,
         primary_key=True,
-        default=uuid.uuid4,
+        index=True,
     )
 
-    email = Column(
-        String,
-        unique=True,
+    status = Column(
+        SQLEnum(OrderStatus),
     )
 
     created_at = Column(

@@ -28,7 +28,7 @@ from sqlalchemy import (
 {% if has_uuid %}
     UUID,
 {% endif %}
-{% if has_enum %}
+{% if has_enum or has_choice %}
     Enum as SQLEnum,
 {% endif %}
     func,
@@ -64,8 +64,8 @@ class {{ class_name }}(Base):
 {% for field in fields %}
     {{ field.name }} = Column(
 {% for argument in field.arguments %}
-{% if "Enum(" in argument %}
-        {{ argument.replace("Enum(", "SQLEnum(") }},
+{% if argument.startswith("Enum(") %}
+        {{ argument.replace("Enum(", "SQLEnum(", 1) }},
 {% else %}
         {{ argument }},
 {% endif %}

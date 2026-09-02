@@ -50,5 +50,6 @@ def generate_model(module: ModuleDefinition):
         has_numeric="Numeric" in required_types,
         has_json="JSON" in required_types,
         has_array="ARRAY" in required_types,
+        has_choice="Choice" in required_types,
         enums=module.enums,
     )

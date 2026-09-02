@@ -15,6 +15,13 @@ class SQLAlchemyRenderer:
             arguments.append("UUID(as_uuid=True)")
         elif field.sqlalchemy_type == "Enum":
             arguments.append(f"Enum({field.enum_name})")
+        elif field.sqlalchemy_type == "Choice":
+            values = ", ".join(repr(value) for value in field.type_arguments)
+            constraint_name = f"{field.name}_choice"
+            arguments.append(
+                f"SQLEnum({values}, name={constraint_name!r}, "
+                "native_enum=False, create_constraint=True, validate_strings=True)"
+            )
         elif field.sqlalchemy_type == "Numeric":
             precision, scale = field.type_arguments
             arguments.append(f"Numeric({precision}, {scale})")

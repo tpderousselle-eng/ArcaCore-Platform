@@ -45,13 +45,14 @@ TYPE_MAP = {
     "decimal": "Numeric",
     "json": "JSON",
     "array": "ARRAY",
+    "choice": "Choice",
 }
 
-# Array elements use simple types; enum and decimal need their own arguments.
+# Array elements use simple types; parameterized elements are excluded.
 ARRAY_ELEMENT_TYPES = {
     name: sqlalchemy_type
     for name, sqlalchemy_type in TYPE_MAP.items()
-    if name not in {"array", "enum", "decimal"}
+    if name not in {"array", "enum", "decimal", "choice"}
 }
 
 
@@ -79,8 +80,8 @@ def parse_fields(
                 if arg.strip()
             ]
 
-            if base_type == "array":
-                # Keep empty arguments so malformed array(str,) is rejected.
+            if base_type in {"array", "choice"}:
+                # Keep empty arguments so trailing commas are rejected.
                 type_arguments = [arg.strip() for arg in arguments.split(",")]
         else:
             base_type = raw_type
@@ -93,6 +94,14 @@ def parse_fields(
                 raise ValueError("array() requires exactly one element type.")
             if type_arguments[0] not in ARRAY_ELEMENT_TYPES:
                 raise ValueError(f"Unsupported array element type: {type_arguments[0]}")
+
+        if base_type == "choice":
+            if not type_arguments or any(not value for value in type_arguments):
+                raise ValueError("choice() requires non-empty string values.")
+            if len(set(type_arguments)) != len(type_arguments):
+                raise ValueError("choice() values must be unique.")
+            if any("(" in value or ")" in value for value in type_arguments):
+                raise ValueError("choice() values cannot contain parentheses.")
 
         parsed = Field(
             name=name,

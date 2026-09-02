@@ -16,6 +16,9 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+{% if indexes %}
+    Index,
+{% endif %}
     Integer,
 {% if has_numeric %}
     Numeric,
@@ -68,6 +71,14 @@ class {{ enum_name }}(str, Enum):
 class {{ class_name }}(Base):
     __tablename__ = "{{ table_name }}"
 
+{% if indexes %}
+    __table_args__ = (
+{% for index in indexes %}
+        {{ index }},
+{% endfor %}
+    )
+
+{% endif %}
 {% if not has_primary_key %}
     id = Column(
         Integer,

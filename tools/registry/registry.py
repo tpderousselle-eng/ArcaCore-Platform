@@ -32,6 +32,10 @@ class Registry:
         registry[module.class_name] = {
             "table": module.table_name,
             "fields": [],
+            "indexes": [
+                {"name": index.name, "columns": index.columns}
+                for index in module.indexes
+            ],
         }
 
         for field in module.fields:

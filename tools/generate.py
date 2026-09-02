@@ -1,6 +1,7 @@
 import sys
 
 from tools.core.field_parser import parse_fields
+from tools.core.index_parser import parse_indexes
 from tools.core.module_definition import ModuleDefinition
 
 from tools.generate_model import generate_model
@@ -17,21 +18,26 @@ def generate_module(
     name: str,
     field_strings: list[str],
 ):
-    fields = parse_fields(
-        name,
-        field_strings,
-    )
+    field_definitions = []
+    index_definitions = []
+    for definition in field_strings:
+        if definition == "index" or definition.startswith("index("):
+            index_definitions.append(definition)
+        else:
+            field_definitions.append(definition)
 
-    FieldValidator.validate(
-        fields,
-    )
+    fields = parse_fields(name, field_definitions)
+    FieldValidator.validate(fields)
+    table_name = f"{name.lower()}s"
+    indexes = parse_indexes(table_name, index_definitions, fields)
 
     module = ModuleDefinition(
         name=name,
         class_name=name.capitalize(),
         module_name=name.lower(),
-        table_name=f"{name.lower()}s",
+        table_name=table_name,
         fields=fields,
+        indexes=indexes,
     )
 
     print("=" * 60)
@@ -45,9 +51,7 @@ def generate_module(
     generate_service(module)
     generate_router(module)
 
-    Registry.register(
-        module,
-    )
+    Registry.register(module)
 
     print()
     print("=" * 60)
@@ -58,13 +62,7 @@ def generate_module(
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage:")
-        print(
-            "python -m tools.generate "
-            "<ModuleName> field:type ..."
-        )
+        print("python -m tools.generate <ModuleName> field:type [additional fields or indexes]")
         sys.exit(1)
 
-    generate_module(
-        sys.argv[1],
-        sys.argv[2:],
-    )
+    generate_module(sys.argv[1], sys.argv[2:])

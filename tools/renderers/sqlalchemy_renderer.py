@@ -1,4 +1,5 @@
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES, Field
+from tools.core.module_definition import CompositeIndex
 
 
 class SQLAlchemyRenderer:
@@ -69,3 +70,8 @@ class SQLAlchemyRenderer:
         elif field.back_populates:
             arguments.append(f'back_populates="{field.back_populates}"')
         return arguments
+
+    @staticmethod
+    def render_index(index: CompositeIndex) -> str:
+        arguments = ", ".join(repr(value) for value in [index.name, *index.columns])
+        return f"Index({arguments})"

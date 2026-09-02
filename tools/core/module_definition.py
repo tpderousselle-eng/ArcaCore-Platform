@@ -10,6 +10,18 @@ class CompositeIndex:
 
 
 @dataclass
+class UniqueTogether:
+    name: str
+    columns: list[str]
+
+
+@dataclass
+class CheckRule:
+    name: str
+    expression: str
+
+
+@dataclass
 class ModuleDefinition:
     name: str
     class_name: str
@@ -18,6 +30,8 @@ class ModuleDefinition:
     fields: list[Field]
     indexes: list[CompositeIndex] = dataclass_field(default_factory=list)
     soft_delete: bool = False
+    unique_constraints: list[UniqueTogether] = dataclass_field(default_factory=list)
+    check_constraints: list[CheckRule] = dataclass_field(default_factory=list)
 
     def __post_init__(self):
         if self.soft_delete:

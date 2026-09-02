@@ -37,6 +37,14 @@ class Registry:
                 {"name": index.name, "columns": index.columns}
                 for index in module.indexes
             ],
+            "unique_constraints": [
+                {"name": item.name, "columns": item.columns}
+                for item in module.unique_constraints
+            ],
+            "check_constraints": [
+                {"name": item.name, "expression": item.expression}
+                for item in module.check_constraints
+            ],
         }
 
         for field in module.fields:

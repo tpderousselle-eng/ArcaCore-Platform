@@ -1,5 +1,5 @@
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES, Field
-from tools.core.module_definition import CompositeIndex
+from tools.core.module_definition import CheckRule, CompositeIndex, UniqueTogether
 
 
 class SQLAlchemyRenderer:
@@ -75,3 +75,12 @@ class SQLAlchemyRenderer:
     def render_index(index: CompositeIndex) -> str:
         arguments = ", ".join(repr(value) for value in [index.name, *index.columns])
         return f"Index({arguments})"
+
+    @staticmethod
+    def render_unique(constraint: UniqueTogether) -> str:
+        columns = ", ".join(repr(column) for column in constraint.columns)
+        return f"UniqueConstraint({columns}, name={constraint.name!r})"
+
+    @staticmethod
+    def render_check(constraint: CheckRule) -> str:
+        return f"CheckConstraint({constraint.expression!r}, name={constraint.name!r})"

@@ -1,5 +1,6 @@
 import sys
 
+from tools.core.constraint_parser import parse_constraints
 from tools.core.field_parser import parse_fields
 from tools.core.index_parser import parse_indexes
 from tools.core.module_definition import ModuleDefinition
@@ -20,6 +21,7 @@ def generate_module(
 ):
     field_definitions = []
     index_definitions = []
+    constraint_definitions = []
     soft_delete = False
     for definition in field_strings:
         if definition == "soft_delete":
@@ -28,6 +30,8 @@ def generate_module(
             soft_delete = True
         elif definition == "index" or definition.startswith("index("):
             index_definitions.append(definition)
+        elif definition in {"unique_together", "check"} or definition.startswith(("unique_together(", "check(")):
+            constraint_definitions.append(definition)
         else:
             field_definitions.append(definition)
 
@@ -35,6 +39,7 @@ def generate_module(
     FieldValidator.validate(fields)
     table_name = f"{name.lower()}s"
     indexes = parse_indexes(table_name, index_definitions, fields, soft_delete=soft_delete)
+    uniques, checks = parse_constraints(table_name, constraint_definitions, fields, soft_delete=soft_delete)
 
     module = ModuleDefinition(
         name=name,
@@ -44,6 +49,8 @@ def generate_module(
         fields=fields,
         indexes=indexes,
         soft_delete=soft_delete,
+        unique_constraints=uniques,
+        check_constraints=checks,
     )
 
     print("=" * 60)

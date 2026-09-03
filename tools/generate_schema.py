@@ -18,6 +18,8 @@ def schema_type(field):
     validate_format(field)
     if field.format == "email":
         return "_pydantic.EmailStr"
+    if field.format == "phone":
+        return "_arca_PhoneString"
     if field.python_type == "array":
         return f"list[{SCHEMA_TYPES[field.type_arguments[0]]}]"
     if field.python_type in {"choice", "enum"}:
@@ -92,6 +94,7 @@ def generate_schema(module: ModuleDefinition):
         template_name="schema.j2", output_path=output, class_name=module.class_name,
         fields=fields, writable_fields=[field for field in fields if not field["computed"]],
         has_computed=bool(readonly), readonly=repr(readonly),
+        has_phone=any(field.format == "phone" for field in module.fields),
         implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
     )

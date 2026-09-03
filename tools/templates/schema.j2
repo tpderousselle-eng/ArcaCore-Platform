@@ -5,7 +5,9 @@ import typing as _typing
 import uuid as _uuid
 
 import pydantic as _pydantic
-
+{% if has_phone %}
+{% include 'phone_validator.j2' %}
+{% endif %}
 
 class {{ class_name }}Base(_pydantic.BaseModel):
 {% for field in writable_fields %}

@@ -1,0 +1,37 @@
+try:
+    import phonenumbers as _phonenumbers
+except ImportError as _error:
+    raise ImportError(
+        "Phone validation requires phonenumbers. Install it with: "
+        "python -m pip install 'phonenumbers>=9,<10'"
+    ) from _error
+
+
+def _arca_normalize_phone(value):
+    if not isinstance(value, str):
+        raise ValueError("Phone number must be a string.")
+    if len(value) > 128:
+        raise ValueError("Phone number input must not exceed 128 characters.")
+    value = value.strip(" ")
+    if _re.fullmatch(r"\+[1-9][0-9 ().-]*", value) is None:
+        raise ValueError(
+            "Use an international phone number beginning with + and a country code; "
+            "extensions and letters are not supported."
+        )
+    try:
+        number = _phonenumbers.parse(value, None)
+    except _phonenumbers.NumberParseException as error:
+        raise ValueError("Invalid international phone number.") from error
+    if number.extension or not _phonenumbers.is_valid_number(number):
+        raise ValueError("Invalid international phone number.")
+    normalized = _phonenumbers.format_number(number, _phonenumbers.PhoneNumberFormat.E164)
+    if _re.fullmatch(r"\+[1-9][0-9]{1,14}", normalized) is None:
+        raise ValueError("Phone number must fit E.164 format.")
+    return normalized
+
+
+_arca_PhoneString = _typing.Annotated[
+    str,
+    _pydantic.BeforeValidator(_arca_normalize_phone),
+    _pydantic.Field(json_schema_extra={"format": "phone"}),
+]

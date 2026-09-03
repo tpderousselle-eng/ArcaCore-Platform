@@ -1,4 +1,4 @@
-# Field validators: Sprint 19.12 and Sprint 22.1
+# Field validators: Sprint 19.12 and Sprint 22
 
 Generated schemas require Pydantic 2. Validators apply when a generated Create,
 Update, or Response schema is instantiated or validated. They do not add API
@@ -14,13 +14,14 @@ routes or database constraints. Existing database constraints remain separate.
 | length=255 | str | Maximum string length and existing SQL column length |
 | regex=^[A-Z][a-z]+$ | str, text | Python regular expression search |
 | format=email | str, text | Pydantic EmailStr validation and normalization |
+| format=phone | str, text | International phone validation and E.164 normalization |
 
 Regex must be the final modifier. Everything after regex= belongs to the
 pattern, including colons and backslashes. Use anchors for whole-string
 validation. Invalid patterns, reversed bounds, incompatible field types,
 nonfinite numeric bounds, and duplicate bound/length modifiers fail before
 any generated files are written. Unknown, empty, or repeated format= modifiers
-also fail before generation.
+also fail before generation. One field cannot combine email and phone formats.
 
 ## Schema behavior
 
@@ -44,20 +45,27 @@ preserves custom primary keys instead of adding an unconditional integer id.
 
 Email fields additionally require the optional dependency installed with
 python -m pip install -r tools/requirements-email.txt. EmailStr normalizes
-addresses without checking DNS, deliverability, or ownership. Length and regex
-rules apply after normalization. See EMAIL_VALIDATION.md for the exact behavior,
-installation, compatibility boundaries, and full smoke command.
+addresses without checking DNS, deliverability, or ownership. See
+EMAIL_VALIDATION.md for details.
 
-Named URL, phone, and slug formats, custom callable validators, and validation
-inside generated API routes are not included in this increment.
+Phone fields additionally require python -m pip install -r tools/requirements-phone.txt.
+They require a + country calling code and normalize to E.164 using offline
+numbering-plan metadata. National-only inputs, extensions, and letters are
+rejected. Validation does not verify assignment, reachability, or ownership.
+See PHONE_VALIDATION.md for the exact input rules and runtime dependency.
+
+Length and regex rules apply after email or phone normalization. Direct database
+writes bypass these schema validators. Named URL and slug formats, custom callable
+validators, and validation inside generated API routes are not included in this
+increment.
 
 ## Smoke test
 
-Run from the project root after installing the email dependency:
+Run from the project root after installing both email and phone dependencies:
 
 ```powershell
-python -m unittest tools.test_array tools.test_choice tools.test_one_to_one tools.test_many_to_many tools.test_composite_indexes tools.test_soft_delete tools.test_constraints tools.test_validators tools.test_computed tools.test_one_to_many tools.test_self_relationships tools.test_cascade_delete tools.test_passive_deletes tools.test_partial_indexes tools.test_expression_indexes tools.test_email -v
+python -m unittest tools.test_array tools.test_choice tools.test_one_to_one tools.test_many_to_many tools.test_composite_indexes tools.test_soft_delete tools.test_constraints tools.test_validators tools.test_computed tools.test_one_to_many tools.test_self_relationships tools.test_cascade_delete tools.test_passive_deletes tools.test_partial_indexes tools.test_expression_indexes tools.test_email tools.test_phone -v
 ```
 
-Expected: 144 tests, OK. The suite captures generated code in memory. It does not
+Expected: 156 tests, OK. The suite captures generated code in memory. It does not
 write backend files.

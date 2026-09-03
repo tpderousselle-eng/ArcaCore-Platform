@@ -1,0 +1,31 @@
+name: {{ project_name }}
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: {{ dockerfile }}
+    restart: unless-stopped
+    env_file:
+      - {{ env_file }}
+    environment:
+      DATABASE_URL: "postgresql+psycopg2://${POSTGRES_USER:-arcacore}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the env file}@postgres:5432/${POSTGRES_DB:-arcacore}"
+    ports:
+      - "{{ api_port }}:{{ container_port }}"
+    depends_on:
+      - postgres
+
+  postgres:
+    image: {{ database_image }}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-arcacore}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the env file}"
+      POSTGRES_DB: "${POSTGRES_DB:-arcacore}"
+    ports:
+      - "{{ database_port }}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

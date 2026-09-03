@@ -1,9 +1,11 @@
 import platform
 import sys
 
+from tools.core.compose_parser import parse_compose_options
 from tools.core.dockerfile_parser import parse_dockerfile_options
 from tools.doctor import run as run_doctor
 from tools.generate import generate_module
+from tools.generate_compose import generate_compose
 from tools.generate_dockerfile import generate_dockerfile
 from tools.registry_cli import run as run_registry
 from tools.version import (
@@ -35,6 +37,10 @@ def print_help():
     print("      Generate the application Dockerfile")
     print()
 
+    print("  compose")
+    print("      Generate Docker Compose configuration")
+    print()
+
     print("  registry")
     print("      Show registered models")
     print()
@@ -53,6 +59,8 @@ def print_help():
     print("python -m tools doctor")
 
     print("python -m tools dockerfile")
+
+    print("python -m tools compose")
 
     print("python -m tools registry")
 
@@ -77,6 +85,25 @@ def print_dockerfile_help():
         "  --requirements PATH        Requirements file (default: backend/requirements.txt)"
     )
     print("  --source PATH              Source directory (default: backend)")
+    print()
+
+
+def print_compose_help():
+
+    print()
+    print("Generate Docker Compose")
+    print("=" * 50)
+    print()
+    print("python -m tools compose [options]")
+    print()
+    print("Options")
+    print("  --project-name NAME        Compose project name (default: arcacore)")
+    print("  --api-port PORT            Published API port (default: 8000)")
+    print("  --container-port PORT      API container port (default: 8000)")
+    print("  --database-port PORT       Published PostgreSQL port (default: 5432)")
+    print("  --database-image IMAGE     PostgreSQL image (default: postgres:16)")
+    print("  --env-file PATH            Runtime environment file (default: .env)")
+    print("  --dockerfile PATH          Dockerfile path (default: Dockerfile)")
     print()
 
 
@@ -124,6 +151,16 @@ def main():
         output_path = generate_dockerfile(definition)
         print()
         print(f"Dockerfile generated successfully: {output_path}")
+        return
+
+    if command == "compose":
+        if any(value in {"-h", "--help"} for value in sys.argv[2:]):
+            print_compose_help()
+            return
+        definition = parse_compose_options(sys.argv[2:])
+        output_path = generate_compose(definition)
+        print()
+        print(f"Docker Compose generated successfully: {output_path}")
         return
 
     if command == "registry":

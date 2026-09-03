@@ -22,7 +22,7 @@ class DockerfileDefinition:
         validate_dockerfile_definition(self)
 
 
-def _normalize_relative_path(value: str, option: str) -> str:
+def normalize_relative_path(value: str, option: str) -> str:
     if not isinstance(value, str):
         raise ValueError(f"{option} must be a relative project path.")
     normalized = value.replace("\\", "/")
@@ -53,8 +53,8 @@ def validate_dockerfile_definition(definition):
         definition.app
     ):
         raise ValueError("--app must use dotted.module:attribute form.")
-    requirements = _normalize_relative_path(definition.requirements, "--requirements")
-    source = _normalize_relative_path(definition.source, "--source")
+    requirements = normalize_relative_path(definition.requirements, "--requirements")
+    source = normalize_relative_path(definition.source, "--source")
     if not requirements.endswith(".txt"):
         raise ValueError("--requirements must point to a .txt requirements file.")
     object.__setattr__(definition, "requirements", requirements)

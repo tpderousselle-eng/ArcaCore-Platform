@@ -5,6 +5,14 @@ import uuid
 {% if has_hybrid_decimal %}
 import decimal as _decimal
 
+{% endif %}{% if has_encrypted %}
+import base64 as _base64
+import binascii as _binascii
+import os as _os
+
+from cryptography.exceptions import InvalidTag as _InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _AESGCM
+
 {% endif %}{% if has_enum %}
 from enum import Enum
 
@@ -63,10 +71,14 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.orm import backref
 {% endif %}
 
+{% endif %}{% if has_encrypted %}
+from sqlalchemy.types import TypeDecorator
 {% endif %}
 from backend.app.db.base import Base
 
-{% for association in associations %}
+{% if has_encrypted %}{% include 'encrypted_type.j2' %}
+
+{% endif %}{% for association in associations %}
 {{ association.name }} = Table(
     "{{ association.name }}",
     Base.metadata,

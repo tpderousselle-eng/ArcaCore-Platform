@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT
 from tools.core.module_definition import ModuleDefinition
 
@@ -23,6 +24,7 @@ class Registry:
 
     @staticmethod
     def register(module: ModuleDefinition):
+        validate_encrypted_fields(module.fields)
         registry = Registry.load()
         registry[module.class_name] = {
             "table": module.table_name,
@@ -62,6 +64,14 @@ class Registry:
                 "regex": field.pattern,
                 **({"format": field.format} if field.format is not None else {}),
                 **({"validators": list(field.validators)} if field.validators else {}),
+                **(
+                    {
+                        "encrypted": True,
+                        "encryption_key_env": field.encryption_key_env,
+                    }
+                    if field.encrypted
+                    else {}
+                ),
                 "computed": field.computed_expression,
                 "computed_sql": field.computed_sql,
                 **(

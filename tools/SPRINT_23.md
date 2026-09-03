@@ -7,8 +7,8 @@ the working source after normalizing line endings.
 | Feature | Status |
 | --- | --- |
 | Computed fields | Already implemented in Sprint 19.13 |
-| Hybrid properties | Sprint 23.1: implemented; 212 relevant tests and 213 discovery tests passed here; replacement ZIP prepared; awaiting user local test and commit |
-| Encrypted fields | Pending |
+| Hybrid properties | Sprint 23.1: implemented, locally tested, committed, and pushed |
+| Encrypted fields | Sprint 23.2: implemented; 226 relevant tests and 227 discovery tests passed here; replacement ZIP pending verification |
 | Audit fields | Pending |
 | Soft deletes | Already implemented in Sprint 19.10 |
 | Version columns | Pending |
@@ -37,7 +37,30 @@ soft deletes, relationships, custom keys, pre-generation rejection, constraint
 boundaries, direct generator calls, compatibility, SQLite execution, and
 PostgreSQL compilation.
 
-See HYBRID_PROPERTIES.md for the complete DSL contract and local commands.
+See HYBRID_PROPERTIES.md for the complete Sprint 23.1 DSL contract.
 
-Stop after delivering Sprint 23.1. Wait for the user's local test, commit, and
-push result before starting Encrypted Fields or any other feature.
+Sprint 23.2 adds encrypted and encrypted=KEY_ENV modifiers for str and text
+fields. Generated SQLAlchemy models use a TypeDecorator backed by AES-256-GCM,
+with a fresh nonce per write, table-and-field associated data, authenticated
+decryption, versioned ciphertext, and first-key-active keyring rotation. Key
+values are read only at runtime and never enter generated source or registry
+metadata.
+
+Generated Pydantic schemas continue to accept and return plaintext and expose
+x-arca-encrypted metadata. Randomized encrypted fields are deliberately excluded
+from keys, defaults, relationships, searches, indexes, unique constraints,
+checks, computed inputs, and hybrid inputs. Modules without encrypted fields do
+not import cryptography and retain their prior generated output.
+
+The 14 new tests cover real database encryption, randomized writes, updates,
+Unicode and nullable data, schema validation, CLI/registry metadata, missing and
+invalid keys, authenticated tamper detection, wrong keys, cross-column swaps,
+key rotation, query rejection, PostgreSQL DDL, invalid declarations,
+index/constraint boundaries, computed/hybrid boundaries, direct programmatic
+preflight, soft-delete composition, custom primary keys, and compatibility.
+
+See ENCRYPTED_FIELDS.md for the complete Sprint 23.2 contract, dependency, key
+setup, rotation guidance, security boundaries, and local commands.
+
+Stop after delivering Sprint 23.2. Wait for the user's local test, commit, and
+push result before starting Audit Fields or any other feature.

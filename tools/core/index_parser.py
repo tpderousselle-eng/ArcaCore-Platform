@@ -58,7 +58,11 @@ def parse_indexes(
     columns = {
         field.name
         for field in fields
-        if field.relationship_type != "many_to_many" and field.hybrid_expression is None
+        if (
+            field.relationship_type != "many_to_many"
+            and field.hybrid_expression is None
+            and not field.encrypted
+        )
     }
     columns.update({"created_at", "updated_at"})
     if soft_delete:

@@ -1,0 +1,4 @@
+# Additional dependency for generated encrypted fields.
+# Install in the existing project virtual environment and in generated apps
+# that use the encrypted modifier.
+cryptography>=46,<51

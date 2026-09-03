@@ -6,6 +6,7 @@ from typing import Any
 from tools.core.cascade_parser import validate_delete_cascades
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.custom_validator_parser import validate_custom_validators
+from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.hybrid_property_parser import validate_hybrid_properties
 from tools.core.relationship_parser import configure_one_to_many, validate_one_to_many_names
 from tools.core.self_relationship_parser import configure_self_relationship, validate_self_relationships
@@ -35,6 +36,8 @@ class Field:
     hybrid_python: str | None = None
     hybrid_class: str | None = None
     hybrid_references: list[str] = dataclass_field(default_factory=list)
+    encrypted: bool = False
+    encryption_key_env: str | None = None
     foreign_key: str | None = None
     relationship_name: str | None = None
     relationship_class: str | None = None
@@ -193,6 +196,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
         one_to_one = False
         one_to_many = None
         self_relationship = None
+        encrypted_seen = False
         seen_validation = set()
         for modifier in parts[2:]:
             key, _, value = modifier.partition("=")
@@ -244,6 +248,12 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.computed_expression = value.strip()
             elif modifier.startswith("hybrid="):
                 parsed.hybrid_expression = value.strip()
+            elif modifier == "encrypted" or modifier.startswith("encrypted="):
+                if encrypted_seen:
+                    raise ValueError(f"{name}: duplicate encrypted modifier.")
+                encrypted_seen = True
+                parsed.encrypted = True
+                parsed.encryption_key_env = value if modifier.startswith("encrypted=") else None
             elif modifier.startswith("default="):
                 parsed.default = value
             elif modifier.startswith("fk="):
@@ -277,6 +287,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
         fields.append(parsed)
     validate_one_to_many_names(fields)
     validate_self_relationships(fields)
+    validate_encrypted_fields(fields)
     validate_computed_fields(fields)
     validate_hybrid_properties(fields)
     validate_delete_cascades(fields, f"{module_name.lower()}s")

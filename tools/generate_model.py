@@ -1,5 +1,6 @@
 from tools.core.cascade_parser import validate_delete_cascades
 from tools.core.computed_parser import validate_computed_fields
+from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES
 from tools.core.hybrid_property_parser import validate_hybrid_properties
@@ -8,6 +9,7 @@ from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
 
 def generate_model(module: ModuleDefinition):
+    validate_encrypted_fields(module.fields)
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
     validate_delete_cascades(module.fields, module.table_name)
@@ -62,7 +64,7 @@ def generate_model(module: ModuleDefinition):
         rendered_fields.append(
             {
                 "name": field.name,
-                "arguments": SQLAlchemyRenderer.render(field),
+                "arguments": SQLAlchemyRenderer.render(field, module.table_name),
                 "relationship_name": field.relationship_name,
                 "relationship_arguments": relationship_arguments,
                 "sqlalchemy_type": field.sqlalchemy_type,
@@ -95,6 +97,7 @@ def generate_model(module: ModuleDefinition):
         has_array="ARRAY" in required_types,
         has_choice="Choice" in required_types,
         has_computed=any(field.computed_expression is not None for field in module.fields),
+        has_encrypted=any(field.encrypted for field in module.fields),
         has_hybrid=bool(hybrid_properties),
         has_hybrid_decimal=any(
             field.hybrid_expression is not None and field.python_type == "decimal"

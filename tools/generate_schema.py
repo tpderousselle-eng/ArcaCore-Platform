@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.custom_validator_parser import validate_custom_validators
+from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import validate_format
 from tools.core.hybrid_property_parser import validate_hybrid_properties
@@ -80,8 +81,11 @@ def schema_fields(module):
             default = ["default=None"]
         response = list(constraints)
         extra = {}
+        if field.encrypted:
+            extra["x-arca-encrypted"] = True
         if field.validators:
             extra["x-arca-validators"] = list(field.validators)
+        if extra:
             constraints.append(f"json_schema_extra={extra!r}")
         if field.computed_expression is not None or field.hybrid_expression is not None:
             extra["readOnly"] = True
@@ -101,6 +105,7 @@ def schema_fields(module):
 
 
 def generate_schema(module: ModuleDefinition):
+    validate_encrypted_fields(module.fields)
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
     fields = schema_fields(module)

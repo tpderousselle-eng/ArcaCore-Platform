@@ -43,7 +43,11 @@ def validate_computed_fields(fields):
                 source = by_name.get(node.id)
                 if source is None:
                     raise ValueError(f"{field.name}: unknown computed reference: {node.id}")
-                if source.computed_expression is not None or source.hybrid_expression is not None:
+                if (
+                    source.computed_expression is not None
+                    or source.hybrid_expression is not None
+                    or source.encrypted
+                ):
                     raise ValueError(f"{field.name}: computed fields require stored source columns.")
                 if source.python_type not in NUMERIC_TYPES:
                     raise ValueError(f"{field.name}: computed references must be numeric columns.")

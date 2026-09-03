@@ -4,13 +4,22 @@ from tools.core.module_definition import CheckRule, CompositeIndex, UniqueTogeth
 
 class SQLAlchemyRenderer:
     @staticmethod
-    def render(field: Field) -> list[str]:
+    def render(field: Field, table_name: str | None = None) -> list[str]:
         arguments: list[str] = []
 
         if field.relationship_type == "many_to_many" or field.hybrid_expression is not None:
             return arguments
 
-        if field.sqlalchemy_type == "String":
+        if field.encrypted:
+            if field.encryption_key_env is None:
+                raise ValueError(f"{field.name}: encrypted field has not been validated.")
+            if table_name is None:
+                raise ValueError(f"{field.name}: encrypted field requires a table context.")
+            context = f"{table_name}.{field.name}"
+            arguments.append(
+                f"EncryptedString({field.encryption_key_env!r}, {context!r})"
+            )
+        elif field.sqlalchemy_type == "String":
             if field.max_length:
                 arguments.append(f"String({field.max_length})")
             else:

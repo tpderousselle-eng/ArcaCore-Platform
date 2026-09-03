@@ -1,0 +1,79 @@
+class EncryptedString(TypeDecorator):
+    """Store authenticated ciphertext while exposing plaintext strings."""
+
+    impl = Text
+    cache_ok = True
+
+    class comparator_factory(TypeDecorator.Comparator):
+        def operate(self, op, *other, **kwargs):
+            raise TypeError("Encrypted fields cannot be used in SQL expressions.")
+
+        def reverse_operate(self, op, other, **kwargs):
+            raise TypeError("Encrypted fields cannot be used in SQL expressions.")
+
+    def __init__(self, key_env, context):
+        super().__init__()
+        self.key_env = key_env
+        self.context = context
+
+    def _keys(self):
+        configured = _os.environ.get(self.key_env)
+        if not configured:
+            raise RuntimeError(f"Missing encryption keys in {self.key_env}.")
+        raw_keys = [value.strip() for value in configured.split(",") if value.strip()]
+        if not raw_keys:
+            raise RuntimeError(f"Missing encryption keys in {self.key_env}.")
+        keys = []
+        try:
+            for value in raw_keys:
+                key = _base64.b64decode(value, altchars=b"-_", validate=True)
+                if len(key) != 32:
+                    raise ValueError("AES-GCM keys must contain 32 bytes.")
+                keys.append(key)
+        except (TypeError, ValueError, UnicodeEncodeError, _binascii.Error) as error:
+            raise RuntimeError(f"Invalid AES-GCM key in {self.key_env}.") from error
+        return keys
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if not isinstance(value, str):
+            raise TypeError("Encrypted fields accept strings only.")
+        nonce = _os.urandom(12)
+        encrypted = _AESGCM(self._keys()[0]).encrypt(
+            nonce,
+            value.encode("utf-8"),
+            self.context.encode("utf-8"),
+        )
+        token = _base64.urlsafe_b64encode(nonce + encrypted).decode("ascii")
+        return "v1." + token
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if not isinstance(value, (str, bytes)):
+            raise TypeError("Encrypted database values must be text or bytes.")
+        token = value.decode("ascii") if isinstance(value, bytes) else value
+        if not token.startswith("v1."):
+            raise _InvalidTag
+        try:
+            payload = _base64.b64decode(
+                token[3:].encode("ascii"),
+                altchars=b"-_",
+                validate=True,
+            )
+        except (UnicodeEncodeError, _binascii.Error) as error:
+            raise _InvalidTag from error
+        if len(payload) < 28:
+            raise _InvalidTag
+        nonce, encrypted = payload[:12], payload[12:]
+        context = self.context.encode("utf-8")
+        for key in self._keys():
+            try:
+                return _AESGCM(key).decrypt(nonce, encrypted, context).decode("utf-8")
+            except _InvalidTag:
+                continue
+        raise _InvalidTag
+
+    def copy(self, **kwargs):
+        return EncryptedString(self.key_env, self.context)

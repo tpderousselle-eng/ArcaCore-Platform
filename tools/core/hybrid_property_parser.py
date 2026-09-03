@@ -78,6 +78,7 @@ def validate_hybrid_properties(fields):
                 if (
                     source.computed_expression is not None
                     or source.hybrid_expression is not None
+                    or source.encrypted
                     or source.relationship_type == "many_to_many"
                 ):
                     raise ValueError(

@@ -4,12 +4,14 @@ import re
 
 from tools.core.field_parser import Field, validate_format
 from tools.core.custom_validator_parser import validate_custom_validators
+from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.hybrid_property_parser import validate_hybrid_properties
 
 
 class FieldValidator:
     @staticmethod
     def validate(fields: list[Field]):
+        validate_encrypted_fields(fields)
         validate_hybrid_properties(fields)
         names: set[str] = set()
         for field in fields:

@@ -6,6 +6,12 @@ class {{ class_name }}Service:
     def __init__(self, db):
         self.crud = {{ class_name }}CRUD(db)
 
+    def create(self, values: dict{% if audit_fields %}, actor_id{% endif %}):
+        return self.crud.create(values{% if audit_fields %}, actor_id{% endif %})
+
+    def update(self, item_id, values: dict{% if audit_fields %}, actor_id{% endif %}):
+        return self.crud.update(item_id, values{% if audit_fields %}, actor_id{% endif %})
+
 {% if soft_delete %}
     def get(self, item_id, include_deleted: bool = False):
         return self.crud.get(item_id, include_deleted=include_deleted)
@@ -19,9 +25,12 @@ class {{ class_name }}Service:
     def restore(self, item_id{% if audit_fields %}, actor_id{% endif %}):
         return self.crud.restore(item_id{% if audit_fields %}, actor_id{% endif %})
 {% else %}
-    def get(self, item_id: int):
+    def get(self, item_id):
         return self.crud.get(item_id)
 
     def list(self):
         return self.crud.list()
+
+    def remove(self, item_id):
+        return self.crud.remove(item_id)
 {% endif %}

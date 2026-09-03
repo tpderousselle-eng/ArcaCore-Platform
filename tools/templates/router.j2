@@ -1,4 +1,18 @@
-from fastapi import APIRouter
+{% if actor_type == "UUID" or primary_key_type == "UUID" %}
+from uuid import UUID
+
+{% endif %}
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from sqlalchemy.orm import Session
+
+from backend.app.db.session import get_db
+from backend.app.schemas.{{ module }} import (
+    {{ class_name }}Create,
+    {{ class_name }}Response,
+    {{ class_name }}Update,
+)
+from backend.app.services.{{ module }} import {{ class_name }}Service
+
 
 router = APIRouter(
     prefix="/{{ module }}s",
@@ -6,8 +20,80 @@ router = APIRouter(
 )
 
 
-@router.get("/")
-def list_{{ module }}s():
-    return {
-        "message": "{{ class_name }} router generated successfully."
-    }
+@router.post("", response_model={{ class_name }}Response, status_code=status.HTTP_201_CREATED)
+def create_{{ module }}(
+    payload: {{ class_name }}Create,{% if audit_fields %}
+    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    db: Session = Depends(get_db),
+):
+    service = {{ class_name }}Service(db)
+    return service.create(
+        payload.model_dump(exclude_unset=True){% if audit_fields %}, actor_id{% endif %}
+    )
+
+
+@router.get("", response_model=list[{{ class_name }}Response])
+def list_{{ module }}s(db: Session = Depends(get_db)):
+    return {{ class_name }}Service(db).list()
+
+
+@router.get("/{item_id}", response_model={{ class_name }}Response)
+def get_{{ module }}(
+    item_id: {{ primary_key_type }},
+    db: Session = Depends(get_db),
+):
+    item = {{ class_name }}Service(db).get(item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="{{ class_name }} not found.")
+    return item
+
+
+@router.patch("/{item_id}", response_model={{ class_name }}Response)
+def update_{{ module }}(
+    item_id: {{ primary_key_type }},
+    payload: {{ class_name }}Update,{% if audit_fields %}
+    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    db: Session = Depends(get_db),
+):
+    service = {{ class_name }}Service(db)
+    item = service.update(
+        item_id,
+        payload.model_dump(exclude_unset=True){% if audit_fields %},
+        actor_id{% endif %},
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="{{ class_name }} not found.")
+    return item
+
+
+@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_{{ module }}(
+    item_id: {{ primary_key_type }},{% if audit_fields %}
+    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    db: Session = Depends(get_db),
+):
+    service = {{ class_name }}Service(db)
+{% if soft_delete %}
+    item = service.delete(item_id{% if audit_fields %}, actor_id{% endif %})
+{% else %}
+    item = service.remove(item_id)
+{% endif %}
+    if item is None:
+        raise HTTPException(status_code=404, detail="{{ class_name }} not found.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+{% if soft_delete %}
+
+
+@router.post("/{item_id}/restore", response_model={{ class_name }}Response)
+def restore_{{ module }}(
+    item_id: {{ primary_key_type }},{% if audit_fields %}
+    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    db: Session = Depends(get_db),
+):
+    item = {{ class_name }}Service(db).restore(
+        item_id{% if audit_fields %}, actor_id{% endif %}
+    )
+    if item is None:
+        raise HTTPException(status_code=404, detail="{{ class_name }} not found.")
+    return item
+{% endif %}

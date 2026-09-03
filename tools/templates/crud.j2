@@ -12,6 +12,34 @@ class {{ class_name }}CRUD:
     def __init__(self, db: Session):
         self.db = db
 
+    def create(self, values: dict{% if audit_fields %}, actor_id{% endif %}):
+        data = dict(values){% if audit_fields %}
+        data["created_by"] = actor_id{% endif %}
+        item = {{ class_name }}(**data)
+        self.db.add(item)
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        self.db.refresh(item)
+        return item
+
+    def update(self, item_id, values: dict{% if audit_fields %}, actor_id{% endif %}):
+        item = self.get(item_id)
+        if item is None:
+            return None
+        for name, value in values.items():
+            setattr(item, name, value){% if audit_fields %}
+        item.updated_by = actor_id{% endif %}
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        self.db.refresh(item)
+        return item
+
 {% if soft_delete %}
     def get(self, item_id, include_deleted: bool = False):
         query = self.db.query({{ class_name }}).filter(
@@ -57,10 +85,10 @@ class {{ class_name }}CRUD:
         self.db.refresh(item)
         return item
 {% else %}
-    def get(self, item_id: int):
+    def get(self, item_id):
         return (
             self.db.query({{ class_name }})
-            .filter({{ class_name }}.id == item_id)
+            .filter({{ class_name }}.{{ primary_key_name }} == item_id)
             .first()
         )
 
@@ -69,4 +97,16 @@ class {{ class_name }}CRUD:
             self.db.query({{ class_name }})
             .all()
         )
+
+    def remove(self, item_id):
+        item = self.get(item_id)
+        if item is None:
+            return None
+        self.db.delete(item)
+        try:
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+        return item
 {% endif %}

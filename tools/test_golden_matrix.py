@@ -121,12 +121,8 @@ class GoldenMatrixSmokeTest(unittest.TestCase):
             "from sqlalchemy.orm import declarative_base\n\nBase = declarative_base()\n",
             encoding="utf-8",
         )
-        (root / "fastapi.py").write_text(
-            "class APIRouter:\n"
-            "    def __init__(self, *args, **kwargs):\n"
-            "        pass\n\n"
-            "    def get(self, *args, **kwargs):\n"
-            "        return lambda function: function\n",
+        (root / "backend" / "app" / "db" / "session.py").write_text(
+            "def get_db():\n" "    yield None\n",
             encoding="utf-8",
         )
 

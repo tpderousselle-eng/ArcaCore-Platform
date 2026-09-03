@@ -58,8 +58,8 @@ ARRAY_ELEMENT_TYPES = {
 def validate_format(field: Field):
     if field.format is None:
         return
-    if field.format not in {"email", "phone"}:
-        raise ValueError(f"{field.name}: format= supports email or phone only.")
+    if field.format not in {"email", "phone", "slug"}:
+        raise ValueError(f"{field.name}: format= supports email, phone, or slug only.")
     if (field.python_type, field.sqlalchemy_type) not in {("str", "String"), ("text", "Text")}:
         raise ValueError(f"{field.name}: format={field.format} requires a str or text field.")
     if field.relationship_type == "many_to_many":

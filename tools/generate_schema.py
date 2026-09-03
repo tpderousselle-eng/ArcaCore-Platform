@@ -20,6 +20,8 @@ def schema_type(field):
         return "_pydantic.EmailStr"
     if field.format == "phone":
         return "_arca_PhoneString"
+    if field.format == "slug":
+        return "_arca_SlugString"
     if field.python_type == "array":
         return f"list[{SCHEMA_TYPES[field.type_arguments[0]]}]"
     if field.python_type in {"choice", "enum"}:
@@ -32,6 +34,7 @@ def schema_type(field):
 def schema_fields(module):
     result = []
     for field in module.fields:
+        validate_format(field)
         if field.relationship_type == "many_to_many":
             continue
         annotation = schema_type(field)
@@ -95,6 +98,7 @@ def generate_schema(module: ModuleDefinition):
         fields=fields, writable_fields=[field for field in fields if not field["computed"]],
         has_computed=bool(readonly), readonly=repr(readonly),
         has_phone=any(field.format == "phone" for field in module.fields),
+        has_slug=any(field.format == "slug" for field in module.fields),
         implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
     )

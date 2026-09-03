@@ -22,6 +22,8 @@ def schema_type(field):
         return "_arca_PhoneString"
     if field.format == "slug":
         return "_arca_SlugString"
+    if field.format == "url":
+        return "_arca_UrlString"
     if field.python_type == "array":
         return f"list[{SCHEMA_TYPES[field.type_arguments[0]]}]"
     if field.python_type in {"choice", "enum"}:
@@ -99,6 +101,7 @@ def generate_schema(module: ModuleDefinition):
         has_computed=bool(readonly), readonly=repr(readonly),
         has_phone=any(field.format == "phone" for field in module.fields),
         has_slug=any(field.format == "slug" for field in module.fields),
+        has_url=any(field.format == "url" for field in module.fields),
         implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
     )

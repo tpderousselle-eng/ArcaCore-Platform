@@ -58,22 +58,55 @@ ARRAY_ELEMENT_TYPES = {
 def validate_format(field: Field):
     if field.format is None:
         return
-    if field.format not in {"email", "phone", "slug"}:
-        raise ValueError(f"{field.name}: format= supports email, phone, or slug only.")
+    if field.format not in {"email", "phone", "slug", "url"}:
+        raise ValueError(f"{field.name}: format= supports email, phone, slug, or url only.")
     if (field.python_type, field.sqlalchemy_type) not in {("str", "String"), ("text", "Text")}:
         raise ValueError(f"{field.name}: format={field.format} requires a str or text field.")
     if field.relationship_type == "many_to_many":
         raise ValueError(f"{field.name}: format={field.format} requires a scalar field.")
 
 
+def _split_field_definition(definition: str) -> list[str]:
+    """Keep quoted defaults intact; regex remains the final literal modifier."""
+    parts = []
+    start = 0
+    while start <= len(definition):
+        if len(parts) >= 2 and definition.startswith("regex=", start):
+            parts.append(definition[start:])
+            return parts
+        end = definition.find(":", start)
+        if len(parts) >= 2 and definition.startswith("default=", start):
+            value_start = start + len("default=")
+            while value_start < len(definition) and definition[value_start].isspace():
+                value_start += 1
+            if value_start < len(definition) and definition[value_start] in {"'", '"'}:
+                quote = definition[value_start]
+                position = value_start + 1
+                while position < len(definition):
+                    if definition[position] == "\\":
+                        position += 2
+                    elif definition[position] == quote:
+                        break
+                    else:
+                        position += 1
+                if position >= len(definition):
+                    raise ValueError("Unterminated quoted default.")
+                end = definition.find(":", position + 1)
+                tail = definition[position + 1 : end if end != -1 else len(definition)]
+                if tail.strip():
+                    raise ValueError("Quoted default must end before the next modifier.")
+        if end == -1:
+            parts.append(definition[start:])
+            return parts
+        parts.append(definition[start:end])
+        start = end + 1
+    return parts
+
+
 def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
     fields: list[Field] = []
     for field in field_strings:
-        # Regex is the last modifier; its colons and backslashes are literal.
-        prefix, separator, pattern = field.partition(":regex=")
-        parts = prefix.split(":")
-        if separator:
-            parts.append("regex=" + pattern)
+        parts = _split_field_definition(field)
         if len(parts) < 2:
             raise ValueError(f"Invalid field definition: {field}")
         name = parts[0]

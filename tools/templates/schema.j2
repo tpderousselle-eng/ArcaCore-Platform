@@ -9,6 +9,8 @@ import pydantic as _pydantic
 {% include 'phone_validator.j2' %}
 {% endif %}{% if has_slug %}
 {% include 'slug_validator.j2' %}
+{% endif %}{% if has_url %}
+{% include 'url_validator.j2' %}
 {% endif %}
 
 class {{ class_name }}Base(_pydantic.BaseModel):

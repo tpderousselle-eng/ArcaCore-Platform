@@ -128,7 +128,7 @@ class EmailSmokeTest(unittest.TestCase):
     def test_invalid_modifiers_fail_before_any_generation(self):
         invalid = [
             "email:str:format=", "email:str:format=Email", "email:str:format= email",
-            "email:str:format=url", "email:str:format=fax", "email:str:format=unknown",
+            "email:str:format=uri", "email:str:format=fax", "email:str:format=unknown",
             "email:str:format=email:format=email", "email:str:format=email:format=url",
             "email:str:format", "email:str:email", "email:email", "email:array(email)",
             "email:str:format=email:min=1", "email:str:format=email:regex=[",

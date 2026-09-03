@@ -1,0 +1,23 @@
+def _arca_normalize_url(value):
+    if not isinstance(value, str):
+        raise ValueError("URL must be a string.")
+    if any(character.isspace() or ord(character) < 32 or ord(character) == 127 for character in value) or "\\" in value:
+        raise ValueError("URL must not contain whitespace, control characters, or backslashes.")
+    match = _re.match(r"https?://([^/?#]+)", value, flags=_re.IGNORECASE)
+    if match is None:
+        raise ValueError("Use an absolute HTTP or HTTPS URL with a host.")
+    if "@" in match.group(1):
+        raise ValueError("URL must not contain embedded credentials.")
+    if _re.search(r"%(?![0-9a-fA-F]{2})", value):
+        raise ValueError("URL contains an invalid percent escape.")
+    url = _pydantic.AnyHttpUrl(value)
+    if not url.host:
+        raise ValueError("URL requires a host.")
+    return str(url)
+
+
+_arca_UrlString = _typing.Annotated[
+    str,
+    _pydantic.BeforeValidator(_arca_normalize_url),
+    _pydantic.Field(json_schema_extra={"format": "uri"}),
+]

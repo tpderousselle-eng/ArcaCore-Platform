@@ -16,6 +16,7 @@ routes or database constraints. Existing database constraints remain separate.
 | format=email | str, text | Pydantic EmailStr validation and normalization |
 | format=phone | str, text | International phone validation and E.164 normalization |
 | format=slug | str, text | Lowercase ASCII letters/digits with single hyphen separators |
+| format=url | str, text | Absolute HTTP(S) URL validation, returning a normalized string |
 
 Regex must be the final modifier. Everything after regex= belongs to the
 pattern, including colons and backslashes. Use anchors for whole-string
@@ -23,6 +24,11 @@ validation. Invalid patterns, reversed bounds, incompatible field types,
 nonfinite numeric bounds, and duplicate bound/length modifiers fail before
 any generated files are written. Unknown, empty, or repeated format= modifiers
 also fail before generation. Only one format is allowed per field.
+
+Single-quoted or double-quoted default literals can contain colons. Escaped
+quotes remain part of the literal. A :regex= sequence inside a quoted default
+does not start a modifier. Unterminated quoted defaults and trailing text after
+the closing quote fail before generation. See URL_VALIDATION.md for examples.
 
 ## Schema behavior
 
@@ -61,18 +67,24 @@ trimming, transliteration, or automatic generation. Empty strings, non-string
 inputs, uppercase letters, Unicode characters, underscores, repeated hyphens,
 and leading/trailing hyphens are rejected. See SLUG_VALIDATION.md for details.
 
-Length and regex rules apply after email or phone normalization and additionally
-constrain slug values. Direct database writes bypass these schema validators.
-Named URL formats, custom callable validators, and validation inside generated
-API routes are not included in this increment.
+URL fields require no additional dependency. Absolute HTTP or HTTPS strings with
+a host are normalized through Pydantic and returned as plain strings. Other
+schemes, credentials, raw whitespace, backslashes, and malformed percent escapes
+are rejected. Local/private destinations are allowed; no network validation is
+performed. See URL_VALIDATION.md for the full policy and normalization behavior.
+
+Length and regex rules apply after email, phone, or URL normalization and
+additionally constrain slug values. Direct database writes bypass these schema
+validators. Custom callable validators and validation inside generated API
+routes are not included in this increment.
 
 ## Smoke test
 
 Run from the project root after installing both email and phone dependencies:
 
 ```powershell
-python -m unittest tools.test_array tools.test_choice tools.test_one_to_one tools.test_many_to_many tools.test_composite_indexes tools.test_soft_delete tools.test_constraints tools.test_validators tools.test_computed tools.test_one_to_many tools.test_self_relationships tools.test_cascade_delete tools.test_passive_deletes tools.test_partial_indexes tools.test_expression_indexes tools.test_email tools.test_phone tools.test_slug -v
+python -m unittest tools.test_array tools.test_choice tools.test_one_to_one tools.test_many_to_many tools.test_composite_indexes tools.test_soft_delete tools.test_constraints tools.test_validators tools.test_computed tools.test_one_to_many tools.test_self_relationships tools.test_cascade_delete tools.test_passive_deletes tools.test_partial_indexes tools.test_expression_indexes tools.test_email tools.test_phone tools.test_slug tools.test_url -v
 ```
 
-Expected: 168 tests, OK. The suite captures generated code in memory. It does not
+Expected: 182 tests, OK. The suite captures generated code in memory. It does not
 write backend files.

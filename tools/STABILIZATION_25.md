@@ -6,8 +6,9 @@ and pushed to GitHub main as `b5bbe7b`.
 | Increment | Status |
 | --- | --- |
 | 25.1 Golden Application Generation Matrix | Complete and pushed to GitHub main as `60cba7c`; 8 dedicated and 315 discovery tests passed |
-| 25.2 Generated Application Runtime Test | Implemented; 10 dedicated and 325 discovery tests passed here; replacement ZIP prepared for local verification |
-| 25.3 and later | Not started |
+| 25.2 Generated Application Runtime Test | Complete and pushed to GitHub main as `7aff42b`; 10 dedicated and 325 discovery tests passed |
+| 25.3 Real PostgreSQL Integration Test | Implemented; 11 dedicated and 336 discovery tests passed here; replacement ZIP prepared for local verification |
+| 25.4 and later | Not started |
 
 ## 25.1 scope
 
@@ -53,7 +54,40 @@ The executable contract lives in `test_generated_runtime.py`. Generator-owned
 CRUD, service, and router templates now provide the runtime operations required
 by that contract.
 
+## 25.3 scope
+
+The PostgreSQL integration contract generates Account, Role, and Record models
+through the normal pipeline in a temporary application root, then creates and
+executes their schema against a fresh isolated PostgreSQL server. It never uses
+SQLite as a substitute, writes generated files into the repository backend, or
+repairs generated output before execution.
+
+The contract proves native PostgreSQL UUID, Numeric, JSON, ARRAY, and enum
+round trips; table creation; foreign keys; unique and check constraints;
+composite, partial, and expression indexes; computed columns; encrypted field
+storage; one-to-many and many-to-many persistence; database cascades with
+passive deletes; soft deletion and restore; audit actors; and optimistic
+version conflict detection. Generated Python sources must remain byte-for-byte
+unchanged throughout the run.
+
+The normal developer path uses `pgembed` for an isolated local PostgreSQL
+server without Docker. Restricted root-only environments can supply a PGlite
+socket server through `ARCACORE_PGLITE_SERVER`; both paths use the PostgreSQL
+wire protocol and PostgreSQL behavior remains authoritative.
+
 ## Verification
+
+Install the dedicated PostgreSQL test dependencies:
+
+```powershell
+python -m pip install -r tools\requirements-postgresql.txt
+```
+
+Run the dedicated 25.3 PostgreSQL contract:
+
+```powershell
+python -m unittest tools.test_postgresql_runtime -v
+```
 
 Run the dedicated 25.2 runtime contract:
 
@@ -73,5 +107,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.2. Wait for the user's local test,
-commit, and push result before starting 25.3 or any later increment.
+Stop after delivering Stabilization 25.3. Wait for the user's local test,
+commit, and push result, and remain paused until the user explicitly asks to
+continue.

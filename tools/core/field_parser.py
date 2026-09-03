@@ -39,6 +39,7 @@ class Field:
     relationship_key: str | None = None
     cascade_delete: bool = False
     passive_deletes: bool = False
+    format: str | None = None
 
 
 TYPE_MAP = {
@@ -52,6 +53,17 @@ ARRAY_ELEMENT_TYPES = {
     for name, sqlalchemy_type in TYPE_MAP.items()
     if name not in {"array", "enum", "decimal", "choice", "many_to_many"}
 }
+
+
+def validate_format(field: Field):
+    if field.format is None:
+        return
+    if field.format != "email":
+        raise ValueError(f"{field.name}: format= supports email only.")
+    if (field.python_type, field.sqlalchemy_type) not in {("str", "String"), ("text", "Text")}:
+        raise ValueError(f"{field.name}: format=email requires a str or text field.")
+    if field.relationship_type == "many_to_many":
+        raise ValueError(f"{field.name}: format=email requires a scalar field.")
 
 
 def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
@@ -125,7 +137,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
         seen_validation = set()
         for modifier in parts[2:]:
             key, _, value = modifier.partition("=")
-            if key in {"min", "max", "min_length", "length", "regex", "computed"}:
+            if key in {"min", "max", "min_length", "length", "regex", "computed", "format"}:
                 if key in seen_validation:
                     raise ValueError(f"{name}: duplicate {key} modifier.")
                 seen_validation.add(key)
@@ -165,6 +177,8 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.maximum = value
             elif modifier.startswith("regex="):
                 parsed.pattern = value
+            elif modifier.startswith("format="):
+                parsed.format = value
             elif modifier.startswith("computed="):
                 parsed.computed_expression = value.strip()
             elif modifier.startswith("default="):
@@ -179,6 +193,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.back_populates = f"{module_name.lower()}s"
             else:
                 raise ValueError(f"Unknown modifier: {modifier}")
+        validate_format(parsed)
         if one_to_one:
             target_parts = (parsed.foreign_key or "").split(".")
             if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):

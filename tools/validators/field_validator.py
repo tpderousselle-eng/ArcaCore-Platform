@@ -2,7 +2,7 @@ from decimal import Decimal, InvalidOperation
 from keyword import iskeyword
 import re
 
-from tools.core.field_parser import Field
+from tools.core.field_parser import Field, validate_format
 
 
 class FieldValidator:
@@ -10,6 +10,7 @@ class FieldValidator:
     def validate(fields: list[Field]):
         names: set[str] = set()
         for field in fields:
+            validate_format(field)
             if field.name in names:
                 raise ValueError(f"Duplicate field name: {field.name}")
             names.add(field.name)

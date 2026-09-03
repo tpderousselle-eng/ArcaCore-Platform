@@ -60,6 +60,7 @@ class Registry:
                 "min_length": field.min_length,
                 "max_length": field.max_length,
                 "regex": field.pattern,
+                **({"format": field.format} if field.format is not None else {}),
                 "computed": field.computed_expression,
                 "computed_sql": field.computed_sql,
                 "foreign_key": field.foreign_key,

@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.engine import PROJECT_ROOT, render_template
+from tools.core.field_parser import validate_format
 from tools.core.module_definition import ModuleDefinition
 
 
@@ -14,6 +15,9 @@ SCHEMA_TYPES = {
 
 
 def schema_type(field):
+    validate_format(field)
+    if field.format == "email":
+        return "_pydantic.EmailStr"
     if field.python_type == "array":
         return f"list[{SCHEMA_TYPES[field.type_arguments[0]]}]"
     if field.python_type in {"choice", "enum"}:

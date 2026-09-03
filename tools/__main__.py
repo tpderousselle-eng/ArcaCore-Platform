@@ -3,10 +3,12 @@ import sys
 
 from tools.core.compose_parser import parse_compose_options
 from tools.core.dockerfile_parser import parse_dockerfile_options
+from tools.core.kubernetes_parser import parse_kubernetes_options
 from tools.doctor import run as run_doctor
 from tools.generate import generate_module
 from tools.generate_compose import generate_compose
 from tools.generate_dockerfile import generate_dockerfile
+from tools.generate_kubernetes import generate_kubernetes
 from tools.registry_cli import run as run_registry
 from tools.version import (
     __release__,
@@ -41,6 +43,10 @@ def print_help():
     print("      Generate Docker Compose configuration")
     print()
 
+    print("  kubernetes")
+    print("      Generate Kubernetes resources")
+    print()
+
     print("  registry")
     print("      Show registered models")
     print()
@@ -61,6 +67,8 @@ def print_help():
     print("python -m tools dockerfile")
 
     print("python -m tools compose")
+
+    print("python -m tools kubernetes")
 
     print("python -m tools registry")
 
@@ -104,6 +112,32 @@ def print_compose_help():
     print("  --database-image IMAGE     PostgreSQL image (default: postgres:16)")
     print("  --env-file PATH            Runtime environment file (default: .env)")
     print("  --dockerfile PATH          Dockerfile path (default: Dockerfile)")
+    print()
+
+
+def print_kubernetes_help():
+
+    print()
+    print("Generate Kubernetes resources")
+    print("=" * 50)
+    print()
+    print("python -m tools kubernetes [options]")
+    print()
+    print("Options")
+    print("  --name NAME                Resource name prefix (default: arcacore)")
+    print("  --namespace NAME           Kubernetes namespace (default: arcacore)")
+    print(
+        "  --api-image IMAGE          API container image (default: arcacore-api:latest)"
+    )
+    print("  --api-port PORT            API container port (default: 8000)")
+    print("  --service-port PORT        API service port (default: 80)")
+    print("  --replicas COUNT           API replica count (default: 2)")
+    print("  --database-image IMAGE     PostgreSQL image (default: postgres:16)")
+    print("  --database-port PORT       PostgreSQL service port (default: 5432)")
+    print("  --storage-size SIZE        PostgreSQL storage (default: 10Gi)")
+    print(
+        "  --secret-name NAME         Existing Secret name (default: arcacore-secrets)"
+    )
     print()
 
 
@@ -161,6 +195,16 @@ def main():
         output_path = generate_compose(definition)
         print()
         print(f"Docker Compose generated successfully: {output_path}")
+        return
+
+    if command == "kubernetes":
+        if any(value in {"-h", "--help"} for value in sys.argv[2:]):
+            print_kubernetes_help()
+            return
+        definition = parse_kubernetes_options(sys.argv[2:])
+        output_path = generate_kubernetes(definition)
+        print()
+        print(f"Kubernetes resources generated successfully: {output_path}")
         return
 
     if command == "registry":

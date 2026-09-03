@@ -6,8 +6,8 @@ and pushed to GitHub main as `b983e6b`.
 | Feature | Status |
 | --- | --- |
 | Dockerfile generation | Sprint 24.1: implemented, locally tested, committed, and pushed |
-| Docker Compose generation | Sprint 24.2: implemented; 13 dedicated and 280 discovery tests passed here; replacement ZIP prepared for local verification |
-| Kubernetes generation | Pending |
+| Docker Compose generation | Sprint 24.2: implemented, locally tested, committed, and pushed |
+| Kubernetes generation | Sprint 24.3: implemented; 14 dedicated and 294 discovery tests passed here; replacement ZIP prepared for local verification |
 | Health checks | Pending |
 
 Sprint 24.1 adds `python -m tools dockerfile`, a deterministic generator for a
@@ -52,5 +52,26 @@ scope boundaries, CLI generation, and help output.
 See COMPOSE_GENERATION.md for the complete Sprint 24.2 command contract,
 environment requirements, service topology, and scope boundary.
 
-Stop after delivering Sprint 24.2. Wait for the user's local test, commit, and
-push result before starting Kubernetes or any later feature.
+Sprint 24.3 adds `python -m tools kubernetes`, a deterministic generator for
+`kubernetes/arcacore.yaml`. The multi-document manifest contains a Namespace,
+PostgreSQL ConfigMap, API Deployment and Service, PostgreSQL StatefulSet and
+Service, and a PersistentVolumeClaim. Workloads include fixed resource requests
+and limits, while PostgreSQL uses persistent storage.
+
+Validated options configure resource names, namespace, images, ports, API
+replicas, storage, and the name of an existing Kubernetes Secret. The generated
+manifest references that Secret for the database URL and PostgreSQL password;
+it never writes credentials. Regeneration is a complete replacement and leaves
+backend source untouched.
+
+The 14 new tests cover defaults, custom option order, invalid metadata and CLI
+input, direct generator preflight, real isolated generation, backend
+preservation, deterministic replacement, resource kinds, API/PostgreSQL and
+storage contracts, secret safety, scope boundaries, CLI generation, and help
+output.
+
+See KUBERNETES_GENERATION.md for the complete Sprint 24.3 command contract,
+Secret setup, generated resources, apply instructions, and scope boundary.
+
+Stop after delivering Sprint 24.3. Wait for the user's local test, commit, and
+push result before starting health checks or any later feature.

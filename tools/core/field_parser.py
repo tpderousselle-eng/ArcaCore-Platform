@@ -38,6 +38,7 @@ class Field:
     association_table: str | None = None
     relationship_key: str | None = None
     cascade_delete: bool = False
+    passive_deletes: bool = False
 
 
 TYPE_MAP = {
@@ -140,6 +141,10 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 if parsed.cascade_delete:
                     raise ValueError(f"{name}: duplicate cascade_delete modifier.")
                 parsed.cascade_delete = True
+            elif modifier == "passive_deletes":
+                if parsed.passive_deletes:
+                    raise ValueError(f"{name}: duplicate passive_deletes modifier.")
+                parsed.passive_deletes = True
             elif modifier == "one_to_one":
                 one_to_one = True
             elif modifier == "one_to_many" or modifier.startswith("one_to_many("):

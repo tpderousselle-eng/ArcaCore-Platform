@@ -1,8 +1,11 @@
-"""Validate opt-in parent-to-child hard deletion on generated relationships."""
+"""Validate parent-to-child hard deletion and opt-in database delegation."""
 from tools.core.relationship_parser import RESERVED_NAMES, valid_name
 
 
 def validate_delete_cascades(fields, table_name):
+    for field in fields:
+        if field.passive_deletes and not field.cascade_delete:
+            raise ValueError(f"{field.name}: passive_deletes requires cascade_delete on the same field.")
     configured = [field for field in fields if field.cascade_delete]
     if not configured:
         return

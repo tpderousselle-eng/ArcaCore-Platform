@@ -69,6 +69,7 @@ class SQLAlchemyRenderer:
             return []
 
         arguments = [f'"{field.relationship_class}"']
+        passive = ", passive_deletes=True" if field.passive_deletes else ""
         if field.relationship_type == "many_to_many":
             arguments.append(f"secondary={field.association_table}")
             arguments.append(f"backref={field.backref!r}")
@@ -76,14 +77,14 @@ class SQLAlchemyRenderer:
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
             cascade = ', cascade="save-update, merge, delete"' if field.cascade_delete else ""
-            arguments.append(f"backref=backref({field.backref!r}, uselist=False{cascade})")
+            arguments.append(f"backref=backref({field.backref!r}, uselist=False{cascade}{passive})")
         elif field.relationship_type in {"many_to_one", "self_many_to_one"} and field.backref:
             arguments.append("uselist=False")
             arguments.append(f"foreign_keys=[{field.name}]")
             if field.relationship_type == "self_many_to_one":
                 arguments.append(f"remote_side=[{field.relationship_key}]")
             if field.cascade_delete:
-                arguments.append(f'backref=backref({field.backref!r}, cascade="save-update, merge, delete")')
+                arguments.append(f'backref=backref({field.backref!r}, cascade="save-update, merge, delete"{passive})')
             else:
                 arguments.append(f"backref={field.backref!r}")
         elif field.back_populates:

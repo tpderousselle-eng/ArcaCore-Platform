@@ -67,5 +67,6 @@ class Registry:
                 "relationship_table": field.relationship_table,
                 "relationship_key": field.relationship_key,
                 "cascade_delete": field.cascade_delete,
+                "passive_deletes": field.passive_deletes,
             })
         Registry.save(registry)

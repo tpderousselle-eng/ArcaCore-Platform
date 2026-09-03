@@ -200,7 +200,10 @@ class ComposeSmokeTest(unittest.TestCase):
         self.assertIn('"8000:8000"', source)
         self.assertIn('"5432:5432"', source)
         self.assertIn("postgres_data:/var/lib/postgresql/data", source)
-        self.assertNotIn("HEALTHCHECK", source)
+        self.assertEqual(source.count("healthcheck:"), 2)
+        self.assertIn("condition: service_healthy", source)
+        self.assertIn("http://127.0.0.1:8000/health", source)
+        self.assertIn("pg_isready", source)
         self.assertNotIn("redis:", source)
         self.assertNotIn("secret_key", source.lower())
 

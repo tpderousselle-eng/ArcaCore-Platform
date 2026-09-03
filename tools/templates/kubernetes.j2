@@ -46,6 +46,27 @@ spec:
             - name: http
               containerPort: {{ api_port }}
               protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 12
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m
@@ -95,6 +116,9 @@ spec:
         - name: postgres
           image: {{ database_image }}
           imagePullPolicy: IfNotPresent
+          args:
+            - -p
+            - "{{ database_port }}"
           envFrom:
             - configMapRef:
                 name: {{ name }}-database-config
@@ -108,6 +132,32 @@ spec:
             - name: postgres
               containerPort: {{ database_port }}
               protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - arcacore
+                - -d
+                - arcacore
+                - -p
+                - "{{ database_port }}"
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - arcacore
+                - -d
+                - arcacore
+                - -p
+                - "{{ database_port }}"
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
           resources:
             requests:
               cpu: 100m

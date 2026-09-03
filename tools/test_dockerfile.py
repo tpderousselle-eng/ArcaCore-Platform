@@ -173,7 +173,9 @@ class DockerfileSmokeTest(unittest.TestCase):
         self.assertIn("USER arcacore", source)
         self.assertIn("EXPOSE 8000", source)
         self.assertIn('"backend.main:app"', source)
-        self.assertNotIn("HEALTHCHECK", source)
+        self.assertIn("HEALTHCHECK --interval=30s", source)
+        self.assertIn("http://127.0.0.1:8000/health", source)
+        self.assertIn("urllib.request.urlopen", source)
         self.assertNotIn("PASSWORD", source)
 
     def test_cli_generates_with_custom_configuration(self):

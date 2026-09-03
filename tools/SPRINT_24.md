@@ -7,8 +7,8 @@ and pushed to GitHub main as `b983e6b`.
 | --- | --- |
 | Dockerfile generation | Sprint 24.1: implemented, locally tested, committed, and pushed |
 | Docker Compose generation | Sprint 24.2: implemented, locally tested, committed, and pushed |
-| Kubernetes generation | Sprint 24.3: implemented; 14 dedicated and 294 discovery tests passed here; replacement ZIP prepared for local verification |
-| Health checks | Pending |
+| Kubernetes generation | Sprint 24.3: implemented, locally tested, committed, and pushed |
+| Health checks | Sprint 24.4: implemented; 13 dedicated and 307 discovery tests passed here; replacement ZIP prepared for local verification |
 
 Sprint 24.1 adds `python -m tools dockerfile`, a deterministic generator for a
 root application Dockerfile. The default output targets Python 3.13,
@@ -73,5 +73,23 @@ output.
 See KUBERNETES_GENERATION.md for the complete Sprint 24.3 command contract,
 Secret setup, generated resources, apply instructions, and scope boundary.
 
-Stop after delivering Sprint 24.3. Wait for the user's local test, commit, and
-push result before starting health checks or any later feature.
+Sprint 24.4 adds health checks to all three deployment outputs without changing
+backend source. The Dockerfile and Compose API service request the existing
+`/health` endpoint with Python's standard library. Compose checks PostgreSQL
+with `pg_isready` and waits for database health before starting the API.
+
+The Kubernetes API Deployment includes startup, readiness, and liveness HTTP
+probes. Its PostgreSQL StatefulSet includes readiness and liveness `pg_isready`
+probes. Timeouts, intervals, start periods, and retry or failure thresholds are
+explicit and deterministic, and no credentials are embedded.
+
+The 13 new tests cover the Docker endpoint, configured ports, standard-library
+execution, Compose API and PostgreSQL checks, healthy dependency ordering,
+runtime environment escaping, Kubernetes probe types and named ports,
+PostgreSQL commands, credential safety, and backend preservation.
+
+See HEALTH_CHECKS.md for the complete Sprint 24.4 behavior, regeneration
+commands, and scope boundary.
+
+Stop after delivering Sprint 24.4. Wait for the user's local test, commit, and
+push result before starting any later sprint or feature.

@@ -49,7 +49,9 @@ The single multi-document manifest contains:
 
 Both workloads include resource requests and limits. PostgreSQL runs as one
 StatefulSet replica with persistent storage. Regeneration completely and
-deterministically replaces `kubernetes/arcacore.yaml`.
+deterministically replaces `kubernetes/arcacore.yaml`. Sprint 24.4 adds API
+startup, readiness, and liveness probes against `/health`, plus PostgreSQL
+readiness and liveness probes using `pg_isready`.
 
 ## Required Secret
 
@@ -73,10 +75,9 @@ kubectl apply -f kubernetes/arcacore.yaml
 
 ## Scope boundary
 
-Sprint 24.3 does not add health, readiness, or startup probes; ingress; TLS;
-autoscaling; managed databases; migration jobs; secret stores; Redis; image
-building or publishing; or CI/CD. Health checks remain the next separate
-roadmap feature.
+The Kubernetes generator does not add ingress, TLS, autoscaling, managed
+databases, migration jobs, secret stores, Redis, image building or publishing,
+or CI/CD.
 
 ## Local verification
 

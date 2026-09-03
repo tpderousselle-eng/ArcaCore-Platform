@@ -190,15 +190,14 @@ class KubernetesSmokeTest(unittest.TestCase):
         self.assertNotIn("REPLACE_ME", source)
         self.assertNotIn("password:", source.lower())
 
-    def test_health_and_later_scope_are_not_generated(self):
+    def test_health_probes_are_generated_and_later_scope_is_not(self):
         source = self.render_source()
-        for excluded in (
-            "livenessProbe",
-            "readinessProbe",
-            "startupProbe",
-            "kind: Ingress",
-            "kind: HorizontalPodAutoscaler",
-        ):
+        self.assertEqual(source.count("startupProbe:"), 1)
+        self.assertEqual(source.count("readinessProbe:"), 2)
+        self.assertEqual(source.count("livenessProbe:"), 2)
+        self.assertEqual(source.count("path: /health"), 3)
+        self.assertEqual(source.count("- pg_isready"), 2)
+        for excluded in ("kind: Ingress", "kind: HorizontalPodAutoscaler"):
             self.assertNotIn(excluded, source)
 
     def test_cli_generates_with_custom_configuration(self):

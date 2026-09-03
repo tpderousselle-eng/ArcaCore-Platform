@@ -41,12 +41,14 @@ fail before `docker-compose.yml` is written.
 The `api` service builds the configured Dockerfile, loads the configured
 environment file, publishes the API port, and depends on the `postgres`
 service. Its internal `DATABASE_URL` uses the Compose service hostname
-`postgres` rather than localhost.
+`postgres` rather than localhost. It checks the existing `/health` endpoint and
+starts only after PostgreSQL reports healthy.
 
 The `postgres` service uses the selected image, publishes its port, and stores
 database files in the named `postgres_data` volume. Its user and database
 default to `arcacore`. `POSTGRES_PASSWORD` is required through environment
-interpolation and is never embedded in generated source.
+interpolation and is never embedded in generated source. PostgreSQL health is
+checked with `pg_isready` and runtime environment values.
 
 Add these values to the selected environment file before starting Compose:
 
@@ -70,10 +72,8 @@ Regeneration completely and deterministically replaces the root
 
 ## Scope boundary
 
-Sprint 24.2 does not add Redis, health checks, readiness ordering, Kubernetes,
-database migrations, secret stores, TLS, external networks, replicas, image
-publishing, or CI/CD. Health and Kubernetes behavior remain separate roadmap
-features.
+The Compose generator does not add Redis, Kubernetes, database migrations,
+secret stores, TLS, external networks, replicas, image publishing, or CI/CD.
 
 ## Local verification
 

@@ -1,8 +1,8 @@
 # Dockerfile generation
 
 Sprint 24.1 begins ArcaCore deployment generation with one deterministic,
-production-oriented Dockerfile. It adds a generator command; it does not alter
-backend source or generate Compose, Kubernetes, or health-check configuration.
+production-oriented Dockerfile. It adds a generator command and does not alter
+backend source. Sprint 24.4 extends its output with a container health check.
 
 ## Command
 
@@ -43,7 +43,8 @@ The generated Dockerfile:
   source edits can reuse the dependency layer;
 - copies only the configured source directory;
 - runs the application as the unprivileged `arcacore` user;
-- exposes the configured port; and
+- exposes the configured port;
+- checks the existing `/health` endpoint with Python's standard library; and
 - starts the selected ASGI application through Uvicorn's Python module entry
   point.
 
@@ -52,10 +53,9 @@ Running the command again completely and deterministically replaces the root
 
 ## Scope boundary
 
-Sprint 24.1 does not generate `.dockerignore`, Docker Compose services,
-Kubernetes resources, health checks, database migrations, secrets, environment
-values, TLS, registries, CI/CD workflows, or image publishing. Those deployment
-concerns require their own roadmap features.
+The Dockerfile generator does not generate `.dockerignore`, Docker Compose
+services, Kubernetes resources, database migrations, secrets, environment
+values, TLS, registries, CI/CD workflows, or image publishing.
 
 ## Build and run
 

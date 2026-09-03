@@ -28,7 +28,7 @@ def generate_module(
             if soft_delete:
                 raise ValueError("soft_delete can only be specified once.")
             soft_delete = True
-        elif definition == "index" or definition.startswith("index("):
+        elif definition in {"index", "partial_index"} or definition.startswith(("index(", "partial_index(")):
             index_definitions.append(definition)
         elif definition in {"unique_together", "check"} or definition.startswith(("unique_together(", "check(")):
             constraint_definitions.append(definition)

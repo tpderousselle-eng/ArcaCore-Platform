@@ -94,6 +94,13 @@ class SQLAlchemyRenderer:
     @staticmethod
     def render_index(index: CompositeIndex) -> str:
         arguments = ", ".join(repr(value) for value in [index.name, *index.columns])
+        if index.where is not None:
+            predicate = f"_arca_index_predicate({index.where!r})"
+            return (
+                f"Index({arguments}, unique={index.unique!r}, "
+                f"postgresql_where={predicate}, sqlite_where={predicate})"
+                '.ddl_if(dialect=("postgresql", "sqlite"))'
+            )
         return f"Index({arguments})"
 
     @staticmethod

@@ -29,7 +29,11 @@ class Registry:
             "fields": [],
             "soft_delete": module.soft_delete,
             "indexes": [
-                {"name": index.name, "columns": index.columns}
+                {
+                    "name": index.name,
+                    "columns": index.columns,
+                    **({"where": index.where, "unique": index.unique} if index.where is not None else {}),
+                }
                 for index in module.indexes
             ],
             "unique_constraints": [

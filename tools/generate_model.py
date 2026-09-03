@@ -68,6 +68,7 @@ def generate_model(module: ModuleDefinition):
         fields=rendered_fields,
         associations=associations,
         indexes=[SQLAlchemyRenderer.render_index(index) for index in module.indexes],
+        has_partial_indexes=any(index.where is not None for index in module.indexes),
         unique_constraints=[SQLAlchemyRenderer.render_unique(item) for item in module.unique_constraints],
         check_constraints=[SQLAlchemyRenderer.render_check(item) for item in module.check_constraints],
         soft_delete=module.soft_delete,

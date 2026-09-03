@@ -7,6 +7,8 @@ from tools.core.field_parser import Field
 class CompositeIndex:
     name: str
     columns: list[str]
+    where: str | None = None
+    unique: bool = False
 
 
 @dataclass

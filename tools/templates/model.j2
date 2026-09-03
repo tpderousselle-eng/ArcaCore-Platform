@@ -174,7 +174,18 @@ class {{ class_name }}(Base):
     )
 
 {% endif %}
-{% if soft_delete %}
+{% if version_column %}
+    version_id = Column(
+        Integer,
+        nullable=False,
+        default=1,
+    )
+
+    __mapper_args__ = {
+        "version_id_col": version_id,
+    }
+
+{% endif %}{% if soft_delete %}
     deleted_at = Column(
         DateTime(timezone=True),
         nullable=True,

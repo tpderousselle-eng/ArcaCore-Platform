@@ -6,11 +6,13 @@ from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES
 from tools.core.hybrid_property_parser import validate_hybrid_properties
 from tools.core.module_definition import ModuleDefinition
+from tools.core.version_column_parser import validate_version_column
 from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
 
 def generate_model(module: ModuleDefinition):
     validate_audit_fields(module.audit_fields, module.fields)
+    validate_version_column(module.version_column, module.fields)
     validate_encrypted_fields(module.fields)
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
@@ -91,6 +93,7 @@ def generate_model(module: ModuleDefinition):
         check_constraints=[SQLAlchemyRenderer.render_check(item) for item in module.check_constraints],
         soft_delete=module.soft_delete,
         audit_fields=module.audit_fields,
+        version_column=module.version_column,
         audit_type=(
             "UUID(as_uuid=True)"
             if module.audit_fields is not None and module.audit_fields.python_type == "uuid"

@@ -9,9 +9,9 @@ the working source after normalizing line endings.
 | Computed fields | Already implemented in Sprint 19.13 |
 | Hybrid properties | Sprint 23.1: implemented, locally tested, committed, and pushed |
 | Encrypted fields | Sprint 23.2: implemented, locally tested, committed, and pushed |
-| Audit fields | Sprint 23.3: implemented; 240 relevant tests and 241 discovery tests passed here; replacement ZIP prepared for local verification |
+| Audit fields | Sprint 23.3: implemented, locally tested, committed, and pushed |
 | Soft deletes | Already implemented in Sprint 19.10 |
-| Version columns | Pending |
+| Version columns | Sprint 23.4: implemented; 254 relevant tests and 255 discovery tests passed here; replacement ZIP prepared for local verification |
 
 Sprint 23.1 adds read-only hybrid= expressions for int, float, decimal, str, and
 text outputs. Generated SQLAlchemy models evaluate hybrids on instances and
@@ -83,5 +83,33 @@ preflight, advanced-field composition, and compatibility.
 
 See AUDIT_FIELDS.md for the complete Sprint 23.3 contract and trust boundary.
 
-Stop after delivering Sprint 23.3. Wait for the user's local test, commit, and
-push result before starting Version Columns or any other feature.
+Sprint 23.4 adds a module-level `version_column` option. Generated models use a
+non-null integer `version_id` initialized to 1 as SQLAlchemy's mapper version
+column. ORM updates advance it and include the previous version in the update
+predicate, so concurrent stale writes raise `StaleDataError` instead of
+silently overwriting newer state.
+
+Generated Create and Update schemas reject the service-managed value, while
+Response schemas expose it as required read-only metadata. Composite and
+partial indexes, constraints, and index predicates may reference the generated
+column. Registry metadata records its name, types, and initial value without
+changing the ordinary field list.
+
+Versioning composes transactionally with audit attribution, soft delete and
+restore, advanced fields, custom keys, and relationships. No-op delete and
+restore calls do not advance a version. Modules without versioning retain their
+previous generated and registry shapes. The feature covers per-instance ORM
+flushes; bulk DML and historical revision storage remain outside its scope.
+
+The 14 new tests cover declaration order, generated model and PostgreSQL DDL,
+registry metadata, inserts and repeated updates, stale-write rejection, custom
+primary keys, soft delete and restore, audit composition, schema input and
+response boundaries, indexes, constraints, CLI output, invalid declarations,
+reserved names, direct generator preflight, advanced-field composition, and
+compatibility.
+
+See VERSION_COLUMNS.md for the complete Sprint 23.4 contract and concurrency
+boundary.
+
+Stop after delivering Sprint 23.4. Wait for the user's local test, commit, and
+push result before starting any later feature or sprint.

@@ -5,6 +5,7 @@ from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT
 from tools.core.module_definition import ModuleDefinition
+from tools.core.version_column_parser import validate_version_column
 
 
 REGISTRY_PATH = PROJECT_ROOT / "tools" / "registry" / "models.json"
@@ -26,12 +27,25 @@ class Registry:
     @staticmethod
     def register(module: ModuleDefinition):
         validate_audit_fields(module.audit_fields, module.fields)
+        validate_version_column(module.version_column, module.fields)
         validate_encrypted_fields(module.fields)
         registry = Registry.load()
         registry[module.class_name] = {
             "table": module.table_name,
             "fields": [],
             "soft_delete": module.soft_delete,
+            **(
+                {
+                    "version_column": {
+                        "name": "version_id",
+                        "python_type": "int",
+                        "sqlalchemy_type": "Integer",
+                        "initial": 1,
+                    }
+                }
+                if module.version_column
+                else {}
+            ),
             **(
                 {
                     "audit_fields": {

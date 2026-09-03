@@ -5,6 +5,7 @@ from tools.core.constraint_parser import parse_constraints
 from tools.core.field_parser import parse_fields
 from tools.core.index_parser import parse_indexes
 from tools.core.module_definition import ModuleDefinition
+from tools.core.version_column_parser import parse_version_column
 
 from tools.generate_model import generate_model
 from tools.generate_schema import generate_schema
@@ -25,6 +26,7 @@ def generate_module(
     constraint_definitions = []
     soft_delete = False
     audit_fields = None
+    version_column = False
     for definition in field_strings:
         if definition == "soft_delete":
             if soft_delete:
@@ -38,6 +40,10 @@ def generate_module(
             if audit_fields is not None:
                 raise ValueError("audit_fields can only be specified once.")
             audit_fields = parse_audit_fields(definition)
+        elif definition == "version_column" or definition.startswith("version_column("):
+            if version_column:
+                raise ValueError("version_column can only be specified once.")
+            version_column = parse_version_column(definition)
         else:
             field_definitions.append(definition)
 
@@ -50,6 +56,7 @@ def generate_module(
         fields,
         soft_delete=soft_delete,
         audit_fields=audit_fields is not None,
+        version_column=version_column,
     )
     uniques, checks = parse_constraints(
         table_name,
@@ -57,6 +64,7 @@ def generate_module(
         fields,
         soft_delete=soft_delete,
         audit_fields=audit_fields is not None,
+        version_column=version_column,
     )
 
     module = ModuleDefinition(
@@ -70,6 +78,7 @@ def generate_module(
         unique_constraints=uniques,
         check_constraints=checks,
         audit_fields=audit_fields,
+        version_column=version_column,
     )
 
     print("=" * 60)

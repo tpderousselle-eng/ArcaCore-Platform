@@ -9,6 +9,7 @@ from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import validate_format
 from tools.core.hybrid_property_parser import validate_hybrid_properties
 from tools.core.module_definition import ModuleDefinition
+from tools.core.version_column_parser import validate_version_column
 
 
 SCHEMA_TYPES = {
@@ -107,6 +108,7 @@ def schema_fields(module):
 
 def generate_schema(module: ModuleDefinition):
     validate_audit_fields(module.audit_fields, module.fields)
+    validate_version_column(module.version_column, module.fields)
     validate_encrypted_fields(module.fields)
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
@@ -136,6 +138,7 @@ def generate_schema(module: ModuleDefinition):
         implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
         audit_fields=module.audit_fields,
+        version_column=module.version_column,
         audit_schema_type=(
             SCHEMA_TYPES[module.audit_fields.python_type]
             if module.audit_fields is not None

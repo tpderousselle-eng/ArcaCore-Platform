@@ -62,12 +62,19 @@ class {{ class_name }}Create({{ class_name }}Base):
                 if name in data:
                     raise ValueError(f"{name} is managed by the service and cannot be supplied.")
         return data
-{% endif %}{% if not has_computed and not audit_fields %}
+{% endif %}{% if version_column %}
+    @_pydantic.model_validator(mode="before")
+    @classmethod
+    def _reject_version_input(cls, data):
+        if isinstance(data, _typing.Mapping) and "version_id" in data:
+            raise ValueError("version_id is managed by the ORM and cannot be supplied.")
+        return data
+{% endif %}{% if not has_computed and not audit_fields and not version_column %}
     pass
 {% endif %}
 
 
-class {{ class_name }}Update({{ class_name }}{% if has_computed or audit_fields %}Create{% else %}Base{% endif %}):
+class {{ class_name }}Update({{ class_name }}{% if has_computed or audit_fields or version_column %}Create{% else %}Base{% endif %}):
 {% for field in writable_fields %}
     {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['update'] }})
 {% else %}
@@ -92,7 +99,11 @@ class {{ class_name }}Response({{ class_name }}Base):
         json_schema_extra={"readOnly": True, "x-arca-audit-role": "updated-at"}
     )
 {% endif %}
-{% if implicit_id %}
+{% if version_column %}
+    version_id: int = _pydantic.Field(
+        json_schema_extra={"readOnly": True, "x-arca-version-column": True}
+    )
+{% endif %}{% if implicit_id %}
     id: int
 {% endif %}
 

@@ -32,7 +32,8 @@ class Registry:
                 {
                     "name": index.name,
                     "columns": index.columns,
-                    **({"where": index.where, "unique": index.unique} if index.where is not None else {}),
+                    **({"where": index.where, "unique": index.unique} if index.where is not None or index.expressions is not None else {}),
+                    **({"expressions": index.expressions} if index.expressions is not None else {}),
                 }
                 for index in module.indexes
             ],

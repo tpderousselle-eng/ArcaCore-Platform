@@ -9,6 +9,7 @@ class CompositeIndex:
     columns: list[str]
     where: str | None = None
     unique: bool = False
+    expressions: list[str] | None = None
 
 
 @dataclass

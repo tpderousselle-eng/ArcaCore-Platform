@@ -5,6 +5,7 @@ import math
 import re
 
 from tools.core.constraint_parser import parse_check
+from tools.core.expression_index_parser import parse_expression_index
 from tools.core.field_parser import Field
 from tools.core.module_definition import CompositeIndex
 
@@ -66,9 +67,13 @@ def parse_indexes(
     indexes = []
     seen_names = set()
     for definition in definitions:
-        where, unique = None, False
+        where, unique, expressions = None, False, None
         partial = definition == "partial_index" or definition.startswith("partial_index(")
-        if partial:
+        expression = definition == "expression_index" or definition.startswith("expression_index(")
+        if expression:
+            selected, expressions, where, unique = parse_expression_index(definition, fields, columns)
+            label = "expression_index()"
+        elif partial:
             selected, where, unique = parse_partial_index(definition, columns)
             label = "partial_index()"
         else:
@@ -86,7 +91,11 @@ def parse_indexes(
                 raise ValueError(f"{label}: unknown or non-column field: {column}")
 
         name = f"ix_{table_name}_{'_'.join(selected)}"
-        if partial:
+        if expression:
+            identity = json.dumps([expressions, where, unique], ensure_ascii=False)
+            digest = sha256(identity.encode("utf-8")).hexdigest()[:10]
+            name += f"_expr_{digest}"
+        elif partial:
             identity = json.dumps([selected, where, unique], ensure_ascii=False)
             digest = sha256(identity.encode("utf-8")).hexdigest()[:10]
             name += f"_partial_{digest}"
@@ -98,6 +107,6 @@ def parse_indexes(
         if name in seen_names:
             raise ValueError(f"Duplicate index name: {name}")
         seen_names.add(name)
-        indexes.append(CompositeIndex(name=name, columns=selected, where=where, unique=unique))
+        indexes.append(CompositeIndex(name=name, columns=selected, where=where, unique=unique, expressions=expressions))
 
     return indexes

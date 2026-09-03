@@ -48,7 +48,7 @@ from sqlalchemy import (
 {% endif %}
     func,
 )
-{% if has_partial_indexes %}
+{% if has_partial_indexes or has_expression_indexes %}
 from sqlalchemy import literal_column as _arca_index_predicate
 {% endif %}
 

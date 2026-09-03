@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT
 from tools.core.module_definition import ModuleDefinition
@@ -24,12 +25,24 @@ class Registry:
 
     @staticmethod
     def register(module: ModuleDefinition):
+        validate_audit_fields(module.audit_fields, module.fields)
         validate_encrypted_fields(module.fields)
         registry = Registry.load()
         registry[module.class_name] = {
             "table": module.table_name,
             "fields": [],
             "soft_delete": module.soft_delete,
+            **(
+                {
+                    "audit_fields": {
+                        "target": module.audit_fields.target,
+                        "python_type": module.audit_fields.python_type,
+                        "sqlalchemy_type": module.audit_fields.sqlalchemy_type,
+                    }
+                }
+                if module.audit_fields is not None
+                else {}
+            ),
             "indexes": [
                 {
                     "name": index.name,

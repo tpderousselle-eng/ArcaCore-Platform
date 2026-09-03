@@ -54,6 +54,7 @@ def parse_indexes(
     definitions: list[str],
     fields: list[Field],
     soft_delete: bool = False,
+    audit_fields: bool = False,
 ) -> list[CompositeIndex]:
     columns = {
         field.name
@@ -67,6 +68,8 @@ def parse_indexes(
     columns.update({"created_at", "updated_at"})
     if soft_delete:
         columns.add("deleted_at")
+    if audit_fields:
+        columns.update({"created_by", "updated_by"})
     if not any(field.primary_key for field in fields):
         columns.add("id")
 

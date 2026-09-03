@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field as dataclass_field
 
+from tools.core.audit_field_parser import AuditFieldDefinition, validate_audit_fields
 from tools.core.field_parser import Field
 
 
@@ -35,8 +36,10 @@ class ModuleDefinition:
     soft_delete: bool = False
     unique_constraints: list[UniqueTogether] = dataclass_field(default_factory=list)
     check_constraints: list[CheckRule] = dataclass_field(default_factory=list)
+    audit_fields: AuditFieldDefinition | None = None
 
     def __post_init__(self):
+        validate_audit_fields(self.audit_fields, self.fields)
         if self.soft_delete:
             if any(
                 field.name == "deleted_at" or field.relationship_name == "deleted_at"

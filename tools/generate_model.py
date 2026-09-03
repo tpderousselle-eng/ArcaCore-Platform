@@ -1,3 +1,4 @@
+from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.cascade_parser import validate_delete_cascades
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.encrypted_field_parser import validate_encrypted_fields
@@ -9,6 +10,7 @@ from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
 
 def generate_model(module: ModuleDefinition):
+    validate_audit_fields(module.audit_fields, module.fields)
     validate_encrypted_fields(module.fields)
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
@@ -27,6 +29,8 @@ def generate_model(module: ModuleDefinition):
     has_relationships = False
     has_one_to_one = False
     required_types = set()
+    if module.audit_fields is not None:
+        required_types.add(module.audit_fields.sqlalchemy_type)
     primary_keys = [field.name for field in module.fields if field.primary_key]
     many_targets = set()
 
@@ -86,6 +90,12 @@ def generate_model(module: ModuleDefinition):
         unique_constraints=[SQLAlchemyRenderer.render_unique(item) for item in module.unique_constraints],
         check_constraints=[SQLAlchemyRenderer.render_check(item) for item in module.check_constraints],
         soft_delete=module.soft_delete,
+        audit_fields=module.audit_fields,
+        audit_type=(
+            "UUID(as_uuid=True)"
+            if module.audit_fields is not None and module.audit_fields.python_type == "uuid"
+            else module.audit_fields.sqlalchemy_type if module.audit_fields is not None else None
+        ),
         has_relationships=has_relationships,
         has_one_to_one=has_one_to_one,
         has_cascade_delete=any(field.cascade_delete for field in module.fields),

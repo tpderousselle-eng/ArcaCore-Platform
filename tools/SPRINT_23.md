@@ -8,8 +8,8 @@ the working source after normalizing line endings.
 | --- | --- |
 | Computed fields | Already implemented in Sprint 19.13 |
 | Hybrid properties | Sprint 23.1: implemented, locally tested, committed, and pushed |
-| Encrypted fields | Sprint 23.2: implemented; 226 relevant tests and 227 discovery tests passed here; replacement ZIP pending verification |
-| Audit fields | Pending |
+| Encrypted fields | Sprint 23.2: implemented, locally tested, committed, and pushed |
+| Audit fields | Sprint 23.3: implemented; 240 relevant tests and 241 discovery tests passed here; replacement ZIP prepared for local verification |
 | Soft deletes | Already implemented in Sprint 19.10 |
 | Version columns | Pending |
 
@@ -62,5 +62,26 @@ preflight, soft-delete composition, custom primary keys, and compatibility.
 See ENCRYPTED_FIELDS.md for the complete Sprint 23.2 contract, dependency, key
 setup, rotation guidance, security boundaries, and local commands.
 
-Stop after delivering Sprint 23.2. Wait for the user's local test, commit, and
-push result before starting Audit Fields or any other feature.
+Sprint 23.3 adds a module-level `audit_fields` option. It supplements the
+existing timestamps with indexed `created_by` and `updated_by` foreign-key
+columns using conventional `users.id` integer actors or a configured int, str,
+or UUID actor key. Generated input schemas reject all four service-managed
+audit values, while Response schemas expose them as read-only metadata.
+
+Audit-enabled soft delete and restore operations require a trusted actor ID and
+update the row attribution transactionally. Composite and partial indexes,
+constraints, and index predicates can reference generated actor columns.
+Registry metadata records the actor target and type without changing the
+ordinary field list. Modules without audit fields retain their previous
+generated and registry shapes.
+
+The 14 new tests cover parser defaults and custom actor keys, SQLite round
+trips, PostgreSQL DDL, timestamps, schemas and JSON metadata, soft-delete and
+restore attribution, idempotency, rollback, CLI/registry output, indexes,
+constraints, expression-index boundaries, reserved names, direct generator
+preflight, advanced-field composition, and compatibility.
+
+See AUDIT_FIELDS.md for the complete Sprint 23.3 contract and trust boundary.
+
+Stop after delivering Sprint 23.3. Wait for the user's local test, commit, and
+push result before starting Version Columns or any other feature.

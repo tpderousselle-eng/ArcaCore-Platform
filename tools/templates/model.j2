@@ -158,7 +158,22 @@ class {{ class_name }}(Base):
     )
 
 {% endif %}
-{% endfor %}
+{% endfor %}{% if audit_fields %}
+    created_by = Column(
+        {{ audit_type }},
+        ForeignKey("{{ audit_fields.target }}"),
+        nullable=False,
+        index=True,
+    )
+
+    updated_by = Column(
+        {{ audit_type }},
+        ForeignKey("{{ audit_fields.target }}"),
+        nullable=True,
+        index=True,
+    )
+
+{% endif %}
 {% if soft_delete %}
     deleted_at = Column(
         DateTime(timezone=True),

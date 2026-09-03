@@ -13,11 +13,11 @@ class {{ class_name }}Service:
     def list(self, include_deleted: bool = False):
         return self.crud.list(include_deleted=include_deleted)
 
-    def delete(self, item_id):
-        return self.crud.delete(item_id)
+    def delete(self, item_id{% if audit_fields %}, actor_id{% endif %}):
+        return self.crud.delete(item_id{% if audit_fields %}, actor_id{% endif %})
 
-    def restore(self, item_id):
-        return self.crud.restore(item_id)
+    def restore(self, item_id{% if audit_fields %}, actor_id{% endif %}):
+        return self.crud.restore(item_id{% if audit_fields %}, actor_id{% endif %})
 {% else %}
     def get(self, item_id: int):
         return self.crud.get(item_id)

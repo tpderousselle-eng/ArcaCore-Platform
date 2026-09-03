@@ -1,6 +1,7 @@
 import ast
 from decimal import Decimal
 
+from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.computed_parser import validate_computed_fields
 from tools.core.custom_validator_parser import validate_custom_validators
 from tools.core.encrypted_field_parser import validate_encrypted_fields
@@ -105,6 +106,7 @@ def schema_fields(module):
 
 
 def generate_schema(module: ModuleDefinition):
+    validate_audit_fields(module.audit_fields, module.fields)
     validate_encrypted_fields(module.fields)
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
@@ -133,4 +135,10 @@ def generate_schema(module: ModuleDefinition):
         custom_imports=custom_imports, custom_fields=custom_fields,
         implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
+        audit_fields=module.audit_fields,
+        audit_schema_type=(
+            SCHEMA_TYPES[module.audit_fields.python_type]
+            if module.audit_fields is not None
+            else None
+        ),
     )

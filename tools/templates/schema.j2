@@ -53,12 +53,21 @@ class {{ class_name }}Create({{ class_name }}Base):
                 if name in data:
                     raise ValueError(f"{name} is computed by the database and cannot be supplied.")
         return data
-{% else %}
+{% endif %}{% if audit_fields %}
+    @_pydantic.model_validator(mode="before")
+    @classmethod
+    def _reject_audit_input(cls, data):
+        if isinstance(data, _typing.Mapping):
+            for name in ("created_by", "updated_by", "created_at", "updated_at"):
+                if name in data:
+                    raise ValueError(f"{name} is managed by the service and cannot be supplied.")
+        return data
+{% endif %}{% if not has_computed and not audit_fields %}
     pass
 {% endif %}
 
 
-class {{ class_name }}Update({{ class_name }}{% if has_computed %}Create{% else %}Base{% endif %}):
+class {{ class_name }}Update({{ class_name }}{% if has_computed or audit_fields %}Create{% else %}Base{% endif %}):
 {% for field in writable_fields %}
     {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['update'] }})
 {% else %}
@@ -69,7 +78,20 @@ class {{ class_name }}Update({{ class_name }}{% if has_computed %}Create{% else 
 class {{ class_name }}Response({{ class_name }}Base):
 {% for field in fields %}
     {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['response'] }})
-{% endfor %}
+{% endfor %}{% if audit_fields %}
+    created_by: {{ audit_schema_type }} = _pydantic.Field(
+        json_schema_extra={"readOnly": True, "x-arca-audit-role": "creator"}
+    )
+    updated_by: {{ audit_schema_type }} | None = _pydantic.Field(
+        json_schema_extra={"readOnly": True, "x-arca-audit-role": "updater"}
+    )
+    created_at: _datetime.datetime = _pydantic.Field(
+        json_schema_extra={"readOnly": True, "x-arca-audit-role": "created-at"}
+    )
+    updated_at: _datetime.datetime = _pydantic.Field(
+        json_schema_extra={"readOnly": True, "x-arca-audit-role": "updated-at"}
+    )
+{% endif %}
 {% if implicit_id %}
     id: int
 {% endif %}

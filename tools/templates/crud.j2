@@ -27,11 +27,13 @@ class {{ class_name }}CRUD:
             query = query.filter({{ class_name }}.deleted_at.is_(None))
         return query.all()
 
-    def delete(self, item_id):
+    def delete(self, item_id{% if audit_fields %}, actor_id{% endif %}):
         item = self.get(item_id, include_deleted=True)
         if item is None or item.deleted_at is not None:
             return item
-        item.deleted_at = datetime.now(timezone.utc)
+        item.deleted_at = datetime.now(timezone.utc){% if audit_fields %}
+        item.updated_by = actor_id
+{% endif %}
         try:
             self.db.commit()
         except Exception:
@@ -40,11 +42,13 @@ class {{ class_name }}CRUD:
         self.db.refresh(item)
         return item
 
-    def restore(self, item_id):
+    def restore(self, item_id{% if audit_fields %}, actor_id{% endif %}):
         item = self.get(item_id, include_deleted=True)
         if item is None or item.deleted_at is None:
             return item
-        item.deleted_at = None
+        item.deleted_at = None{% if audit_fields %}
+        item.updated_by = actor_id
+{% endif %}
         try:
             self.db.commit()
         except Exception:

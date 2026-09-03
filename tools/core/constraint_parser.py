@@ -85,6 +85,7 @@ def parse_constraints(
     definitions: list[str],
     fields: list[Field],
     soft_delete: bool = False,
+    audit_fields: bool = False,
 ) -> tuple[list[UniqueTogether], list[CheckRule]]:
     columns = {
         field.name
@@ -100,6 +101,8 @@ def parse_constraints(
         columns.add("id")
     if soft_delete:
         columns.add("deleted_at")
+    if audit_fields:
+        columns.update({"created_by", "updated_by"})
 
     uniques, checks = [], []
     seen_columns, seen_checks, seen_names = set(), set(), set()

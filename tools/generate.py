@@ -1,5 +1,6 @@
 import sys
 
+from tools.core.audit_field_parser import parse_audit_fields
 from tools.core.constraint_parser import parse_constraints
 from tools.core.field_parser import parse_fields
 from tools.core.index_parser import parse_indexes
@@ -23,6 +24,7 @@ def generate_module(
     index_definitions = []
     constraint_definitions = []
     soft_delete = False
+    audit_fields = None
     for definition in field_strings:
         if definition == "soft_delete":
             if soft_delete:
@@ -32,14 +34,30 @@ def generate_module(
             index_definitions.append(definition)
         elif definition in {"unique_together", "check"} or definition.startswith(("unique_together(", "check(")):
             constraint_definitions.append(definition)
+        elif definition == "audit_fields" or definition.startswith("audit_fields("):
+            if audit_fields is not None:
+                raise ValueError("audit_fields can only be specified once.")
+            audit_fields = parse_audit_fields(definition)
         else:
             field_definitions.append(definition)
 
     fields = parse_fields(name, field_definitions)
     FieldValidator.validate(fields)
     table_name = f"{name.lower()}s"
-    indexes = parse_indexes(table_name, index_definitions, fields, soft_delete=soft_delete)
-    uniques, checks = parse_constraints(table_name, constraint_definitions, fields, soft_delete=soft_delete)
+    indexes = parse_indexes(
+        table_name,
+        index_definitions,
+        fields,
+        soft_delete=soft_delete,
+        audit_fields=audit_fields is not None,
+    )
+    uniques, checks = parse_constraints(
+        table_name,
+        constraint_definitions,
+        fields,
+        soft_delete=soft_delete,
+        audit_fields=audit_fields is not None,
+    )
 
     module = ModuleDefinition(
         name=name,
@@ -51,6 +69,7 @@ def generate_module(
         soft_delete=soft_delete,
         unique_constraints=uniques,
         check_constraints=checks,
+        audit_fields=audit_fields,
     )
 
     print("=" * 60)

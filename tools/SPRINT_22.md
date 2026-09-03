@@ -1,8 +1,7 @@
 # Sprint 22: Validation
 
-Continue the user's Validation blueprint. Existing capabilities are retained
-rather than implemented again. Sprint 22 began after Sprint 21.2 Expression
-Indexes, GitHub main cd74c8d, with 132 relevant smoke tests.
+Continue the user's Validation blueprint. Sprint 22 began after Sprint 21.2
+Expression Indexes, GitHub main cd74c8d, with 132 relevant smoke tests.
 
 | Feature | Status |
 | --- | --- |
@@ -10,51 +9,45 @@ Indexes, GitHub main cd74c8d, with 132 relevant smoke tests.
 | Email | Sprint 22.1: 144 tests passed locally; committed and pushed as 9176879 |
 | Phone | Sprint 22.2: 156 tests passed locally; committed and pushed as 7b5c87e |
 | Slug | Sprint 22.3: 168 tests passed locally; committed and pushed as 99e94ac |
-| URL | Sprint 22.4: implemented; 182 relevant smoke tests passed here; replacement ZIP prepared; awaiting user local test and commit |
+| URL | Sprint 22.4: 182 tests passed locally; committed and pushed as 74eae06 |
 | Min/Max | Already implemented in Sprint 19.12 |
 | Length | Already implemented in Sprint 19.12 |
-| Custom validators | Pending |
+| Custom validators | Sprint 22.5: implemented; 198 relevant smoke tests passed here; replacement ZIP prepared; awaiting user local test and commit |
 
-The user explicitly authorized Sprint 22.4 after the Slug Validation delivery.
-GitHub main 99e94ac was fetched and its tools source compared with the working
-copy before editing. Sources matched after normalizing line endings.
+The user authorized Sprint 22.5 after the URL Validation delivery. GitHub main
+74eae06 was fetched and its tools source compared with the working copy before
+editing. Sources matched after normalizing line endings.
 
-Sprint 22.1 added format=email for str and text fields. Generated Pydantic 2
-Create, Update, and Response schemas use EmailStr; registry entries retain the
-format. See EMAIL_VALIDATION.md for its behavior and dependency.
+Sprint 22.1 added format=email on str and text. Generated Pydantic 2 schemas use
+EmailStr; see EMAIL_VALIDATION.md for normalization and the optional dependency.
 
-Sprint 22.2 added format=phone on the same field types. Generated schemas validate
-international phone strings offline with phonenumbers and normalize them to E.164.
-A country calling code is required. Extensions and national-only inputs are
-rejected. See PHONE_VALIDATION.md for details.
+Sprint 22.2 added format=phone. International phone strings are validated offline
+with phonenumbers and normalized to E.164; see PHONE_VALIDATION.md.
 
-Sprint 22.3 added format=slug on str and text. Slugs use lowercase ASCII letters
-and digits with single hyphen separators. Validation preserves the supplied
-value; it does not derive or rename identifiers. No new dependency is required.
-See SLUG_VALIDATION.md for details.
+Sprint 22.3 added format=slug. Lowercase ASCII letters/digits use single hyphen
+separators, preserving the supplied value; see SLUG_VALIDATION.md.
 
-Sprint 22.4 adds format=url on str and text. Generated schemas validate absolute
-HTTP(S) URLs and return normalized plain strings. URL validation needs no new
-package. It does not fetch destinations. The parser preserves colons inside
-quoted defaults so URL literals can include schemes and ports. Actual regex
-modifiers remain last and retain their literal contents.
+Sprint 22.4 added format=url. Absolute HTTP(S) URLs become normalized plain
+strings without fetching destinations. The parser preserves colons in quoted
+default literals; see URL_VALIDATION.md.
 
-The 14 new URL tests cover normalization across all schemas and JSON, strict
-input types, invalid schemes/hosts/ports/escapes, credentials and whitespace,
-nullability, partial updates, literal and database-expression defaults, quoted
-colons and escaped quotes, malformed-default preflight, normalized length/regex,
-CLI/registry/JSON Schema, all named formats together, computed fields, invalid
-DSL preflight, programmatic metadata/direct generation, database uniqueness and
-updates, URL keys/relationships, output compatibility, and standalone execution
-without optional packages or network requests.
+Sprint 22.5 adds repeatable validator=package.module.function declarations.
+Metadata retains ordered references, and generated schemas import the application
+rules without depending on tools. Rules run after built-in validation and each
+returned value is revalidated before proceeding. Generation never imports or
+executes rule modules. See CUSTOM_VALIDATORS.md and the complete example at
+examples/validation_rules.py.
 
-The earlier email suite now uses uri in its unsupported-format case, since url
-is supported. The duplicate email/url format test remains a rejection case.
-See URL_VALIDATION.md for the exact input policy and full local smoke command.
+The 16 new tests cover typed inputs and rejections across Create/Update/Response,
+ordered transformations, return-value constraints, named format normalization,
+nullability and defaults, synchronous callable contracts and runtime failures,
+invalid DSL and programmatic preflight, CLI/registry/JSON Schema, computed fields,
+arrays/JSON/scalar types, custom key relationships and database uniqueness,
+backward compatibility, import isolation, and complete example modules.
 
-Tests capture generated source in memory and use in-memory SQLite databases.
-Backend source is not modified. No live PostgreSQL execution is included in
-this increment.
+Tests capture generated source in memory and use in-memory SQLite. Backend
+source is not modified. No live PostgreSQL execution is included.
 
-Stop after delivering Sprint 22.4. Wait for the user's local test and commit
-result before proceeding to another feature.
+All listed Sprint 22 capabilities are implemented. The Custom Validators
+delivery still requires the user's local test and commit result. Stop after
+delivering Sprint 22.5; do not begin Sprint 23 without explicit authorization.

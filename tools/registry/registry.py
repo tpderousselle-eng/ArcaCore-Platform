@@ -61,6 +61,7 @@ class Registry:
                 "max_length": field.max_length,
                 "regex": field.pattern,
                 **({"format": field.format} if field.format is not None else {}),
+                **({"validators": list(field.validators)} if field.validators else {}),
                 "computed": field.computed_expression,
                 "computed_sql": field.computed_sql,
                 "foreign_key": field.foreign_key,

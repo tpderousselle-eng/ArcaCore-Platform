@@ -11,6 +11,8 @@ import pydantic as _pydantic
 {% include 'slug_validator.j2' %}
 {% endif %}{% if has_url %}
 {% include 'url_validator.j2' %}
+{% endif %}{% if custom_imports %}
+{% include 'custom_validators.j2' %}
 {% endif %}
 
 class {{ class_name }}Base(_pydantic.BaseModel):
@@ -24,7 +26,22 @@ class {{ class_name }}Base(_pydantic.BaseModel):
         if value is None and info.field_name in {{ nonnullable }}:
             raise ValueError("This field cannot be null.")
         return value
-
+{% if custom_imports %}
+    @_pydantic.field_validator("*", mode="wrap")
+    @classmethod
+    def _validate_custom(cls, value, handler, info):
+        value = handler(value)
+        for function in _arca_custom_validators.get(info.field_name, ()):
+            if value is None:
+                break
+            result = function(value)
+            if _inspect.isawaitable(result) or _inspect.isgenerator(result) or _inspect.isasyncgen(result):
+                if _inspect.iscoroutine(result) or _inspect.isgenerator(result):
+                    result.close()
+                raise TypeError("Custom validators must return a value, not an awaitable or generator.")
+            value = handler(result)
+        return value
+{% endif %}
 
 class {{ class_name }}Create({{ class_name }}Base):
 {% if has_computed %}

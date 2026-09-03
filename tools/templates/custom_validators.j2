@@ -1,0 +1,27 @@
+import inspect as _inspect
+{% for item in custom_imports %}
+from {{ item.module }} import {{ item.function }} as {{ item.alias }}
+{% endfor %}
+
+def _arca_require_validator(function, reference):
+    implementation = function if _inspect.isroutine(function) else getattr(function, "__call__", None)
+    if not callable(function) or any(
+        check(implementation)
+        for check in (_inspect.iscoroutinefunction, _inspect.isasyncgenfunction, _inspect.isgeneratorfunction)
+    ):
+        raise TypeError(f"{reference}: custom validator must be a synchronous callable returning a value.")
+    try:
+        _inspect.signature(function).bind(None)
+    except (TypeError, ValueError) as error:
+        raise TypeError(f"{reference}: custom validator must accept one positional value.") from error
+    return function
+
+{% for item in custom_imports %}
+{{ item.alias }} = _arca_require_validator({{ item.alias }}, {{ item.reference }})
+{% endfor %}
+
+_arca_custom_validators = {
+{% for item in custom_fields %}
+    {{ item.name }}: {{ item.aliases }},
+{% endfor %}
+}

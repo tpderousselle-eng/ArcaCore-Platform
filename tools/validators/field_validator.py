@@ -3,6 +3,7 @@ from keyword import iskeyword
 import re
 
 from tools.core.field_parser import Field, validate_format
+from tools.core.custom_validator_parser import validate_custom_validators
 
 
 class FieldValidator:
@@ -11,6 +12,7 @@ class FieldValidator:
         names: set[str] = set()
         for field in fields:
             validate_format(field)
+            validate_custom_validators(field)
             if field.name in names:
                 raise ValueError(f"Duplicate field name: {field.name}")
             names.add(field.name)

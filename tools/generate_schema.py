@@ -2,6 +2,7 @@ import ast
 from decimal import Decimal
 
 from tools.core.computed_parser import validate_computed_fields
+from tools.core.custom_validator_parser import validate_custom_validators
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import validate_format
 from tools.core.module_definition import ModuleDefinition
@@ -37,6 +38,7 @@ def schema_fields(module):
     result = []
     for field in module.fields:
         validate_format(field)
+        validate_custom_validators(field)
         if field.relationship_type == "many_to_many":
             continue
         annotation = schema_type(field)
@@ -76,8 +78,14 @@ def schema_fields(module):
         elif field.nullable:
             default = ["default=None"]
         response = list(constraints)
+        extra = {}
+        if field.validators:
+            extra["x-arca-validators"] = list(field.validators)
+            constraints.append(f"json_schema_extra={extra!r}")
         if field.computed_expression is not None:
-            response.append("json_schema_extra={'readOnly': True}")
+            extra["readOnly"] = True
+        if extra:
+            response.append(f"json_schema_extra={extra!r}")
         result.append({
             "name": field.name,
             "annotation": annotation,
@@ -94,6 +102,18 @@ def generate_schema(module: ModuleDefinition):
     validate_computed_fields(module.fields)
     fields = schema_fields(module)
     readonly = tuple(field["name"] for field in fields if field["computed"])
+    references = list(dict.fromkeys(reference for field in module.fields for reference in field.validators))
+    aliases = {reference: f"_arca_validator_{index}" for index, reference in enumerate(references)}
+    custom_imports = [
+        {"module": reference.rsplit(".", 1)[0], "function": reference.rsplit(".", 1)[1],
+         "alias": aliases[reference], "reference": repr(reference)}
+        for reference in references
+    ]
+    custom_fields = [
+        {"name": repr(field.name),
+         "aliases": "(" + ", ".join(aliases[reference] for reference in field.validators) + ",)"}
+        for field in module.fields if field.validators
+    ]
     output = PROJECT_ROOT / "backend" / "app" / "schemas" / f"{module.module_name}.py"
     render_template(
         template_name="schema.j2", output_path=output, class_name=module.class_name,
@@ -102,6 +122,7 @@ def generate_schema(module: ModuleDefinition):
         has_phone=any(field.format == "phone" for field in module.fields),
         has_slug=any(field.format == "slug" for field in module.fields),
         has_url=any(field.format == "url" for field in module.fields),
+        custom_imports=custom_imports, custom_fields=custom_fields,
         implicit_id=not module.has_primary_key,
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
     )

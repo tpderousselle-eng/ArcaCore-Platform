@@ -1,9 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field as dataclass_field
 from keyword import iskeyword
 from typing import Any
 
 from tools.core.cascade_parser import validate_delete_cascades
 from tools.core.computed_parser import validate_computed_fields
+from tools.core.custom_validator_parser import validate_custom_validators
 from tools.core.relationship_parser import configure_one_to_many, validate_one_to_many_names
 from tools.core.self_relationship_parser import configure_self_relationship, validate_self_relationships
 
@@ -40,6 +41,7 @@ class Field:
     cascade_delete: bool = False
     passive_deletes: bool = False
     format: str | None = None
+    validators: list[str] = dataclass_field(default_factory=list)
 
 
 TYPE_MAP = {
@@ -212,6 +214,8 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.pattern = value
             elif modifier.startswith("format="):
                 parsed.format = value
+            elif modifier.startswith("validator="):
+                parsed.validators.append(value)
             elif modifier.startswith("computed="):
                 parsed.computed_expression = value.strip()
             elif modifier.startswith("default="):
@@ -227,6 +231,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             else:
                 raise ValueError(f"Unknown modifier: {modifier}")
         validate_format(parsed)
+        validate_custom_validators(parsed)
         if one_to_one:
             target_parts = (parsed.foreign_key or "").split(".")
             if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):

@@ -17,6 +17,7 @@ routes or database constraints. Existing database constraints remain separate.
 | format=phone | str, text | International phone validation and E.164 normalization |
 | format=slug | str, text | Lowercase ASCII letters/digits with single hyphen separators |
 | format=url | str, text | Absolute HTTP(S) URL validation, returning a normalized string |
+| validator=rules.check | Schema fields, including arrays and JSON | Ordered synchronous application field rule |
 
 Regex must be the final modifier. Everything after regex= belongs to the
 pattern, including colons and backslashes. Use anchors for whole-string
@@ -75,16 +76,34 @@ performed. See URL_VALIDATION.md for the full policy and normalization behavior.
 
 Length and regex rules apply after email, phone, or URL normalization and
 additionally constrain slug values. Direct database writes bypass these schema
-validators. Custom callable validators and validation inside generated API
-routes are not included in this increment.
+validators. Application route wiring remains separate.
+
+Sprint 22.5 supports repeatable validator=package.module.function modifiers.
+Rules receive values after existing built-in validation. Each returned value is
+revalidated before the next rule runs. References are public dotted identifiers;
+duplicates on one field and expressions are rejected before generation. Rule
+modules are imported by generated schemas, never during source generation.
+
+Rules must accept one positional value, return an accepted value, and raise
+ValueError for invalid input. Async/generator rules are unsupported. Nullable
+None and omitted Update fields skip rules; literal Create defaults validate.
+Computed fields run rules on Response only. Arrays and JSON use whole-field
+rules; relationship collections are excluded. Earlier custom rules are not
+rerun after later rules transform the value. Use pure, idempotent rules because
+Response validation can run them again.
+
+Registry and JSON Schema retain ordered rule references. No new dependency is
+required. The ZIP includes the complete tools/examples/validation_rules.py
+module, but application rule modules must be packaged with the generated
+application. See CUSTOM_VALIDATORS.md for the contract and runtime behavior.
 
 ## Smoke test
 
 Run from the project root after installing both email and phone dependencies:
 
 ```powershell
-python -m unittest tools.test_array tools.test_choice tools.test_one_to_one tools.test_many_to_many tools.test_composite_indexes tools.test_soft_delete tools.test_constraints tools.test_validators tools.test_computed tools.test_one_to_many tools.test_self_relationships tools.test_cascade_delete tools.test_passive_deletes tools.test_partial_indexes tools.test_expression_indexes tools.test_email tools.test_phone tools.test_slug tools.test_url -v
+python -m unittest tools.test_array tools.test_choice tools.test_one_to_one tools.test_many_to_many tools.test_composite_indexes tools.test_soft_delete tools.test_constraints tools.test_validators tools.test_computed tools.test_one_to_many tools.test_self_relationships tools.test_cascade_delete tools.test_passive_deletes tools.test_partial_indexes tools.test_expression_indexes tools.test_email tools.test_phone tools.test_slug tools.test_url tools.test_custom_validators -v
 ```
 
-Expected: 182 tests, OK. The suite captures generated code in memory. It does not
+Expected: 198 tests, OK. The suite captures generated code in memory. It does not
 write backend files.

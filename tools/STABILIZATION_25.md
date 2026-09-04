@@ -8,8 +8,9 @@ and pushed to GitHub main as `b5bbe7b`.
 | 25.1 Golden Application Generation Matrix | Complete and pushed to GitHub main as `60cba7c`; 8 dedicated and 315 discovery tests passed |
 | 25.2 Generated Application Runtime Test | Complete and pushed to GitHub main as `7aff42b`; 10 dedicated and 325 discovery tests passed |
 | 25.3 Real PostgreSQL Integration Test | Complete and pushed to GitHub main as `bd0d3b0`; 11 dedicated and 336 discovery tests passed |
-| 25.4 Docker and Compose Production Validation | Implemented; 7 dedicated tests ran (6 passed, 1 skipped) and 343 discovery tests ran (342 passed, 1 skipped); real Docker execution awaits local verification |
-| 25.5 and later | Not started |
+| 25.4 Docker and Compose Production Validation | Complete and pushed to GitHub main as `d316255`; 7 dedicated and 343 discovery tests passed with real Docker execution |
+| 25.5 Kubernetes and Health Validation | Implemented; 11 dedicated tests passed and 354 discovery tests ran successfully here, with the previously verified opt-in Docker test skipped |
+| 25.6 and later | Not started |
 
 ## 25.1 scope
 
@@ -97,12 +98,45 @@ record persisted. It also checks the random database password against generated
 artifacts and image history, then removes containers, network, image, and volume
 in a `finally` cleanup path.
 
-This runner did not provide a Docker daemon, so the six always-on 25.4 tests
-passed and the real container method was reported as one explicit skip. Setting
-`ARCACORE_RUN_DOCKER_TESTS=1` makes missing Docker or Compose a test failure and
-runs the full production contract when Docker Desktop is available.
+Local Docker execution confirmed API and PostgreSQL health, database queries,
+generated CRUD operations, API restart, and PostgreSQL persistence. The final
+contract passed all 7 dedicated tests and all 343 discovery tests before commit
+`d316255` was pushed to GitHub main.
+
+## 25.5 scope
+
+The Kubernetes and health contract generates the real Sprint 24 Dockerfile and
+seven-resource Kubernetes manifest in an isolated temporary project. Every YAML
+document is safely parsed and validated against strict bundled Kubernetes 1.36
+schemas without requiring a live cluster.
+
+The semantic contract verifies Deployment selectors, labels, image, resources,
+replicas, and container port; API Service routing; PostgreSQL StatefulSet,
+governing headless Service, and persistent volume claim wiring; ConfigMap and
+Secret references without embedded credentials; Dockerfile and container-port
+alignment; responding `/health` behavior; valid startup, readiness, and
+liveness probes; DNS-safe names; configurable replicas; and byte-identical
+regeneration. When `kubectl` is installed, a cluster-free client dry-run is also
+executed over the complete generated manifest.
+
+Validation identified and corrected the PostgreSQL Service configuration so the
+Service named by the StatefulSet is headless and can govern its stable network
+identity. All changes remain inside `tools/`, and the repository `backend/`
+tree is checked byte-for-byte throughout the contract.
 
 ## Verification
+
+Install the dedicated Kubernetes schema-validation dependencies:
+
+```powershell
+python -m pip install -r tools\requirements-kubernetes.txt
+```
+
+Run the dedicated 25.5 Kubernetes and health contract:
+
+```powershell
+python -m unittest tools.test_kubernetes_validation -v
+```
 
 With Docker Desktop running, run the dedicated 25.4 production contract:
 
@@ -142,6 +176,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.4. Wait for the user's local test,
+Stop after delivering Stabilization 25.5. Wait for the user's local test,
 commit, and push result, and remain paused until the user explicitly asks to
 continue.

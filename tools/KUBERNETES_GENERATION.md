@@ -44,14 +44,16 @@ The single multi-document manifest contains:
 - the selected Namespace;
 - a PostgreSQL ConfigMap;
 - an API Deployment and ClusterIP Service;
-- a PostgreSQL StatefulSet and ClusterIP Service; and
+- a PostgreSQL StatefulSet and governing headless ClusterIP Service; and
 - a PostgreSQL PersistentVolumeClaim.
 
 Both workloads include resource requests and limits. PostgreSQL runs as one
 StatefulSet replica with persistent storage. Regeneration completely and
 deterministically replaces `kubernetes/arcacore.yaml`. Sprint 24.4 adds API
 startup, readiness, and liveness probes against `/health`, plus PostgreSQL
-readiness and liveness probes using `pg_isready`.
+readiness and liveness probes using `pg_isready`. Stabilization 25.5 makes the
+PostgreSQL Service headless so it correctly governs StatefulSet network
+identity.
 
 ## Required Secret
 

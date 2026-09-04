@@ -174,6 +174,27 @@ secret non-disclosure. Existing AST-based expression grammars, strict offline
 Kubernetes validation, argument-list subprocess calls, encrypted-field
 redaction, and atomic generation/rollback remain intact.
 
+## Stabilization 25.8 determinism and reproducibility
+
+The determinism contract compares generator-owned relative paths and exact file
+bytes across independent temporary roots, repeated unchanged regeneration,
+equivalent module ordering, equivalent modifier ordering, unrelated host
+environment values, and every Golden Application Matrix scenario. Canonical
+SHA-256 digests include each relative path and its unmodified bytes; only test
+fixture inputs such as `backend/requirements.txt` are excluded.
+
+Registry mappings are serialized with sorted keys so independent module
+generation order cannot cause JSON byte churn. User-declared field, index,
+constraint, relationship, enum, choice, and validator ordering remains intact
+where it is part of generated behavior. Runtime UUID and encryption randomness
+remain runtime concerns and never enter generated source or metadata.
+
+The same suite covers Dockerfile, Compose, Kubernetes, health configuration,
+failed-regeneration rollback, and source produced under different temporary
+paths, usernames, and machine names. Reproducibility assumes the repository's
+pinned generator and formatter dependency versions; generated runtime data and
+external orchestration state are intentionally outside the artifact hash.
+
 ## Verification
 
 Install the dedicated Kubernetes schema-validation dependencies:
@@ -198,6 +219,12 @@ Run the dedicated 25.7 security-hardening contract:
 
 ```powershell
 python -m unittest tools.test_security_hardening -v
+```
+
+Run the dedicated 25.8 determinism contract:
+
+```powershell
+python -m unittest tools.test_determinism -v
 ```
 
 With Docker Desktop running, run the dedicated 25.4 production contract:
@@ -238,6 +265,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.7. Wait for the user's local test,
+Stop after delivering Stabilization 25.8. Wait for the user's local test,
 commit, and push result, and remain paused until the user explicitly asks to
 continue.

@@ -20,7 +20,8 @@ class Registry:
 
     @staticmethod
     def save(data: dict):
-        write_text_atomic(REGISTRY_PATH, json.dumps(data, indent=4))
+        # Registry mapping order is metadata, not user-declared field ordering.
+        write_text_atomic(REGISTRY_PATH, json.dumps(data, indent=4, sort_keys=True))
 
     @staticmethod
     def register(module: ModuleDefinition):

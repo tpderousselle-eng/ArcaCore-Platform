@@ -1,17 +1,11 @@
 from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.engine import PROJECT_ROOT, render_template
-from tools.core.module_definition import ModuleDefinition
+from tools.core.module_definition import ModuleDefinition, module_output_path
 
 
 def generate_crud(module: ModuleDefinition):
     validate_audit_fields(module.audit_fields, module.fields)
-    output = (
-        PROJECT_ROOT
-        / "backend"
-        / "app"
-        / "crud"
-        / f"{module.module_name}.py"
-    )
+    output = module_output_path(PROJECT_ROOT, "crud", module)
 
     render_template(
         template_name="crud.j2",

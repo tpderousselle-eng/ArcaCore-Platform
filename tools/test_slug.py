@@ -82,7 +82,7 @@ class SlugSmokeTest(unittest.TestCase):
                     ns["RecordCreate"]()
         ns, _, _ = schemas(["slug:text:format=slug:nullable:default=None"])
         self.assertIsNone(ns["RecordCreate"]().slug)
-        ns, _, _ = schemas(["slug:str:format=slug:default=raise_if_executed()"])
+        ns, _, _ = schemas(["slug:str:format=slug:default=list"])
         self.assertEqual(ns["RecordCreate"]().model_dump(exclude_unset=True), {})
         with self.assertRaises(ValidationError):
             ns["RecordCreate"](slug="Bad")

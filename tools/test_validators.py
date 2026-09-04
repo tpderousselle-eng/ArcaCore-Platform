@@ -60,7 +60,7 @@ class ValidatorSmokeTest(unittest.TestCase):
         ns, _, _ = schemas(["age:int:min=18:default=10"])
         with self.assertRaises(ValidationError):
             ns["RecordCreate"]()
-        ns, _, _ = schemas(["age:int:default=raise_if_executed()"])
+        ns, _, _ = schemas(["age:int:default=list"])
         self.assertEqual(ns["RecordCreate"]().model_dump(exclude_unset=True), {})
         ns, _, _ = schemas(["price:decimal(24,18):default=0.100000000000000001"])
         self.assertEqual(ns["RecordCreate"]().price, Decimal("0.100000000000000001"))

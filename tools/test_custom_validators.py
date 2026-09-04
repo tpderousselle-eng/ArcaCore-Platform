@@ -157,7 +157,7 @@ class CustomValidatorSmokeTest(unittest.TestCase):
         with rules(even=even):
             ns, _, _ = schemas(["value:int:nullable:default=4:validator=application_rules.even"])
             bad, _, _ = schemas(["value:int:default=3:validator=application_rules.even"])
-            expression, _, _ = schemas(["value:int:default=raise_if_executed():validator=application_rules.even"])
+            expression, _, _ = schemas(["value:int:default=list:validator=application_rules.even"])
         self.assertEqual(ns["RecordCreate"]().value, 4)
         self.assertEqual(calls, [4])
         self.assertEqual(ns["RecordUpdate"]().model_dump(exclude_unset=True), {})
@@ -196,7 +196,7 @@ class CustomValidatorSmokeTest(unittest.TestCase):
             with self.assertRaises(ImportError):
                 schemas(["value:int:validator=application_rules.missing"])
         with modules({"missing_application_rules": None}):
-            with self.assertRaises(ImportError):
+            with self.assertRaisesRegex(ValueError, "approved application-owned namespace"):
                 schemas(["value:int:validator=missing_application_rules.check"])
 
     def test_runtime_awaitables_and_programming_errors_are_not_silenced(self):

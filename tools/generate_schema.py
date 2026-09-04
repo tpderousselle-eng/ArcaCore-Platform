@@ -8,7 +8,7 @@ from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import validate_format
 from tools.core.hybrid_property_parser import validate_hybrid_properties
-from tools.core.module_definition import ModuleDefinition
+from tools.core.module_definition import ModuleDefinition, module_output_path
 from tools.core.version_column_parser import validate_version_column
 
 
@@ -126,7 +126,7 @@ def generate_schema(module: ModuleDefinition):
          "aliases": "(" + ", ".join(aliases[reference] for reference in field.validators) + ",)"}
         for field in module.fields if field.validators
     ]
-    output = PROJECT_ROOT / "backend" / "app" / "schemas" / f"{module.module_name}.py"
+    output = module_output_path(PROJECT_ROOT, "schemas", module)
     render_template(
         template_name="schema.j2", output_path=output, class_name=module.class_name,
         fields=fields, writable_fields=[field for field in fields if not field["readonly"]],

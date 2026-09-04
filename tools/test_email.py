@@ -85,7 +85,7 @@ class EmailSmokeTest(unittest.TestCase):
                     ns["RecordCreate"]()
         ns, _, _ = schemas(["email:str:format=email:nullable:default=None"])
         self.assertIsNone(ns["RecordCreate"]().email)
-        ns, _, _ = schemas(["email:str:format=email:default=raise_if_executed()"])
+        ns, _, _ = schemas(["email:str:format=email:default=list"])
         self.assertEqual(ns["RecordCreate"]().model_dump(exclude_unset=True), {})
         with self.assertRaises(ValidationError):
             ns["RecordCreate"](email="invalid")

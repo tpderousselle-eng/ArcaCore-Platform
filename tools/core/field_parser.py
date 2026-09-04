@@ -64,6 +64,78 @@ ARRAY_ELEMENT_TYPES = {
     for name, sqlalchemy_type in TYPE_MAP.items()
     if name not in {"array", "enum", "decimal", "choice", "many_to_many"}
 }
+SAFE_DEFAULT_REFERENCES = {
+    "dict",
+    "func.now",
+    "list",
+    "set",
+    "tuple",
+    "uuid.uuid4",
+}
+
+
+def _validate_safe_reference(field_name: str, value: str, category: str):
+    try:
+        root = ast.parse(value, mode="eval").body
+    except (SyntaxError, ValueError) as error:
+        raise ValueError(f"{field_name}: invalid {category} reference.") from error
+    parts = []
+    node = root
+    while isinstance(node, ast.Attribute):
+        parts.append(node.attr)
+        node = node.value
+    if isinstance(node, ast.Name):
+        parts.append(node.id)
+    else:
+        raise ValueError(f"{field_name}: {category} must be a name or dotted reference.")
+    parts.reverse()
+    if any(
+        not part.isascii()
+        or not part.isidentifier()
+        or iskeyword(part)
+        or part.startswith("_")
+        for part in parts
+    ):
+        raise ValueError(f"{field_name}: invalid {category} reference.")
+    if value not in SAFE_DEFAULT_REFERENCES:
+        raise ValueError(f"{field_name}: unsupported {category} reference.")
+
+
+def validate_default(field_name: str, value: str):
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name}: default metadata must be a string.")
+    try:
+        ast.literal_eval(value)
+    except (SyntaxError, ValueError):
+        _validate_safe_reference(field_name, value, "default")
+
+
+def validate_foreign_key_target(field_name: str, value: str):
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name}: fk= requires a public table.column target.")
+    target_parts = value.split(".")
+    if len(target_parts) != 2 or any(
+        not part.isascii()
+        or not part.isidentifier()
+        or iskeyword(part)
+        or part.startswith("_")
+        for part in target_parts
+    ):
+        raise ValueError(f"{field_name}: fk= requires a public table.column target.")
+
+
+def validate_enum_values(field_name: str, values):
+    if not isinstance(values, list) or not values or any(
+        not isinstance(value, str)
+        or not value.isascii()
+        or not value.isidentifier()
+        or iskeyword(value)
+        or value.startswith("_")
+        for value in values
+    ):
+        raise ValueError(f"{field_name}: enum requires public ASCII identifier values.")
+    if len(set(values)) != len(values):
+        raise ValueError(f"{field_name}: enum values must be unique.")
 
 
 def validate_format(field: Field):
@@ -163,6 +235,8 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 raise ValueError("choice() values must be unique.")
             if any("(" in value or ")" in value for value in type_arguments):
                 raise ValueError("choice() values cannot contain parentheses.")
+        if base_type == "enum":
+            validate_enum_values("enum()", type_arguments)
         parsed = Field(name=name, python_type=base_type,
                        sqlalchemy_type=TYPE_MAP[base_type], type_arguments=type_arguments)
         if base_type == "many_to_many":
@@ -263,8 +337,10 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.encrypted = True
                 parsed.encryption_key_env = value if modifier.startswith("encrypted=") else None
             elif modifier.startswith("default="):
+                validate_default(name, value)
                 parsed.default = value
             elif modifier.startswith("fk="):
+                validate_foreign_key_target(name, value)
                 parsed.foreign_key = value
                 table = value.split(".")[0]
                 parsed.relationship_table = table

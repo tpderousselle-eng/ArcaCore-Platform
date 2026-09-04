@@ -90,7 +90,7 @@ class PhoneSmokeTest(unittest.TestCase):
                     ns["RecordCreate"]()
         ns, _, _ = schemas(["phone:text:format=phone:nullable:default=None"])
         self.assertIsNone(ns["RecordCreate"]().phone)
-        ns, _, _ = schemas(["phone:str:format=phone:default=raise_if_executed()"])
+        ns, _, _ = schemas(["phone:str:format=phone:default=list"])
         self.assertEqual(ns["RecordCreate"]().model_dump(exclude_unset=True), {})
         with self.assertRaises(ValidationError):
             ns["RecordCreate"](phone="invalid")

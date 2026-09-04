@@ -5,12 +5,13 @@ from tools.core.engine import (
 
 from tools.core.module_definition import (
     ModuleDefinition,
+    module_output_path,
 )
 
 
 def generate_router(module: ModuleDefinition):
 
-    output = PROJECT_ROOT / "backend" / "app" / "api" / f"{module.module_name}.py"
+    output = module_output_path(PROJECT_ROOT, "api", module)
 
     render_template(
         template_name="router.j2",

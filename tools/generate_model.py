@@ -5,7 +5,7 @@ from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT, render_template
 from tools.core.field_parser import ARRAY_ELEMENT_TYPES
 from tools.core.hybrid_property_parser import validate_hybrid_properties
-from tools.core.module_definition import ModuleDefinition
+from tools.core.module_definition import ModuleDefinition, module_output_path
 from tools.core.version_column_parser import validate_version_column
 from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
 
@@ -17,13 +17,7 @@ def generate_model(module: ModuleDefinition):
     validate_computed_fields(module.fields)
     validate_hybrid_properties(module.fields)
     validate_delete_cascades(module.fields, module.table_name)
-    output = (
-        PROJECT_ROOT
-        / "backend"
-        / "app"
-        / "models"
-        / f"{module.module_name}.py"
-    )
+    output = module_output_path(PROJECT_ROOT, "models", module)
 
     rendered_fields = []
     associations = []

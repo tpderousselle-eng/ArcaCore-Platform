@@ -107,7 +107,7 @@ class UrlSmokeTest(unittest.TestCase):
                     ns["RecordCreate"]()
         ns, _, _ = schemas(["website:text:format=url:nullable:default=None"])
         self.assertIsNone(ns["RecordCreate"]().website)
-        ns, _, _ = schemas(["website:str:format=url:default=raise_if_executed()"])
+        ns, _, _ = schemas(["website:str:format=url:default=list"])
         self.assertEqual(ns["RecordCreate"]().model_dump(exclude_unset=True), {})
         with self.assertRaises(ValidationError):
             ns["RecordCreate"](website="invalid")

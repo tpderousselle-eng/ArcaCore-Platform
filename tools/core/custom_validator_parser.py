@@ -3,6 +3,14 @@
 from keyword import iskeyword
 
 
+TRUSTED_VALIDATOR_ROOTS = {
+    "app_rules",
+    "application_rules",
+    "rules",
+    "validation_rules",
+}
+
+
 def validate_custom_validators(field):
     if not isinstance(field.validators, list):
         raise ValueError(f"{field.name}: validators must be a list of dotted function references.")
@@ -20,4 +28,8 @@ def validate_custom_validators(field):
             raise ValueError(f"{field.name}: validator= requires a public dotted module.function reference.")
         if reference in seen:
             raise ValueError(f"{field.name}: duplicate validator reference: {reference}")
+        if parts[0] not in TRUSTED_VALIDATOR_ROOTS:
+            raise ValueError(
+                f"{field.name}: validator reference must use an approved application-owned namespace."
+            )
         seen.add(reference)

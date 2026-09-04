@@ -141,6 +141,39 @@ actionable error. Template output, rollback restoration, and registry metadata
 use same-directory temporary files followed by atomic replacement, with cleanup
 guaranteed when rendering or replacement fails.
 
+## 25.7 scope
+
+Security hardening treats command-line and programmatic generator metadata as
+untrusted. Module identities must be public ASCII Python identifiers with their
+canonical derived class, module, and table names. Every generated module path is
+resolved and checked against its intended layer before a write can begin,
+including protection against traversal and link-based boundary escapes.
+
+Defaults accept Python literals or the explicit safe factory set `list`, `dict`,
+`set`, `tuple`, `uuid.uuid4`, and `func.now`; arbitrary symbolic references,
+calls, indexing, lambdas, import machinery, and ambient built-ins are rejected.
+Foreign-key targets and enum members use strict identifier grammars.
+
+Validator references remain an intentional application-code extension point,
+but may only use the application-owned roots `application_rules`,
+`validation_rules`, `app_rules`, or `rules`. Arbitrary standard-library and
+site-package imports are rejected. Code inside those application-owned modules
+is trusted and executes when the generated schema imports it or validation runs.
+Adding another validator namespace therefore requires an explicit tools policy
+change and security review.
+
+CLI and direct programmatic generation share one authoritative module boundary.
+It validates module identity, every Field object, code-bearing defaults,
+foreign-key and enum metadata, relationship identifiers, and type consistency
+before any generator renders or writes output or the registry is changed.
+
+Adversarial tests cover path traversal, Python/template/YAML injection, unsafe
+defaults and validators, hostile computed/hybrid/index/constraint expressions,
+deployment metadata, subprocess invocation boundaries, registry integrity, and
+secret non-disclosure. Existing AST-based expression grammars, strict offline
+Kubernetes validation, argument-list subprocess calls, encrypted-field
+redaction, and atomic generation/rollback remain intact.
+
 ## Verification
 
 Install the dedicated Kubernetes schema-validation dependencies:
@@ -159,6 +192,12 @@ Run the dedicated 25.6 failure-injection contract:
 
 ```powershell
 python -m unittest tools.test_failure_injection -v
+```
+
+Run the dedicated 25.7 security-hardening contract:
+
+```powershell
+python -m unittest tools.test_security_hardening -v
 ```
 
 With Docker Desktop running, run the dedicated 25.4 production contract:
@@ -199,6 +238,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.6. Wait for the user's local test,
+Stop after delivering Stabilization 25.7. Wait for the user's local test,
 commit, and push result, and remain paused until the user explicitly asks to
 continue.

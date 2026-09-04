@@ -4,7 +4,7 @@ from tools.core.audit_field_parser import parse_audit_fields
 from tools.core.constraint_parser import parse_constraints
 from tools.core.field_parser import parse_fields
 from tools.core.index_parser import parse_indexes
-from tools.core.module_definition import ModuleDefinition
+from tools.core.module_definition import ModuleDefinition, module_output_path, valid_public_identifier
 from tools.core.version_column_parser import parse_version_column
 from tools.core.engine import write_bytes_atomic
 
@@ -30,11 +30,7 @@ _GENERATED_LAYERS = (
 
 def _transaction_paths(module: ModuleDefinition) -> tuple:
     outputs = tuple(
-        generator.__globals__["PROJECT_ROOT"]
-        / "backend"
-        / "app"
-        / layer
-        / f"{module.module_name}.py"
+        module_output_path(generator.__globals__["PROJECT_ROOT"], layer, module)
         for generator, layer in _GENERATED_LAYERS
     )
     return (*outputs, registry_module.REGISTRY_PATH)
@@ -58,6 +54,8 @@ def generate_module(
     name: str,
     field_strings: list[str],
 ):
+    if not valid_public_identifier(name):
+        raise ValueError("Module name must be a public ASCII Python identifier.")
     field_definitions = []
     index_definitions = []
     constraint_definitions = []

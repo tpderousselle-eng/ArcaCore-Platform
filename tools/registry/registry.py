@@ -3,7 +3,7 @@ import json
 from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.encrypted_field_parser import validate_encrypted_fields
 from tools.core.engine import PROJECT_ROOT, write_text_atomic
-from tools.core.module_definition import ModuleDefinition
+from tools.core.module_definition import ModuleDefinition, validate_module_definition
 from tools.core.version_column_parser import validate_version_column
 
 
@@ -24,6 +24,7 @@ class Registry:
 
     @staticmethod
     def register(module: ModuleDefinition):
+        validate_module_definition(module)
         validate_audit_fields(module.audit_fields, module.fields)
         validate_version_column(module.version_column, module.fields)
         validate_encrypted_fields(module.fields)

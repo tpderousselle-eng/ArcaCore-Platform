@@ -7,8 +7,9 @@ and pushed to GitHub main as `b5bbe7b`.
 | --- | --- |
 | 25.1 Golden Application Generation Matrix | Complete and pushed to GitHub main as `60cba7c`; 8 dedicated and 315 discovery tests passed |
 | 25.2 Generated Application Runtime Test | Complete and pushed to GitHub main as `7aff42b`; 10 dedicated and 325 discovery tests passed |
-| 25.3 Real PostgreSQL Integration Test | Implemented; 11 dedicated and 336 discovery tests passed here; replacement ZIP prepared for local verification |
-| 25.4 and later | Not started |
+| 25.3 Real PostgreSQL Integration Test | Complete and pushed to GitHub main as `bd0d3b0`; 11 dedicated and 336 discovery tests passed |
+| 25.4 Docker and Compose Production Validation | Implemented; 7 dedicated tests ran (6 passed, 1 skipped) and 343 discovery tests ran (342 passed, 1 skipped); real Docker execution awaits local verification |
+| 25.5 and later | Not started |
 
 ## 25.1 scope
 
@@ -75,7 +76,41 @@ server without Docker. Restricted root-only environments can supply a PGlite
 socket server through `ARCACORE_PGLITE_SERVER`; both paths use the PostgreSQL
 wire protocol and PostgreSQL behavior remains authoritative.
 
+## 25.4 scope
+
+The Docker and Compose production contract generates a representative two-model
+application through the normal five-layer pipeline in a temporary project root.
+It then generates the real Sprint 24 Dockerfile and Compose configuration for
+that application. It never writes generated output into the repository
+`backend/` directory or repairs generator-owned source before execution.
+
+The always-on checks prove that every generated build input exists, generated
+Python compiles, deployment generation is byte-for-byte deterministic, the API
+and PostgreSQL services are connected through an external runtime secret, the
+health endpoint probes the database, and the named PostgreSQL volume is present.
+
+The opt-in Docker contract validates the Compose model, builds the generated API
+image, starts API and PostgreSQL containers, checks database connectivity and
+application boot, calls generated endpoints, verifies health and API restart,
+recreates the environment without deleting its volume, and proves that a prior
+record persisted. It also checks the random database password against generated
+artifacts and image history, then removes containers, network, image, and volume
+in a `finally` cleanup path.
+
+This runner did not provide a Docker daemon, so the six always-on 25.4 tests
+passed and the real container method was reported as one explicit skip. Setting
+`ARCACORE_RUN_DOCKER_TESTS=1` makes missing Docker or Compose a test failure and
+runs the full production contract when Docker Desktop is available.
+
 ## Verification
+
+With Docker Desktop running, run the dedicated 25.4 production contract:
+
+```powershell
+$env:ARCACORE_RUN_DOCKER_TESTS = "1"
+python -m unittest tools.test_docker_compose_runtime -v
+Remove-Item Env:ARCACORE_RUN_DOCKER_TESTS
+```
 
 Install the dedicated PostgreSQL test dependencies:
 
@@ -107,6 +142,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.3. Wait for the user's local test,
+Stop after delivering Stabilization 25.4. Wait for the user's local test,
 commit, and push result, and remain paused until the user explicitly asks to
 continue.

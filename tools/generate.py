@@ -6,6 +6,7 @@ from tools.core.field_parser import parse_fields
 from tools.core.index_parser import parse_indexes
 from tools.core.module_definition import ModuleDefinition
 from tools.core.version_column_parser import parse_version_column
+from tools.core.engine import write_bytes_atomic
 
 from tools.generate_model import generate_model
 from tools.generate_schema import generate_schema
@@ -14,7 +15,43 @@ from tools.generate_service import generate_service
 from tools.generate_router import generate_router
 
 from tools.registry.registry import Registry
+import tools.registry.registry as registry_module
 from tools.validators.field_validator import FieldValidator
+
+
+_GENERATED_LAYERS = (
+    (generate_model, "models"),
+    (generate_schema, "schemas"),
+    (generate_crud, "crud"),
+    (generate_service, "services"),
+    (generate_router, "api"),
+)
+
+
+def _transaction_paths(module: ModuleDefinition) -> tuple:
+    outputs = tuple(
+        generator.__globals__["PROJECT_ROOT"]
+        / "backend"
+        / "app"
+        / layer
+        / f"{module.module_name}.py"
+        for generator, layer in _GENERATED_LAYERS
+    )
+    return (*outputs, registry_module.REGISTRY_PATH)
+
+
+def _restore_generation(paths, snapshots, absent_directories):
+    for path in paths:
+        previous = snapshots[path]
+        if previous is None:
+            path.unlink(missing_ok=True)
+        else:
+            write_bytes_atomic(path, previous)
+    for directory in sorted(absent_directories, key=lambda item: len(item.parts), reverse=True):
+        try:
+            directory.rmdir()
+        except OSError:
+            pass
 
 
 def generate_module(
@@ -86,13 +123,28 @@ def generate_module(
     print("=" * 60)
     print()
 
-    generate_model(module)
-    generate_schema(module)
-    generate_crud(module)
-    generate_service(module)
-    generate_router(module)
+    transaction_paths = _transaction_paths(module)
+    snapshots = {
+        path: path.read_bytes() if path.is_file() else None
+        for path in transaction_paths
+    }
+    absent_directories = set()
+    for path in transaction_paths:
+        directory = path.parent
+        while not directory.exists():
+            absent_directories.add(directory)
+            directory = directory.parent
 
-    Registry.register(module)
+    try:
+        generate_model(module)
+        generate_schema(module)
+        generate_crud(module)
+        generate_service(module)
+        generate_router(module)
+        Registry.register(module)
+    except BaseException:
+        _restore_generation(transaction_paths, snapshots, absent_directories)
+        raise
 
     print()
     print("=" * 60)

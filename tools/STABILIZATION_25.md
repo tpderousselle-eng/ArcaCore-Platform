@@ -9,8 +9,9 @@ and pushed to GitHub main as `b5bbe7b`.
 | 25.2 Generated Application Runtime Test | Complete and pushed to GitHub main as `7aff42b`; 10 dedicated and 325 discovery tests passed |
 | 25.3 Real PostgreSQL Integration Test | Complete and pushed to GitHub main as `bd0d3b0`; 11 dedicated and 336 discovery tests passed |
 | 25.4 Docker and Compose Production Validation | Complete and pushed to GitHub main as `d316255`; 7 dedicated and 343 discovery tests passed with real Docker execution |
-| 25.5 Kubernetes and Health Validation | Implemented; 11 dedicated tests passed and 354 discovery tests ran successfully here, with the previously verified opt-in Docker test skipped |
-| 25.6 and later | Not started |
+| 25.5 Kubernetes and Health Validation | Complete and pushed to GitHub main as `a62e8e1`; 11 dedicated and 354 discovery tests passed |
+| 25.6 Failure Injection and Regression Hardening | Implemented; 11 dedicated and 365 discovery tests passed, with the established opt-in Docker test skipped |
+| 25.7 and later | Not started |
 
 ## 25.1 scope
 
@@ -124,6 +125,22 @@ Service named by the StatefulSet is headless and can govern its stable network
 identity. All changes remain inside `tools/`, and the repository `backend/`
 tree is checked byte-for-byte throughout the contract.
 
+## 25.6 scope
+
+Failure injection now covers malformed DSL and parameter syntax; unsupported,
+duplicate, and conflicting field modifiers; relationship, index, constraint,
+validator, computed, hybrid, encryption, audit, version, and deployment metadata
+failures; interrupted multi-file generation; registry persistence failure;
+failed regeneration over valid output; atomic replacement failure; and repeated
+invalid operations.
+
+Module generation snapshots all five generated layers and registry metadata
+before writing. Any exception, including interruption, restores prior files,
+removes newly created outputs and empty directories, and re-raises the original
+actionable error. Template output, rollback restoration, and registry metadata
+use same-directory temporary files followed by atomic replacement, with cleanup
+guaranteed when rendering or replacement fails.
+
 ## Verification
 
 Install the dedicated Kubernetes schema-validation dependencies:
@@ -136,6 +153,12 @@ Run the dedicated 25.5 Kubernetes and health contract:
 
 ```powershell
 python -m unittest tools.test_kubernetes_validation -v
+```
+
+Run the dedicated 25.6 failure-injection contract:
+
+```powershell
+python -m unittest tools.test_failure_injection -v
 ```
 
 With Docker Desktop running, run the dedicated 25.4 production contract:
@@ -176,6 +199,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.5. Wait for the user's local test,
+Stop after delivering Stabilization 25.6. Wait for the user's local test,
 commit, and push result, and remain paused until the user explicitly asks to
 continue.

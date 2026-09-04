@@ -198,8 +198,16 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
         self_relationship = None
         encrypted_seen = False
         seen_validation = set()
+        seen_singletons = set()
         for modifier in parts[2:]:
             key, _, value = modifier.partition("=")
+            singleton = key if key in {
+                "pk", "nullable", "unique", "index", "one_to_one", "default", "fk"
+            } else None
+            if singleton is not None:
+                if singleton in seen_singletons:
+                    raise ValueError(f"{name}: duplicate {singleton} modifier.")
+                seen_singletons.add(singleton)
             if key in {"min", "max", "min_length", "length", "regex", "computed", "hybrid", "format"}:
                 if key in seen_validation:
                     raise ValueError(f"{name}: duplicate {key} modifier.")
@@ -266,6 +274,8 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 parsed.back_populates = f"{module_name.lower()}s"
             else:
                 raise ValueError(f"Unknown modifier: {modifier}")
+        if parsed.primary_key and parsed.nullable:
+            raise ValueError(f"{name}: primary key fields cannot be nullable.")
         validate_format(parsed)
         validate_custom_validators(parsed)
         if one_to_one:

@@ -1,9 +1,8 @@
 import json
-from pathlib import Path
 
 from tools.core.audit_field_parser import validate_audit_fields
 from tools.core.encrypted_field_parser import validate_encrypted_fields
-from tools.core.engine import PROJECT_ROOT
+from tools.core.engine import PROJECT_ROOT, write_text_atomic
 from tools.core.module_definition import ModuleDefinition
 from tools.core.version_column_parser import validate_version_column
 
@@ -21,8 +20,7 @@ class Registry:
 
     @staticmethod
     def save(data: dict):
-        with open(REGISTRY_PATH, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=4)
+        write_text_atomic(REGISTRY_PATH, json.dumps(data, indent=4))
 
     @staticmethod
     def register(module: ModuleDefinition):

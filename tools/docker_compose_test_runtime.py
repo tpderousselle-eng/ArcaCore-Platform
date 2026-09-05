@@ -15,6 +15,17 @@ from urllib.request import Request, urlopen
 DOCKER_RUNTIME_ENV = "ARCACORE_RUN_DOCKER_TESTS"
 
 
+def _retryable_startup_error(error: BaseException) -> bool:
+    """Return whether an HTTP transport failed while a container can start."""
+
+    if isinstance(error, (ConnectionError, RemoteDisconnected, TimeoutError)):
+        return True
+    return isinstance(error, URLError) and isinstance(
+        error.reason,
+        (ConnectionError, RemoteDisconnected, TimeoutError),
+    )
+
+
 def docker_runtime_requested() -> bool:
     """Return whether the caller explicitly requested the container contract."""
 
@@ -148,13 +159,9 @@ class DockerComposeTestRuntime:
                 if body == {"status": "ok", "database": "connected"}:
                     return body
                 last_error = f"unexpected health response: {body!r}"
-            except (
-                RuntimeError,
-                URLError,
-                TimeoutError,
-                ValueError,
-                RemoteDisconnected,
-            ) as error:
+            except (ConnectionError, RemoteDisconnected, TimeoutError, URLError) as error:
+                if not _retryable_startup_error(error):
+                    raise
                 last_error = str(error)
             time.sleep(1)
         raise RuntimeError(f"Timed out waiting for generated API health: {last_error}")

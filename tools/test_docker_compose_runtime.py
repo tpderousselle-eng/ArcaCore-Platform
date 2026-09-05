@@ -1,6 +1,7 @@
 """Validate generated Docker and Compose files, including an opt-in real runtime."""
 
 from contextlib import ExitStack, redirect_stdout
+from http.client import RemoteDisconnected
 import hashlib
 from io import StringIO
 import os
@@ -10,6 +11,7 @@ import socket
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
+from urllib.error import URLError
 from uuid import uuid4
 
 from tools import generate as pipeline
@@ -266,6 +268,73 @@ class DockerComposeGeneratedRuntimeTest(unittest.TestCase):
         compose = (self.root / "docker-compose.yml").read_text(encoding="utf-8")
         self.assertIn("${POSTGRES_PASSWORD:?", compose)
         self.assertNotIn("POSTGRES_PASSWORD: arcacore", compose)
+
+    def test_windows_remote_disconnect_is_retryable_during_readiness(self):
+        healthy = {"status": "ok", "database": "connected"}
+        with patch.object(
+            self.runtime,
+            "request_json",
+            side_effect=[RemoteDisconnected("starting"), healthy],
+        ), patch(
+            "tools.docker_compose_test_runtime.time.monotonic",
+            side_effect=[0, 0, 1],
+        ), patch("tools.docker_compose_test_runtime.time.sleep"):
+            self.assertEqual(self.runtime.wait_until_healthy(timeout=5), healthy)
+
+    def test_linux_connection_reset_is_retryable_during_readiness(self):
+        healthy = {"status": "ok", "database": "connected"}
+        with patch.object(
+            self.runtime,
+            "request_json",
+            side_effect=[ConnectionResetError(104, "Connection reset by peer"), healthy],
+        ), patch(
+            "tools.docker_compose_test_runtime.time.monotonic",
+            side_effect=[0, 0, 1],
+        ), patch("tools.docker_compose_test_runtime.time.sleep"):
+            self.assertEqual(self.runtime.wait_until_healthy(timeout=5), healthy)
+
+    def test_temporary_refusal_and_reset_then_healthy_passes(self):
+        healthy = {"status": "ok", "database": "connected"}
+        with patch.object(
+            self.runtime,
+            "request_json",
+            side_effect=[
+                URLError(ConnectionRefusedError(111, "Connection refused")),
+                ConnectionResetError(104, "Connection reset by peer"),
+                healthy,
+            ],
+        ), patch(
+            "tools.docker_compose_test_runtime.time.monotonic",
+            side_effect=[0, 0, 1, 2],
+        ), patch("tools.docker_compose_test_runtime.time.sleep"):
+            self.assertEqual(self.runtime.wait_until_healthy(timeout=5), healthy)
+
+    def test_repeated_connection_reset_still_times_out(self):
+        with patch.object(
+            self.runtime,
+            "request_json",
+            side_effect=ConnectionResetError(104, "Connection reset by peer"),
+        ) as request, patch(
+            "tools.docker_compose_test_runtime.time.monotonic",
+            side_effect=[0, 0, 1, 2],
+        ), patch("tools.docker_compose_test_runtime.time.sleep"):
+            with self.assertRaisesRegex(RuntimeError, "Timed out waiting"):
+                self.runtime.wait_until_healthy(timeout=2)
+        self.assertEqual(request.call_count, 2)
+
+    def test_non_retryable_application_error_fails_immediately(self):
+        with patch.object(
+            self.runtime,
+            "request_json",
+            side_effect=RuntimeError("GET /health returned HTTP 500"),
+        ) as request, patch(
+            "tools.docker_compose_test_runtime.time.monotonic",
+            side_effect=[0, 0],
+        ), patch("tools.docker_compose_test_runtime.time.sleep") as sleep:
+            with self.assertRaisesRegex(RuntimeError, "HTTP 500"):
+                self.runtime.wait_until_healthy(timeout=180)
+        request.assert_called_once()
+        sleep.assert_not_called()
 
     def test_repository_backend_is_never_modified(self):
         self.assertEqual(_snapshot(REPOSITORY_ROOT / "backend"), self.repository_backend_before)

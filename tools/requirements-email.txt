@@ -1,4 +1,4 @@
 # Additional runtime dependency for generated Pydantic 2 EmailStr fields.
 # Install in the existing project virtual environment and any generated app
 # environment that uses format=email.
-email-validator>=2.3,<3
+email-validator==2.3.0

@@ -11,7 +11,84 @@ and pushed to GitHub main as `b5bbe7b`.
 | 25.4 Docker and Compose Production Validation | Complete and pushed to GitHub main as `d316255`; 7 dedicated and 343 discovery tests passed with real Docker execution |
 | 25.5 Kubernetes and Health Validation | Complete and pushed to GitHub main as `a62e8e1`; 11 dedicated and 354 discovery tests passed |
 | 25.6 Failure Injection and Regression Hardening | Implemented; 11 dedicated and 365 discovery tests passed, with the established opt-in Docker test skipped |
-| 25.7 and later | Not started |
+| 25.7 Security Hardening | Complete and pushed to GitHub main; 15 dedicated tests passed |
+| 25.8 Determinism and Reproducibility | Complete and pushed to GitHub main as `500ba65`; 7 dedicated tests passed |
+| 25.9 Release Candidate Gate | Implemented; final result is recorded only after every mandatory contract and the independent Codex Security review pass |
+
+## 25.9 release candidate gate
+
+`python -m tools.release_gate --security-review <review.json>` is the explicit,
+non-recursive release runner. It runs discovery in a child process with the
+Docker opt-in removed, then runs each authoritative 25.1–25.8 contract in an
+isolated child process. The real Docker contract is always run separately with
+`ARCACORE_RUN_DOCKER_TESTS=1`. A missing dependency, non-zero test status,
+missing test count, unexpected skip, unavailable Docker daemon, or incomplete
+security review makes the gate fail immediately with a non-zero exit code.
+
+The local review input is a completed artifact directory generated outside the
+repository by Codex Security. The gate validates its structure, artifact
+digests, coverage, findings, Git HEAD, and byte-level working-tree snapshot, but
+those checks establish consistency rather than issuer identity. A user can
+self-author an ordinary local file, and the available artifact format exposes
+no signature that this Python process can verify against a pinned trusted
+issuer. Consequently local artifacts can report a security failure but can
+never authorize promotion: even a structurally clean artifact produces
+`ARCCORE SECURITY PROMOTION GATE: BLOCKED`.
+
+The automated functional gate and external security promotion gate are
+therefore explicit separate controls. Stabilization promotion requires a clean
+Codex Security result recorded by protected CI or another security service as a
+required status bound to the exact commit and working-tree snapshot, or a signed
+attestation whose certificate chain, issuer, subject, artifact digest, and
+freshness are verified against repository-pinned trust policy. Until one of
+those external controls exists, the aggregate release gate remains `FAIL` and
+must not be overridden with a local JSON file.
+
+The Stabilization 25 certification scope is `tools/`: generator implementation,
+parsers and validators, templates, registry behavior, every generated Python
+layer, Dockerfile, Compose, Kubernetes, health behavior, generated runtime and
+security behavior, determinism, and the release gate itself. The checked-in
+`backend/` application and legacy repository-root deployment files are protected
+non-generator fixtures, not generated release artifacts. Findings there remain
+real repository-security work and may be excluded from this generator release
+only after source tracing proves the current generator does not emit the same
+behavior. They are never excluded merely because of their path.
+
+Generated routers now fail closed unless trusted application authentication
+middleware supplies `request.state.arcacore_principal_id` and explicit
+`<module>:read`, `<module>:write`, or `<module>:*` scopes. Audit attribution is
+derived from that authenticated principal; request headers cannot select it.
+Regex metadata rejects backreferences, lookarounds, nested or ambiguous
+repetition, and oversized patterns before generation. Generator-owned optional
+dependencies use exact versions, and the generated Python base image is selected
+from an exact-version immutable-digest allowlist. Application requirements files
+remain application-owned inputs and must be locked by the consuming project.
+
+The passing summary includes the current commit, Python and platform versions,
+aggregate executed test count, Docker/PostgreSQL execution confirmation, and
+SHA-256 hashes for the canonical golden matrix and registry fixture. It never
+prints environment secret values.
+
+Exact final verification commands are:
+
+```powershell
+python -m unittest tools.test_release_gate -v
+python -m unittest tools.test_golden_matrix -v
+python -m unittest tools.test_generated_runtime -v
+python -m unittest tools.test_postgresql_runtime -v
+python -m unittest tools.test_kubernetes tools.test_kubernetes_validation tools.test_health_checks -v
+python -m unittest tools.test_failure_injection -v
+python -m unittest tools.test_security_hardening -v
+python -m unittest tools.test_determinism -v
+python -m unittest discover -s tools -p "test_*.py" -v
+$env:ARCACORE_RUN_DOCKER_TESTS = "1"
+python -m unittest tools.test_docker_compose_runtime -v
+Remove-Item Env:ARCACORE_RUN_DOCKER_TESTS -ErrorAction SilentlyContinue
+python -m tools.release_gate --security-review <review.json>
+```
+
+Stabilization 25 is complete only when the final command prints
+`ARCCORE RELEASE GATE: PASS` after an independent clean Codex Security review.
 
 ## 25.1 scope
 

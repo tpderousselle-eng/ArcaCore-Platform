@@ -1,4 +1,4 @@
 # Additional dependency for generated Pydantic 2 format=phone fields.
 # Install in the existing project virtual environment and in generated apps
 # that use phone validation. Numbering-plan metadata comes from this package.
-phonenumbers>=9,<10
+phonenumbers==9.0.17

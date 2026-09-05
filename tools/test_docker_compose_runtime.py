@@ -176,6 +176,12 @@ class DockerComposeGeneratedRuntimeTest(unittest.TestCase):
             "from backend.app.models.user import User\n\n"
             "Base.metadata.create_all(bind=engine)\n\n"
             "app = FastAPI(title='ArcaCore Container Runtime')\n"
+            "@app.middleware('http')\n"
+            "async def authenticate(request, call_next):\n"
+            "    if request.headers.get('Authorization') == 'Bearer test-token':\n"
+            "        request.state.arcacore_principal_id = 1\n"
+            "        request.state.arcacore_scopes = {'user:*', 'record:*'}\n"
+            "    return await call_next(request)\n\n"
             "app.include_router(user_router)\n"
             "app.include_router(record_router)\n\n"
             "@app.get('/health')\n"
@@ -287,24 +293,35 @@ class DockerComposeGeneratedRuntimeTest(unittest.TestCase):
             self.assertEqual(self.runtime.running_services(), {"api", "postgres"})
 
             user = self.runtime.request_json(
-                "POST", "/users", {"name": "Container Owner"}
+                "POST", "/users", {"name": "Container Owner"},
+                headers={"Authorization": "Bearer test-token"},
             )
             record = self.runtime.request_json(
                 "POST",
                 "/records",
                 {"owner_id": user["id"], "title": "Persistent record", "quantity": 2},
-                headers={"X-Actor-ID": str(user["id"])},
+                headers={
+                    "Authorization": "Bearer test-token",
+                    "X-Actor-ID": "999999",
+                },
             )
             self.assertEqual(record["total"], 4)
+            self.assertEqual(record["created_by"], user["id"])
             self.assertEqual(
-                self.runtime.request_json("GET", f"/records/{record['id']}")["id"],
+                self.runtime.request_json(
+                    "GET", f"/records/{record['id']}",
+                    headers={"Authorization": "Bearer test-token"},
+                )["id"],
                 record["id"],
             )
 
             self.runtime.restart_api()
             self.runtime.wait_until_healthy()
             self.assertEqual(
-                self.runtime.request_json("GET", f"/records/{record['id']}")["id"],
+                self.runtime.request_json(
+                    "GET", f"/records/{record['id']}",
+                    headers={"Authorization": "Bearer test-token"},
+                )["id"],
                 record["id"],
             )
 
@@ -312,7 +329,10 @@ class DockerComposeGeneratedRuntimeTest(unittest.TestCase):
             self.runtime.start()
             self.runtime.wait_until_healthy()
             self.assertEqual(
-                self.runtime.request_json("GET", f"/records/{record['id']}")["id"],
+                self.runtime.request_json(
+                    "GET", f"/records/{record['id']}",
+                    headers={"Authorization": "Bearer test-token"},
+                )["id"],
                 record["id"],
             )
         finally:

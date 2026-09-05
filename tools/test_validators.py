@@ -7,8 +7,10 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
+from tools.core.field_parser import parse_fields
 from tools.test_composite_indexes import run_generation, pipeline
 from tools.registry.registry import Registry
+from tools.validators.field_validator import FieldValidator
 
 
 def schemas(definitions, use_cli=False):
@@ -110,6 +112,28 @@ class ValidatorSmokeTest(unittest.TestCase):
         self.assertEqual(properties["name"]["maxLength"], 30)
         self.assertIn("deleted_at", sources["model.j2"])
         self.assertIn("UniqueConstraint", sources["model.j2"])
+
+    def test_regex_rejects_catastrophic_backtracking_constructs(self):
+        unsafe = (
+            "value:str:regex=(a+)+$",
+            "value:str:regex=(a|aa)+$",
+            r"value:str:regex=(a+)\1$",
+            "value:str:regex=(?=(a+))a+$",
+            "value:str:regex=a*a*a*b",
+        )
+        for declaration in unsafe:
+            with self.subTest(declaration=declaration), self.assertRaisesRegex(
+                ValueError, "unsafe regex"
+            ):
+                FieldValidator.validate(parse_fields("Record", [declaration]))
+
+    def test_regex_linear_time_subset_remains_supported(self):
+        fields = parse_fields(
+            "Record",
+            [r"code:str:regex=^(?:AB|CD):\d+$", r"slug:str:regex=^[a-z0-9-]+$"],
+        )
+        FieldValidator.validate(fields)
+        self.assertEqual(len(fields), 2)
 
     def test_invalid_rules_fail_before_any_generation(self):
         definitions = (

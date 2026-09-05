@@ -28,7 +28,7 @@ class DockerfileSmokeTest(unittest.TestCase):
             {
                 "template_name": "Dockerfile.j2",
                 "output_path": output,
-                "python_version": "3.13",
+                "python_image": "python:3.13.7-slim@sha256:5f55cdf0c5d9dc1a415637a5ccc4a9e18663ad203673173b8cda8f8dcacef689",
                 "port": 8000,
                 "app": "backend.main:app",
                 "requirements": "backend/requirements.txt",
@@ -41,7 +41,7 @@ class DockerfileSmokeTest(unittest.TestCase):
             "--port",
             "9000",
             "--python-version",
-            "3.12.8",
+            "3.13.7",
             "--source",
             "src/api",
             "--app",
@@ -59,7 +59,7 @@ class DockerfileSmokeTest(unittest.TestCase):
                 "--source",
                 "src/api",
                 "--python-version",
-                "3.12.8",
+                "3.13.7",
                 "--port",
                 "9000",
             ]
@@ -80,6 +80,8 @@ class DockerfileSmokeTest(unittest.TestCase):
         invalid = (
             {"python_version": "latest"},
             {"python_version": "2.7"},
+            {"python_version": "3.13"},
+            {"python_version": "3.12.8"},
             {"port": 0},
             {"port": 65536},
             {"port": True},
@@ -113,7 +115,7 @@ class DockerfileSmokeTest(unittest.TestCase):
 
     def test_direct_generator_revalidates_metadata(self):
         invalid = SimpleNamespace(
-            python_version="3.13",
+            python_version="3.13.7",
             port=8000,
             app="backend.main:app",
             requirements="backend/requirements.txt",
@@ -165,7 +167,10 @@ class DockerfileSmokeTest(unittest.TestCase):
                 StringIO()
             ):
                 source = generate_dockerfile().read_text(encoding="utf-8")
-        self.assertIn("FROM python:3.13-slim", source)
+        self.assertIn(
+            "FROM python:3.13.7-slim@sha256:5f55cdf0c5d9dc1a415637a5ccc4a9e18663ad203673173b8cda8f8dcacef689",
+            source,
+        )
         self.assertLess(
             source.index("COPY backend/requirements.txt"),
             source.index("COPY --chown=arcacore:arcacore backend ./backend"),

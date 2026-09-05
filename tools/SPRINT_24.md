@@ -11,7 +11,8 @@ and pushed to GitHub main as `b983e6b`.
 | Health checks | Sprint 24.4: implemented; 13 dedicated and 307 discovery tests passed here; replacement ZIP prepared for local verification |
 
 Sprint 24.1 adds `python -m tools dockerfile`, a deterministic generator for a
-root application Dockerfile. The default output targets Python 3.13,
+root application Dockerfile. The default output targets Python 3.13.7 through
+an immutable generator-approved image digest,
 `backend.main:app`, `backend/requirements.txt`, and port 8000. Validated command
 options can customize the Python version, port, ASGI target, requirements file,
 and source directory without changing backend source.

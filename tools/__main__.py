@@ -86,7 +86,7 @@ def print_dockerfile_help():
     print("python -m tools dockerfile [options]")
     print()
     print("Options")
-    print("  --python-version VERSION   Base Python 3 version (default: 3.13)")
+    print("  --python-version VERSION   Approved exact Python patch version (default: 3.13.7)")
     print("  --port PORT                Container port (default: 8000)")
     print("  --app MODULE:ATTRIBUTE     ASGI application (default: backend.main:app)")
     print(

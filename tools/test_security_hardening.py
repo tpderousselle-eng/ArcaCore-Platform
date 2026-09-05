@@ -313,6 +313,21 @@ class SecurityHardeningTest(unittest.TestCase):
         runtime = (Path(__file__).parent / "docker_compose_test_runtime.py").read_text(encoding="utf-8")
         self.assertIn("command = [*self.compose_prefix, *arguments]", runtime)
 
+    def test_generated_routers_require_server_authenticated_scoped_identity(self):
+        pipeline.generate_module("Record", ["name:str", "audit_fields"])
+        source = (
+            self.root / "backend" / "app" / "api" / "record.py"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("X-Actor-ID", source)
+        self.assertNotIn("Header(", source)
+        self.assertIn('request.state, "arcacore_principal_id"', source)
+        self.assertIn('request.state, "arcacore_scopes"', source)
+        self.assertIn('"record:read"', source)
+        self.assertIn('"record:write"', source)
+        self.assertIn("Depends(_require_read_access)", source)
+        self.assertIn("Depends(_require_write_access)", source)
+        compile(source, "<generated-secure-router>", "exec")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -7,12 +7,15 @@ _APP_PATTERN = re.compile(
     r"[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*" r":[A-Za-z_][A-Za-z0-9_]*"
 )
 _PATH_PART_PATTERN = re.compile(r"[A-Za-z0-9_.-]+")
-_PYTHON_PATTERN = re.compile(r"3\.[0-9]+(?:\.[0-9]+)?")
+_PYTHON_PATTERN = re.compile(r"3\.[0-9]+\.[0-9]+")
+PYTHON_IMAGE_DIGESTS = {
+    "3.13.7": "sha256:5f55cdf0c5d9dc1a415637a5ccc4a9e18663ad203673173b8cda8f8dcacef689",
+}
 
 
 @dataclass(frozen=True)
 class DockerfileDefinition:
-    python_version: str = "3.13"
+    python_version: str = "3.13.7"
     port: int = 8000
     app: str = "backend.main:app"
     requirements: str = "backend/requirements.txt"
@@ -44,7 +47,9 @@ def validate_dockerfile_definition(definition):
     if not isinstance(definition.python_version, str) or not _PYTHON_PATTERN.fullmatch(
         definition.python_version
     ):
-        raise ValueError("--python-version must be a Python 3 version such as 3.13.")
+        raise ValueError("--python-version must be an approved exact Python patch version.")
+    if definition.python_version not in PYTHON_IMAGE_DIGESTS:
+        raise ValueError("--python-version is not in the immutable base-image allowlist.")
     if isinstance(definition.port, bool) or not isinstance(definition.port, int):
         raise ValueError("--port must be an integer from 1 through 65535.")
     if not 1 <= definition.port <= 65535:
@@ -59,6 +64,10 @@ def validate_dockerfile_definition(definition):
         raise ValueError("--requirements must point to a .txt requirements file.")
     object.__setattr__(definition, "requirements", requirements)
     object.__setattr__(definition, "source", source)
+
+
+def python_image_reference(version: str) -> str:
+    return f"python:{version}-slim@{PYTHON_IMAGE_DIGESTS[version]}"
 
 
 def parse_dockerfile_options(arguments: list[str]) -> DockerfileDefinition:

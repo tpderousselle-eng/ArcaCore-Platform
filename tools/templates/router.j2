@@ -2,7 +2,7 @@
 from uuid import UUID
 
 {% endif %}
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from backend.app.db.session import get_db
@@ -20,10 +20,49 @@ router = APIRouter(
 )
 
 
+def _authorized_principal(request: Request, required_scope: str):
+    """Consume identity established by trusted application authentication middleware."""
+
+    principal_id = getattr(request.state, "arcacore_principal_id", None)
+    raw_scopes = getattr(request.state, "arcacore_scopes", ())
+    if principal_id is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required.")
+    if isinstance(raw_scopes, str):
+        scopes = frozenset(raw_scopes.split())
+    else:
+        try:
+            scopes = frozenset(raw_scopes)
+        except TypeError:
+            scopes = frozenset()
+    if required_scope not in scopes and "{{ module }}:*" not in scopes:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient scope.")
+    return principal_id
+
+
+def _require_read_access(request: Request):
+    return _authorized_principal(request, "{{ module }}:read")
+
+
+def _require_write_access(request: Request){% if audit_fields %} -> {{ actor_type }}{% endif %}:
+    principal_id = _authorized_principal(request, "{{ module }}:write")
+{% if audit_fields %}
+    try:
+        return {{ actor_type }}(principal_id)
+    except (TypeError, ValueError) as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated principal has an invalid identifier.",
+        ) from error
+{% else %}
+    return principal_id
+{% endif %}
+
+
 @router.post("", response_model={{ class_name }}Response, status_code=status.HTTP_201_CREATED)
 def create_{{ module }}(
     payload: {{ class_name }}Create,{% if audit_fields %}
-    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
+    _principal=Depends(_require_write_access),{% endif %}
     db: Session = Depends(get_db),
 ):
     service = {{ class_name }}Service(db)
@@ -33,13 +72,17 @@ def create_{{ module }}(
 
 
 @router.get("", response_model=list[{{ class_name }}Response])
-def list_{{ module }}s(db: Session = Depends(get_db)):
+def list_{{ module }}s(
+    _principal=Depends(_require_read_access),
+    db: Session = Depends(get_db),
+):
     return {{ class_name }}Service(db).list()
 
 
 @router.get("/{item_id}", response_model={{ class_name }}Response)
 def get_{{ module }}(
     item_id: {{ primary_key_type }},
+    _principal=Depends(_require_read_access),
     db: Session = Depends(get_db),
 ):
     item = {{ class_name }}Service(db).get(item_id)
@@ -52,7 +95,8 @@ def get_{{ module }}(
 def update_{{ module }}(
     item_id: {{ primary_key_type }},
     payload: {{ class_name }}Update,{% if audit_fields %}
-    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
+    _principal=Depends(_require_write_access),{% endif %}
     db: Session = Depends(get_db),
 ):
     service = {{ class_name }}Service(db)
@@ -69,7 +113,8 @@ def update_{{ module }}(
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_{{ module }}(
     item_id: {{ primary_key_type }},{% if audit_fields %}
-    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
+    _principal=Depends(_require_write_access),{% endif %}
     db: Session = Depends(get_db),
 ):
     service = {{ class_name }}Service(db)
@@ -87,7 +132,8 @@ def delete_{{ module }}(
 @router.post("/{item_id}/restore", response_model={{ class_name }}Response)
 def restore_{{ module }}(
     item_id: {{ primary_key_type }},{% if audit_fields %}
-    actor_id: {{ actor_type }} = Header(alias="X-Actor-ID"),{% endif %}
+    actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
+    _principal=Depends(_require_write_access),{% endif %}
     db: Session = Depends(get_db),
 ):
     item = {{ class_name }}Service(db).restore(

@@ -148,6 +148,15 @@ class GeneratedRuntimeSmokeTest(unittest.TestCase):
             "from backend.app.models.user import User\n\n"
             "Base.metadata.create_all(bind=engine)\n\n"
             "app = FastAPI(title='ArcaCore Generated Runtime')\n"
+            "@app.middleware('http')\n"
+            "async def authenticate(request, call_next):\n"
+            "    if request.headers.get('Authorization') == 'Bearer test-token':\n"
+            "        request.state.arcacore_principal_id = 1\n"
+            "        request.state.arcacore_scopes = {'user:*', 'record:*'}\n"
+            "    elif request.headers.get('Authorization') == 'Bearer read-token':\n"
+            "        request.state.arcacore_principal_id = 2\n"
+            "        request.state.arcacore_scopes = {'record:read'}\n"
+            "    return await call_next(request)\n\n"
             "app.include_router(user_router)\n"
             "app.include_router(record_router)\n\n"
             "@app.get('/health')\n"
@@ -159,7 +168,9 @@ class GeneratedRuntimeSmokeTest(unittest.TestCase):
     def setUp(self):
         self.base_module.Base.metadata.drop_all(bind=self.session_module.engine)
         self.base_module.Base.metadata.create_all(bind=self.session_module.engine)
-        self.client = TestClient(self.main_module.app)
+        self.client = TestClient(
+            self.main_module.app, headers={"Authorization": "Bearer test-token"}
+        )
 
     def tearDown(self):
         self.client.close()
@@ -179,7 +190,7 @@ class GeneratedRuntimeSmokeTest(unittest.TestCase):
         response = self.client.post(
             "/records",
             json=payload,
-            headers={"X-Actor-ID": str(user_id)},
+            headers={"X-Actor-ID": "999999"},
         )
         self.assertEqual(response.status_code, 201, response.text)
         return response.json()
@@ -212,9 +223,22 @@ class GeneratedRuntimeSmokeTest(unittest.TestCase):
         )
         self.assertIn("post", paths["/records/{item_id}/restore"])
 
+    def test_generated_routes_fail_closed_and_enforce_scopes(self):
+        unauthenticated = self.client.get(
+            "/records", headers={"Authorization": ""}
+        )
+        self.assertEqual(unauthenticated.status_code, 401)
+        read_only_write = self.client.post(
+            "/records",
+            json={"owner_id": 1, "title": "Denied", "quantity": 2},
+            headers={"Authorization": "Bearer read-token"},
+        )
+        self.assertEqual(read_only_write.status_code, 403)
+
     def test_create_read_and_list_execute_through_http(self):
         user = self.create_user()
         created = self.create_record(user["id"])
+        self.assertEqual(created["created_by"], user["id"])
         self.assertEqual(created["total"], 4)
         fetched = self.client.get(f"/records/{created['id']}")
         self.assertEqual(fetched.status_code, 200)
@@ -290,8 +314,9 @@ class GeneratedRuntimeSmokeTest(unittest.TestCase):
         missing_actor = self.client.post(
             "/records",
             json={"owner_id": user["id"], "title": "Valid", "quantity": 2},
+            headers={"Authorization": ""},
         )
-        self.assertEqual(missing_actor.status_code, 422)
+        self.assertEqual(missing_actor.status_code, 401)
 
     def test_relationship_foreign_key_serializes_and_navigation_resolves(self):
         user = self.create_user("Relationship Owner")

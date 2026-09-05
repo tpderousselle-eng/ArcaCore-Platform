@@ -16,7 +16,7 @@ The defaults target the current ArcaCore FastAPI application:
 
 | Setting | Default |
 | --- | --- |
-| Python | `3.13` |
+| Python | `3.13.7`, pinned to the generator-approved immutable image digest |
 | Container port | `8000` |
 | ASGI application | `backend.main:app` |
 | Requirements | `backend/requirements.txt` |
@@ -25,7 +25,7 @@ The defaults target the current ArcaCore FastAPI application:
 All settings are configurable:
 
 ```powershell
-python -m tools dockerfile --python-version 3.12 --port 9000 --app src.main:app --requirements config/runtime.txt --source src
+python -m tools dockerfile --python-version 3.13.7 --port 9000 --app src.main:app --requirements config/runtime.txt --source src
 ```
 
 Every option may appear once in any order. Paths are normalized to Docker's

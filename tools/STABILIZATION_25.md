@@ -272,6 +272,60 @@ paths, usernames, and machine names. Reproducibility assumes the repository's
 pinned generator and formatter dependency versions; generated runtime data and
 external orchestration state are intentionally outside the artifact hash.
 
+## Trusted security promotion attestation
+
+The external promotion authority is the GitHub Actions workflow **ArcaCore
+Security Promotion** at
+`.github/workflows/arcacore-security-promotion.yml`. It runs on pushes to
+`main` and manual dispatches with only `contents: read`, `id-token: write`, and
+`attestations: write`. The workflow installs the Stabilization 25 dependencies,
+runs complete discovery and every required dedicated contract, and executes the
+real Docker/Compose test with `ARCACORE_RUN_DOCKER_TESTS=1`. A runner without
+usable Docker fails the workflow and cannot produce promotion evidence.
+
+Only after every check passes does `tools.promotion_evidence` create the
+deterministic `arcacore-security-promotion.json`. Its commit, ref, repository,
+workflow, and run identity come exclusively from GitHub-provided environment
+values. `actions/attest@v4` then creates GitHub/Sigstore provenance for those
+exact bytes, and the unchanged file is uploaded as a workflow artifact.
+
+Codex Security and GitHub attestation serve different purposes. The completed
+Codex Security artifact remains an independent review of the exact working
+tree, but its local checksum is not a cryptographic promotion credential. The
+GitHub attestation proves which hosted workflow produced the promotion JSON
+from which repository, ref, and commit. Both the clean Codex Security review
+and trusted GitHub evidence are required for a release PASS.
+
+After downloading the JSON from the successful workflow run, verify and run
+the local gate with:
+
+```powershell
+gh attestation verify arcacore-security-promotion.json `
+  --repo tpderousselle-eng/ArcaCore-Platform `
+  --signer-workflow tpderousselle-eng/ArcaCore-Platform/.github/workflows/arcacore-security-promotion.yml `
+  --source-ref refs/heads/main `
+  --source-digest (git rev-parse HEAD) `
+  --deny-self-hosted-runners `
+  --format json
+
+python -m tools.release_gate `
+  --security-review <completed-codex-security-directory> `
+  --trusted-promotion-artifact arcacore-security-promotion.json
+```
+
+The release gate independently invokes the same `gh attestation verify`
+constraints and then validates the signed JSON against an exact allowlisted
+schema. Missing `gh`, unavailable GitHub API/authentication, absent or invalid
+attestations, modified bytes, wrong repository/workflow/ref/commit, missing or
+non-PASS checks, and Docker that did not actually execute all fail closed.
+Unattested local JSON and local Codex Security files can never authorize
+promotion.
+
+Do not declare `STABILIZATION 25: COMPLETE` until the committed workflow has
+run on GitHub, its real attested artifact has been downloaded and verified, and
+the final release-gate output reports functional, security promotion, and
+overall PASS.
+
 ## Verification
 
 Install the dedicated Kubernetes schema-validation dependencies:
@@ -342,6 +396,6 @@ Run the complete generator suite:
 python -m unittest discover -s tools -p "test_*.py" -v
 ```
 
-Stop after delivering Stabilization 25.8. Wait for the user's local test,
-commit, and push result, and remain paused until the user explicitly asks to
-continue.
+Stop after delivering the trusted-promotion implementation for review. Do not
+begin Sprint 26. Wait for the workflow to be committed and pushed before the
+real GitHub-hosted attestation validation phase.

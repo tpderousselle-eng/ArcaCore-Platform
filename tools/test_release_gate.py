@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from tools import release_gate
+from tools import promotion_evidence
 
 
 COMMIT = "5" * 40
@@ -21,6 +22,32 @@ def completed(returncode=0, output="Ran 7 tests in 1.000s\n\nOK\n"):
 
 
 class ReleaseCandidateGateTest(unittest.TestCase):
+    def _promotion(self, directory: str, **overrides) -> Path:
+        document = {
+            "schema_version": promotion_evidence.SCHEMA_VERSION,
+            "repository": promotion_evidence.REPOSITORY,
+            "commit_sha": COMMIT,
+            "source_ref": promotion_evidence.SOURCE_REF,
+            "workflow_name": promotion_evidence.WORKFLOW_NAME,
+            "workflow_path": promotion_evidence.WORKFLOW_PATH,
+            "workflow_run_id": "12345",
+            "result": "PASS",
+            "checks": {name: "PASS" for name in promotion_evidence.REQUIRED_CHECKS},
+            "docker": {"executed": True, "result": "PASS"},
+        }
+        document.update(overrides)
+        path = Path(directory) / "arcacore-security-promotion.json"
+        path.write_text(json.dumps(document), encoding="utf-8")
+        return path
+
+    @staticmethod
+    def _verified_gh(command, **kwargs):
+        return SimpleNamespace(
+            returncode=0,
+            stdout=json.dumps([{"verificationResult": {"verified": True}}]),
+            stderr="",
+        )
+
     def test_contract_inventory_covers_every_mandatory_executable_subsystem(self):
         self.assertEqual(
             [contract.name for contract in release_gate.CONTRACTS],
@@ -155,6 +182,160 @@ class ReleaseCandidateGateTest(unittest.TestCase):
             result = release_gate.validate_security_review(forged, COMMIT, runner=self._snapshot_runner)
         self.assertFalse(result.passed)
         self.assertTrue(result.blocked)
+
+    def test_forged_local_promotion_json_is_rejected_without_gh(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory)
+            result = release_gate._validate_trusted_promotion(
+                artifact, COMMIT, gh_finder=lambda _name: None
+            )
+        self.assertFalse(result.passed)
+        self.assertTrue(result.blocked)
+
+    def test_unsigned_promotion_artifact_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory)
+            result = release_gate._validate_trusted_promotion(
+                artifact,
+                COMMIT,
+                gh_finder=lambda _name: "gh",
+                runner=lambda *args, **kwargs: completed(1, "no attestations found"),
+            )
+        self.assertFalse(result.passed)
+
+    def test_tampered_promotion_artifact_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory)
+            artifact.write_text("{}", encoding="utf-8")
+            result = release_gate._validate_trusted_promotion(
+                artifact,
+                COMMIT,
+                gh_finder=lambda _name: "gh",
+                runner=lambda *args, **kwargs: completed(1, "subject digest mismatch"),
+            )
+        self.assertFalse(result.passed)
+
+    def test_wrong_github_repository_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory, repository="attacker/project")
+            result = release_gate._validate_trusted_promotion(
+                artifact, COMMIT, gh_finder=lambda _name: "gh", runner=self._verified_gh
+            )
+        self.assertFalse(result.passed)
+
+    def test_wrong_signer_workflow_is_rejected_by_gh_policy(self):
+        def wrong_signer(command, **kwargs):
+            self.assertEqual(
+                command[command.index("--signer-workflow") + 1],
+                release_gate.PROMOTION_SIGNER_WORKFLOW,
+            )
+            return completed(1, "signer workflow mismatch")
+
+        with TemporaryDirectory() as directory:
+            result = release_gate._validate_trusted_promotion(
+                self._promotion(directory), COMMIT, gh_finder=lambda _name: "gh", runner=wrong_signer
+            )
+        self.assertFalse(result.passed)
+
+    def test_wrong_source_ref_is_rejected_by_gh_policy(self):
+        def wrong_ref(command, **kwargs):
+            self.assertEqual(command[command.index("--source-ref") + 1], promotion_evidence.SOURCE_REF)
+            return completed(1, "source ref mismatch")
+
+        with TemporaryDirectory() as directory:
+            result = release_gate._validate_trusted_promotion(
+                self._promotion(directory), COMMIT, gh_finder=lambda _name: "gh", runner=wrong_ref
+            )
+        self.assertFalse(result.passed)
+
+    def test_wrong_source_digest_is_rejected_by_gh_policy(self):
+        def wrong_digest(command, **kwargs):
+            self.assertEqual(command[command.index("--source-digest") + 1], COMMIT)
+            return completed(1, "source digest mismatch")
+
+        with TemporaryDirectory() as directory:
+            result = release_gate._validate_trusted_promotion(
+                self._promotion(directory), COMMIT, gh_finder=lambda _name: "gh", runner=wrong_digest
+            )
+        self.assertFalse(result.passed)
+
+    def test_stale_commit_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory, commit_sha="a" * 40)
+            result = release_gate._validate_trusted_promotion(
+                artifact, COMMIT, gh_finder=lambda _name: "gh", runner=self._verified_gh
+            )
+        self.assertFalse(result.passed)
+
+    def test_signed_fail_result_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory, result="FAIL")
+            result = release_gate._validate_trusted_promotion(
+                artifact, COMMIT, gh_finder=lambda _name: "gh", runner=self._verified_gh
+            )
+        self.assertFalse(result.passed)
+
+    def test_missing_required_promotion_field_is_rejected(self):
+        with TemporaryDirectory() as directory:
+            artifact = self._promotion(directory)
+            document = json.loads(artifact.read_text(encoding="utf-8"))
+            del document["checks"]
+            artifact.write_text(json.dumps(document), encoding="utf-8")
+            result = release_gate._validate_trusted_promotion(
+                artifact, COMMIT, gh_finder=lambda _name: "gh", runner=self._verified_gh
+            )
+        self.assertFalse(result.passed)
+
+    def test_valid_github_attestation_and_policy_return_pass(self):
+        commands = []
+        invocations = []
+
+        def verified(command, **kwargs):
+            commands.append(command)
+            invocations.append(kwargs)
+            return self._verified_gh(command, **kwargs)
+
+        with TemporaryDirectory() as directory:
+            result = release_gate._validate_trusted_promotion(
+                self._promotion(directory), COMMIT, gh_finder=lambda _name: "gh", runner=verified
+            )
+        self.assertTrue(result.passed)
+        self.assertIn("--deny-self-hosted-runners", commands[0])
+        self.assertNotIn("shell", invocations[0])
+
+    def test_promotion_workflow_has_least_privilege_and_attests_after_checks(self):
+        workflow = (release_gate.REPOSITORY_ROOT / ".github" / "workflows" / "arcacore-security-promotion.yml").read_text(encoding="utf-8")
+        self.assertIn("contents: read", workflow)
+        self.assertIn("id-token: write", workflow)
+        self.assertIn("attestations: write", workflow)
+        self.assertNotIn("contents: write", workflow)
+        self.assertLess(workflow.index("Release-gate unit tests"), workflow.index("actions/attest@v4"))
+        self.assertLess(workflow.index("Real Docker and Compose"), workflow.index("actions/attest@v4"))
+
+    def test_promotion_workflow_has_no_result_or_commit_inputs(self):
+        workflow = (release_gate.REPOSITORY_ROOT / ".github" / "workflows" / "arcacore-security-promotion.yml").read_text(encoding="utf-8")
+        self.assertNotIn("inputs:", workflow)
+        self.assertIn("python -m tools.promotion_evidence", workflow)
+
+    def test_local_codex_security_artifact_remains_blocked(self):
+        with TemporaryDirectory() as directory:
+            review = self._review(directory)
+            result = release_gate.validate_security_review(review, COMMIT, runner=self._snapshot_runner)
+        self.assertFalse(result.passed)
+        self.assertTrue(result.blocked)
+
+    def test_promotion_evidence_is_deterministic_and_uses_github_identity(self):
+        environment = {
+            "GITHUB_REPOSITORY": promotion_evidence.REPOSITORY,
+            "GITHUB_SHA": COMMIT,
+            "GITHUB_REF": promotion_evidence.SOURCE_REF,
+            "GITHUB_WORKFLOW": promotion_evidence.WORKFLOW_NAME,
+            "GITHUB_RUN_ID": "12345",
+        }
+        self.assertEqual(
+            promotion_evidence.evidence_from_github_environment(environment),
+            promotion_evidence.evidence_from_github_environment(dict(reversed(list(environment.items())))),
+        )
 
     def test_security_review_rejects_unknown_severity_and_tampering(self):
         with TemporaryDirectory() as directory:

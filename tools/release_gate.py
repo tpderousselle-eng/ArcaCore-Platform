@@ -15,10 +15,20 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import stat
 import subprocess
 import sys
 from typing import Mapping, Sequence
+
+from tools.promotion_evidence import (
+    REPOSITORY as PROMOTION_REPOSITORY,
+    REQUIRED_CHECKS as PROMOTION_CHECKS,
+    SCHEMA_VERSION as PROMOTION_SCHEMA,
+    SOURCE_REF as PROMOTION_SOURCE_REF,
+    WORKFLOW_NAME as PROMOTION_WORKFLOW_NAME,
+    WORKFLOW_PATH as PROMOTION_WORKFLOW_PATH,
+)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -30,6 +40,7 @@ APPROVED_DISCOVERY_SKIP = (
 )
 BLOCKING_SECURITY_SEVERITIES = frozenset({"critical", "high", "medium"})
 ALLOWED_SECURITY_SEVERITIES = BLOCKING_SECURITY_SEVERITIES | {"low"}
+PROMOTION_SIGNER_WORKFLOW = f"{PROMOTION_REPOSITORY}/{PROMOTION_WORKFLOW_PATH}"
 
 
 @dataclass(frozen=True)
@@ -290,6 +301,103 @@ def validate_security_review(path: Path, commit: str, *, runner=subprocess.run) 
     )
 
 
+def validate_trusted_promotion(
+    path: Path,
+    commit: str,
+) -> GateResult:
+    """Verify trusted promotion without an injectable production runner."""
+
+    return _validate_trusted_promotion(
+        path,
+        commit,
+        runner=subprocess.run,
+        gh_finder=shutil.which,
+    )
+
+
+def _validate_trusted_promotion(
+    path: Path,
+    commit: str,
+    *,
+    runner=subprocess.run,
+    gh_finder=shutil.which,
+) -> GateResult:
+    """Verify GitHub/Sigstore provenance and the signed promotion policy."""
+
+    gh = gh_finder("gh")
+    if not gh:
+        return GateResult("Trusted security promotion", False, "GitHub CLI is unavailable", blocked=True)
+    try:
+        artifact = path.resolve(strict=True)
+        if not artifact.is_file():
+            raise ValueError("promotion artifact must be a regular file")
+        completed = runner(
+            (
+                gh,
+                "attestation",
+                "verify",
+                str(artifact),
+                "--repo",
+                PROMOTION_REPOSITORY,
+                "--signer-workflow",
+                PROMOTION_SIGNER_WORKFLOW,
+                "--source-ref",
+                PROMOTION_SOURCE_REF,
+                "--source-digest",
+                commit,
+                "--deny-self-hosted-runners",
+                "--format",
+                "json",
+            ),
+            cwd=REPOSITORY_ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+        )
+        if completed.returncode != 0:
+            detail = _failure_detail(f"{completed.stdout}\n{completed.stderr}", completed.returncode)
+            return GateResult("Trusted security promotion", False, f"GitHub attestation verification failed: {detail}", blocked=True)
+        verification = json.loads(completed.stdout)
+        if not isinstance(verification, list) or not verification:
+            raise ValueError("GitHub CLI returned no verified attestation")
+        if any(not isinstance(item, dict) or not isinstance(item.get("verificationResult"), dict) for item in verification):
+            raise ValueError("GitHub CLI verification result is malformed")
+        document = _json_file(artifact)
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        return GateResult("Trusted security promotion", False, f"promotion evidence unavailable: {error}", blocked=True)
+
+    required_top_level = {
+        "schema_version", "repository", "commit_sha", "source_ref", "workflow_name",
+        "workflow_path", "workflow_run_id", "result", "checks", "docker",
+    }
+    if set(document) != required_top_level:
+        return GateResult("Trusted security promotion", False, "promotion evidence fields do not match policy")
+    expected = {
+        "schema_version": PROMOTION_SCHEMA,
+        "repository": PROMOTION_REPOSITORY,
+        "commit_sha": commit,
+        "source_ref": PROMOTION_SOURCE_REF,
+        "workflow_name": PROMOTION_WORKFLOW_NAME,
+        "workflow_path": PROMOTION_WORKFLOW_PATH,
+        "result": "PASS",
+    }
+    for field, value in expected.items():
+        if document.get(field) != value:
+            return GateResult("Trusted security promotion", False, f"promotion evidence {field} does not match policy")
+    run_id = document.get("workflow_run_id")
+    if not isinstance(run_id, str) or not run_id.isdecimal() or int(run_id) < 1:
+        return GateResult("Trusted security promotion", False, "promotion evidence workflow_run_id is invalid")
+    checks = document.get("checks")
+    if not isinstance(checks, dict) or set(checks) != set(PROMOTION_CHECKS):
+        return GateResult("Trusted security promotion", False, "promotion evidence checks do not match policy")
+    if any(checks[name] != "PASS" for name in PROMOTION_CHECKS):
+        return GateResult("Trusted security promotion", False, "a required promotion check did not pass")
+    if document.get("docker") != {"executed": True, "result": "PASS"}:
+        return GateResult("Trusted security promotion", False, "Docker execution was not proven to pass")
+    return GateResult("Trusted security promotion", True, "GitHub attestation and promotion policy verified")
+
+
 def fixture_hashes() -> dict[str, str]:
     targets = (REPOSITORY_ROOT / "tools" / "golden_matrix.py", REPOSITORY_ROOT / "tools" / "registry" / "models.json")
     return {
@@ -298,7 +406,12 @@ def fixture_hashes() -> dict[str, str]:
     }
 
 
-def execute(security_review: Path, *, runner=subprocess.run) -> tuple[list[GateResult], dict[str, object]]:
+def execute(
+    security_review: Path,
+    trusted_promotion_artifact: Path | None = None,
+    *,
+    runner=subprocess.run,
+) -> tuple[list[GateResult], dict[str, object]]:
     commit = current_commit(runner=runner)
     results: list[GateResult] = []
     for contract in CONTRACTS:
@@ -307,7 +420,13 @@ def execute(security_review: Path, *, runner=subprocess.run) -> tuple[list[GateR
         if not result.passed:
             break
     if all(result.passed for result in results):
-        results.append(validate_security_review(security_review, commit, runner=runner))
+        security_result = validate_security_review(security_review, commit, runner=runner)
+        if security_result.blocked and trusted_promotion_artifact is not None:
+            security_result = validate_trusted_promotion(
+                trusted_promotion_artifact,
+                commit,
+            )
+        results.append(security_result)
     metadata = {
         "commit": commit,
         "python": platform.python_version(),
@@ -364,9 +483,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         required=True,
         help="Completed Codex Security artifact directory for the current working tree",
     )
+    parser.add_argument(
+        "--trusted-promotion-artifact",
+        type=Path,
+        help="Attested GitHub security-promotion JSON for the exact current commit",
+    )
     arguments = parser.parse_args(argv)
     try:
-        results, metadata = execute(arguments.security_review)
+        results, metadata = execute(
+            arguments.security_review,
+            arguments.trusted_promotion_artifact,
+        )
     except Exception as error:
         print("ArcaCore Release Candidate Gate\n")
         print(f"[FAIL] Gate infrastructure: {error}")

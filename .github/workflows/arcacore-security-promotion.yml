@@ -1,0 +1,81 @@
+name: ArcaCore Security Promotion
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  promotion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out exact source commit
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13.7
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13.7"
+
+      - name: Install Stabilization 25 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install \
+            -r backend/requirements.txt \
+            -r tools/requirements-runtime.txt \
+            -r tools/requirements-postgresql.txt \
+            -r tools/requirements-kubernetes.txt \
+            -r tools/requirements-phone.txt \
+            -r tools/requirements-email.txt \
+            -r tools/requirements-encryption.txt
+
+      - name: Complete unittest discovery
+        run: python -m unittest discover -s tools -p "test_*.py" -v
+
+      - name: Security hardening
+        run: python -m unittest tools.test_security_hardening -v
+
+      - name: Generated runtime
+        run: python -m unittest tools.test_generated_runtime -v
+
+      - name: PostgreSQL integration
+        run: python -m unittest tools.test_postgresql_runtime -v
+
+      - name: Kubernetes and health validation
+        run: python -m unittest tools.test_kubernetes_validation -v
+
+      - name: Failure injection and atomicity
+        run: python -m unittest tools.test_failure_injection -v
+
+      - name: Determinism and reproducibility
+        run: python -m unittest tools.test_determinism -v
+
+      - name: Release-gate unit tests
+        run: python -m unittest tools.test_release_gate -v
+
+      - name: Real Docker and Compose production contract
+        env:
+          ARCACORE_RUN_DOCKER_TESTS: "1"
+        run: python -m unittest tools.test_docker_compose_runtime -v
+
+      - name: Create deterministic promotion evidence
+        run: python -m tools.promotion_evidence
+
+      - name: Attest promotion evidence
+        uses: actions/attest@v4
+        with:
+          subject-path: arcacore-security-promotion.json
+
+      - name: Upload attested promotion evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: arcacore-security-promotion-${{ github.sha }}
+          path: arcacore-security-promotion.json
+          if-no-files-found: error

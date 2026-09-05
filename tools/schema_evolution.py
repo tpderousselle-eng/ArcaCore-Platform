@@ -9,7 +9,9 @@ from enum import Enum
 import json
 from typing import Any
 
-from tools.core.module_definition import ModuleDefinition, validate_module_definition
+from tools.core.module_definition import (
+    ModuleDefinition, valid_public_identifier, validate_module_definition,
+)
 
 
 class SafetyClassification(str, Enum):
@@ -55,6 +57,16 @@ class SchemaChange:
     after: Any
     rationale: str
 
+    def __post_init__(self):
+        if not isinstance(self.kind, ChangeKind) or not isinstance(
+            self.safety, SafetyClassification
+        ):
+            raise ValueError("Schema changes require known kind and safety values.")
+        if not isinstance(self.target, str) or not self.target or len(self.target) > 256:
+            raise ValueError("Schema change targets must be bounded strings.")
+        if not isinstance(self.rationale, str) or not self.rationale:
+            raise ValueError("Schema changes require a rationale.")
+
     def canonical_dict(self) -> dict[str, Any]:
         value = asdict(self)
         value["kind"] = self.kind.value
@@ -67,6 +79,22 @@ class SchemaEvolutionPlan:
     module: str
     changes: tuple[SchemaChange, ...]
     schema_version: int = 1
+
+    def __post_init__(self):
+        if not valid_public_identifier(self.module):
+            raise ValueError("Evolution plan module must be a public ASCII identifier.")
+        if self.schema_version != 1:
+            raise ValueError("Unsupported schema evolution plan version.")
+        if not isinstance(self.changes, tuple) or any(
+            not isinstance(change, SchemaChange) for change in self.changes
+        ):
+            raise ValueError("Evolution plan changes must be a tuple of SchemaChange values.")
+        expected = tuple(sorted(
+            self.changes,
+            key=lambda value: (value.target, value.kind.value, value.safety.value),
+        ))
+        if self.changes != expected:
+            raise ValueError("Evolution plan changes must use canonical ordering.")
 
     @property
     def is_empty(self) -> bool:
@@ -287,7 +315,14 @@ def plan_schema_evolution(previous: ModuleDefinition | None, proposed: ModuleDef
         changes.append(_change(ChangeKind.FIELD_REMOVED, SafetyClassification.POTENTIALLY_DESTRUCTIVE, f"field:{name}", _field_state(old_fields[name]), None, "Dropping a field can permanently destroy stored data."))
     for name in sorted(new_fields.keys() - old_fields.keys()):
         field = new_fields[name]
-        safety = SafetyClassification.SAFE_ADDITIVE if field.nullable or field.default is not None else SafetyClassification.REQUIRES_DATA_MIGRATION
+        safety = (
+            SafetyClassification.SAFE_ADDITIVE
+            if (field.nullable or field.default is not None)
+            and field.foreign_key is None
+            and not field.unique
+            and not field.encrypted
+            else SafetyClassification.REQUIRES_DATA_MIGRATION
+        )
         changes.append(_change(ChangeKind.FIELD_ADDED, safety, f"field:{name}", None, _field_state(field), "Nullable or safely defaulted additions are additive; otherwise existing rows require a backfill."))
     for name in sorted(old_fields.keys() & new_fields.keys()):
         changes.extend(_field_changes(old_fields[name], new_fields[name]))

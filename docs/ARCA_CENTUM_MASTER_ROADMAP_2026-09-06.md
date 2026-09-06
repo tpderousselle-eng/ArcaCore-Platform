@@ -69,7 +69,7 @@ STABILIZATION 25: COMPLETE
 
 ---
 
-## 2. Sprint 26 — Schema Evolution & Migration System
+## 2. Sprint 26 — Schema Evolution & Migration System — FULLY CERTIFIED
 
 ### 26.1 — COMPLETE
 Commit: `ea2773fda105547dae67e00e8827fe83a3f118b2`
@@ -189,10 +189,10 @@ Full discovery:
 26.4–26.6 were merged into `main`.
 
 Current certified main:
-`73d425375131b1b727ea5241dd19c25382b571e4`
+`f7e2a45130fd7e39f9f927113b5496dad5d5f2dd`
 
 GitHub Security Promotion:
-- Run `34032098000`
+- Run `34043018358`
 - Result: SUCCESS
 
 Passed:
@@ -212,7 +212,8 @@ Passed:
 
 ## 3. Sprint 26.7 — Schema State & Migration Lifecycle Integration
 
-**Status:** NEXT / AUTHORIZED FOR CODEX. Do not mark complete until verified.
+**Status:** COMPLETE
+Commit: `3804914ccca3f8b024d87b09df5f5024ef60d7c5`
 
 Goal:
 Turn schema evolution into a native ArcaCore lifecycle.
@@ -221,7 +222,7 @@ Lifecycle:
 
 `previous accepted schema → proposed schema → evolution plan → migration policy → migration artifact → pending revision → future controlled execution`
 
-Planned capabilities:
+Delivered capabilities:
 - canonical schema snapshots
 - schema digest
 - parent/predecessor lineage
@@ -247,7 +248,7 @@ Possible lifecycle states:
 - `RENDERED`
 - `PENDING_EXECUTION`
 
-No production migration execution yet in 26.7.
+No production migration execution occurs implicitly.
 
 Target commit message:
 `Sprint 26.7 - Integrate schema migration lifecycle`
@@ -256,12 +257,13 @@ Target commit message:
 
 ## 4. Sprint 26.8 — Controlled Migration Execution & Rollback
 
-**Status:** PLANNED / AUTHORIZED AFTER 26.7 PASSES.
+**Status:** COMPLETE
+Commit: `c66e27b785a559cbf9d8278b2182f54596a4d55c`
 
 Goal:
 Safely execute previously validated migrations against PostgreSQL.
 
-Planned capabilities:
+Delivered capabilities:
 - migration preflight
 - accepted schema verification
 - DB revision verification
@@ -302,7 +304,8 @@ Target commit message:
 
 ## 5. Sprint 26.9 — Schema-Aware Minimal-Diff Regeneration
 
-**Status:** PLANNED / AUTHORIZED AFTER 26.8 PASSES.
+**Status:** COMPLETE
+Commit: `29688dbe6733277a8e0665e0f6ba6d52f487598a`
 
 Goal:
 Stop blind regeneration.
@@ -341,7 +344,13 @@ Target commit message:
 `Sprint 26.9 - Add schema-aware minimal-diff regeneration`
 
 After 26.9:
-**SPRINT 26 ENDS.**
+**SPRINT 26 ENDS — FULLY CERTIFIED.**
+
+Final validation:
+- 543 tests passed
+- 1 expected Docker opt-in skip
+- Codex Security scan `c8ff16b8-a0da-42e0-80d5-4fdf9d3e56ae`
+- GitHub Security Promotion run `34043018358`: SUCCESS
 
 Do NOT allow Sprint 26 to expand indefinitely.
 
@@ -349,12 +358,12 @@ Do NOT allow Sprint 26 to expand indefinitely.
 
 ## 6. Current Codex Batch
 
-Approved autonomous batch:
+Active engineering work:
 
-`26.7 → 26.8 → 26.9`
+`Sprint 27.1 → Sprint 27.2 → Sprint 27.3`
 
 Intended feature branch:
-`sprint-26-lifecycle-regeneration`
+`sprint-27-closed-loop-foundation`
 
 Rules:
 - branch from certified main
@@ -1447,13 +1456,11 @@ That is the future closed-loop ArcaCentum ecosystem.
 ## 37. Immediate Next Actions
 
 ### Engineering
-1. Complete Sprint 26.7
-2. Complete Sprint 26.8
-3. Complete Sprint 26.9
+1. Complete Sprint 27.1 canonical application manifest
+2. Complete Sprint 27.2 closed-loop runtime harness
+3. Complete Sprint 27.3 failure localization
 4. Review branch
-5. Fast-forward to main if clean
-6. GitHub Security Promotion
-7. Begin Sprint 27.1 only after certification
+5. Do not begin Sprint 27.4 without explicit authorization
 
 ### Product / Design
 1. Correct ArcaCapitalis Emergent implementation

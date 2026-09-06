@@ -61,7 +61,6 @@ class AlembicMigration:
 
 
 _REVISION = re.compile(r"[0-9a-f]{12}")
-_DIGEST = re.compile(r"[0-9a-f]{64}")
 _TARGET = re.compile(r"(?:module|field|index|constraint):([A-Za-z][A-Za-z0-9_]*)")
 
 
@@ -240,7 +239,24 @@ def _render_operations(plan, policy):
     table = f"{plan.module.lower()}s"
     upgrade, downgrade = [], []
     fk_targets = {change.target for change in plan.changes if change.kind == ChangeKind.FOREIGN_KEY_ADDED}
-    for change in plan.changes:
+    priorities = {
+        ChangeKind.MODULE_ADDED: 0,
+        ChangeKind.INDEX_REMOVED: 10,
+        ChangeKind.FIELD_INDEX_REMOVED: 10,
+        ChangeKind.FIELD_ADDED: 20,
+        ChangeKind.DEFAULT_CHANGED: 30,
+        ChangeKind.FOREIGN_KEY_ADDED: 40,
+        ChangeKind.RELATIONSHIP_CHANGED: 41,
+        ChangeKind.UNIQUE_CHANGED: 50,
+        ChangeKind.CONSTRAINT_ADDED: 50,
+        ChangeKind.FIELD_INDEX_ADDED: 60,
+        ChangeKind.INDEX_ADDED: 60,
+    }
+    ordered_changes = sorted(
+        plan.changes,
+        key=lambda value: (priorities.get(value.kind, 100), value.target, value.kind.value),
+    )
+    for change in ordered_changes:
         kind = change.kind
         if kind == ChangeKind.MODULE_ADDED:
             state = change.after
@@ -383,18 +399,24 @@ def generate_alembic_migration(plan: SchemaEvolutionPlan, *, policy=None, down_r
     return AlembicMigration(plan.module, revision, down_revision, plan_digest, content)
 
 
-def write_alembic_migration(directory: Path, migration: AlembicMigration) -> Path:
-    if not isinstance(migration, AlembicMigration):
-        raise ValueError("Migration output must be an AlembicMigration.")
-    if (
-        not valid_public_identifier(migration.module)
-        or not _REVISION.fullmatch(migration.revision)
-        or not _DIGEST.fullmatch(migration.plan_sha256)
-        or migration.down_revision is not None
-        and not _REVISION.fullmatch(migration.down_revision)
-        or not isinstance(migration.content, str)
-    ):
-        raise ValueError("Migration artifact metadata is invalid.")
+def write_alembic_migration(
+    directory: Path,
+    plan: SchemaEvolutionPlan,
+    *,
+    policy: MigrationPolicy | None = None,
+    down_revision: str | None = None,
+) -> Path:
+    """Validate, generate, and atomically write one migration.
+
+    Accepting the plan rather than a caller-constructed artifact prevents the
+    filesystem API from becoming a bypass around plan and payload validation.
+    """
+
+    migration = generate_alembic_migration(
+        plan,
+        policy=policy,
+        down_revision=down_revision,
+    )
     directory = Path(directory).resolve()
     output = (directory / migration.filename).resolve()
     try:

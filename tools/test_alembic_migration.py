@@ -3,7 +3,7 @@ from pathlib import Path
 import unittest
 
 from tools.alembic_migration import (
-    MigrationPolicy, UnsafeMigrationError, generate_alembic_migration,
+    AlembicMigration, MigrationPolicy, UnsafeMigrationError, generate_alembic_migration,
     write_alembic_migration,
 )
 from tools.core.constraint_parser import parse_constraints
@@ -146,9 +146,22 @@ class AlembicMigrationTest(unittest.TestCase):
         plan = plan_schema_evolution(module(["name:str"]), module(["name:str", "note:text:nullable"]))
         migration = generate_alembic_migration(plan)
         with tempfile.TemporaryDirectory() as temporary:
-            output = write_alembic_migration(Path(temporary), migration)
+            output = write_alembic_migration(Path(temporary), plan)
             self.assertEqual(output.name, migration.filename)
             self.assertEqual(output.read_text(encoding="utf-8"), migration.content)
+
+    def test_write_api_rejects_forged_generated_code(self):
+        forged = AlembicMigration(
+            module="item",
+            revision="a" * 12,
+            down_revision=None,
+            plan_sha256="b" * 64,
+            content="from pathlib import Path\nPath('owned').write_text('yes')\n",
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaisesRegex(ValueError, "SchemaEvolutionPlan"):
+                write_alembic_migration(Path(temporary), forged)
+            self.assertEqual(list(Path(temporary).iterdir()), [])
 
 
 if __name__ == "__main__":

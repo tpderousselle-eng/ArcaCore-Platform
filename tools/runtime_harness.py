@@ -59,6 +59,52 @@ class _WindowsJob:
         if getattr(self,"_handle",None): self._kernel.CloseHandle(self._handle); self._handle=None
 
 
+@dataclass(frozen=True)
+class _ProcessPolicy:
+    """Platform process-tree containment and bounded shutdown policy."""
+    windows: bool
+    creationflags: int
+    start_new_session: bool
+    graceful_signal: int
+    forced_signal: int | None
+
+    @classmethod
+    def current(cls, platform_name=None, *, creationflag=None, break_event=None,
+                terminate_signal=None, kill_signal=None):
+        name = os.name if platform_name is None else platform_name
+        if name == "nt":
+            if creationflag is None: creationflag = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", None)
+            if break_event is None: break_event = getattr(signal, "CTRL_BREAK_EVENT", None)
+            if creationflag is None or break_event is None:
+                raise RuntimeError("Windows process-group shutdown support is unavailable.")
+            return cls(True, creationflag, False, break_event, None)
+        if terminate_signal is None: terminate_signal = getattr(signal, "SIGTERM", None)
+        if kill_signal is None: kill_signal = getattr(signal, "SIGKILL", None)
+        if terminate_signal is None or kill_signal is None:
+            raise RuntimeError("POSIX process-group shutdown support is unavailable.")
+        return cls(False, 0, True, terminate_signal, kill_signal)
+
+    def contain(self, process):
+        return _WindowsJob(process) if self.windows else None
+
+    def graceful_stop(self, process):
+        if self.windows:
+            process.send_signal(self.graceful_signal)
+        else:
+            os.killpg(process.pid, self.graceful_signal)
+
+    def force_stop(self, process, timeout):
+        if self.windows:
+            try:
+                subprocess.run(["taskkill","/PID",str(process.pid),"/T","/F"],check=False,
+                    stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                    shell=False,timeout=timeout)
+            except (OSError,subprocess.TimeoutExpired):
+                process.kill()
+        else:
+            os.killpg(process.pid, self.forced_signal)
+
+
 class _BoundedCapture:
     def __init__(self, stream):
         self.stream=stream; self.tail=bytearray(); self.lock=threading.Lock()
@@ -211,26 +257,27 @@ class RuntimeHarness:
             if key in os.environ: environment[key]=os.environ[key]
         return environment
 
-    def _shutdown_tree(self, process):
-        if os.name == "nt":
-            if process.poll() is not None: return
-            try: process.send_signal(signal.CTRL_BREAK_EVENT)
-            except OSError: pass
-        else:
-            try: os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError: return
+    def _start_contained(self, command, workspace, policy):
+        process=subprocess.Popen(command,cwd=workspace,env=self._environment(workspace),stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False,
+            creationflags=policy.creationflags,start_new_session=policy.start_new_session)
+        try:
+            return process, policy.contain(process)
+        except Exception:
+            process.kill(); process.wait(timeout=self.shutdown_timeout)
+            raise
+
+    def _shutdown_tree(self, process, policy=None):
+        policy = policy or _ProcessPolicy.current()
+        if process.poll() is not None: return
+        try: policy.graceful_stop(process)
+        except (OSError, ProcessLookupError):
+            if not policy.windows: return
         try:
             process.wait(timeout=self.shutdown_timeout); return
         except subprocess.TimeoutExpired: pass
-        if os.name == "nt":
-            try:
-                subprocess.run(["taskkill","/PID",str(process.pid),"/T","/F"],check=False,
-                    stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
-                    shell=False,timeout=self.shutdown_timeout)
-            except (OSError,subprocess.TimeoutExpired): process.kill()
-        else:
-            try: os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError: pass
+        try: policy.force_stop(process, self.shutdown_timeout)
+        except ProcessLookupError: pass
         process.wait(timeout=self.shutdown_timeout)
 
     def run(self):
@@ -242,14 +289,13 @@ class RuntimeHarness:
             except Exception as error:
                 phases.append(PhaseResult(RuntimePhase.PREPARE,False,RuntimeFailure.MANIFEST,safe_diagnostic(error,workspace)))
                 return RuntimeReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,phases)
-            capture=None; job=None
+            capture=None; job=None; policy=None
             try:
                 port=self._port()
                 ready=workspace/RUNTIME_READY_NAME
                 command=[sys.executable,str(Path(__file__).with_name("runtime_child.py")),str(ready),str(port)]
-                flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=="nt" else 0
-                process=subprocess.Popen(command,cwd=workspace,env=self._environment(workspace),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False,creationflags=flags,start_new_session=os.name!="nt")
-                if os.name=="nt": job=_WindowsJob(process)
+                policy=_ProcessPolicy.current()
+                process,job=self._start_contained(command,workspace,policy)
                 write_bytes_atomic(ready,b"ready\n")
                 capture=_BoundedCapture(process.stdout); capture.start()
                 phases.append(PhaseResult(RuntimePhase.STARTUP,True,RuntimeFailure.NONE))
@@ -286,7 +332,7 @@ class RuntimeHarness:
                 phases.append(PhaseResult(RuntimePhase.HEALTH,False,RuntimeFailure.HEALTH,safe_diagnostic(error,workspace)))
             finally:
                 if process is not None and process.poll() is None:
-                    try: self._shutdown_tree(process)
+                    try: self._shutdown_tree(process,policy)
                     except (OSError,subprocess.TimeoutExpired): phases.append(PhaseResult(RuntimePhase.SHUTDOWN,False,RuntimeFailure.PROCESS,"process tree did not terminate"))
                 if job is not None: job.close()
                 if process is not None and process.poll() is None:

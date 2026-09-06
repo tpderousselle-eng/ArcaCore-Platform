@@ -1,6 +1,7 @@
 from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from io import BytesIO
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -8,7 +9,7 @@ from tools.application_manifest import ApplicationManifest, ModuleReference, Run
 from tools.core.field_parser import parse_fields
 from tools.core.module_definition import ModuleDefinition
 from tools.minimal_regeneration import GenerationManifest, OwnedFile
-from tools.runtime_harness import RuntimeFailure, RuntimeHarness, RuntimePhase, safe_diagnostic
+from tools.runtime_harness import _ProcessPolicy, RuntimeFailure, RuntimeHarness, RuntimePhase, safe_diagnostic
 from tools.schema_lifecycle import SchemaRevision
 
 
@@ -87,29 +88,58 @@ class RuntimeHarnessTest(unittest.TestCase):
             self.assertTrue(harness.run().phases[-1].phase==RuntimePhase.SHUTDOWN)
         self.assertTrue(created); self.assertTrue(all(not Path(value).exists() for value in created))
 
-    def test_shutdown_uses_bounded_process_tree_policy(self):
+    def test_windows_shutdown_uses_bounded_process_tree_policy(self):
         harness,_,_=self.fixture("x=1")
         process=MagicMock(); process.poll.return_value=None
         process.wait.side_effect=[__import__('subprocess').TimeoutExpired('runtime',2),0]
-        with patch("tools.runtime_harness.os.name","nt"), patch("tools.runtime_harness.subprocess.run") as run:
-            harness._shutdown_tree(process)
-        process.send_signal.assert_called_once(); run.assert_called_once()
+        policy=_ProcessPolicy(True,512,False,321,None)
+        with patch("tools.runtime_harness.subprocess.run") as run: harness._shutdown_tree(process,policy)
+        process.send_signal.assert_called_once_with(321); run.assert_called_once()
         command=run.call_args.args[0]; self.assertEqual(command[:2],["taskkill","/PID"]); self.assertFalse(run.call_args.kwargs["shell"])
 
-    def test_trusted_bootstrap_releases_only_after_job_assignment(self):
+    def test_posix_policy_establishes_session_and_uses_process_group_signals(self):
+        policy=_ProcessPolicy.current("posix",terminate_signal=15,kill_signal=9)
+        self.assertTrue(policy.start_new_session); self.assertEqual(policy.creationflags,0)
+        process=MagicMock(); process.pid=123
+        with patch("tools.runtime_harness.os.killpg",create=True) as killpg:
+            policy.graceful_stop(process); policy.force_stop(process,2)
+        self.assertEqual([call.args for call in killpg.call_args_list],[(123,15),(123,9)])
+
+    def test_windows_policy_requires_host_constants_and_job_containment(self):
+        policy=_ProcessPolicy.current("nt",creationflag=512,break_event=321)
+        self.assertFalse(policy.start_new_session); self.assertEqual(policy.creationflags,512)
+        process=MagicMock(); sentinel=object()
+        with patch("tools.runtime_harness._WindowsJob",return_value=sentinel) as job:
+            self.assertIs(policy.contain(process),sentinel)
+        job.assert_called_once_with(process)
+        with patch("tools.runtime_harness.subprocess.CREATE_NEW_PROCESS_GROUP",None,create=True), patch("tools.runtime_harness.signal.CTRL_BREAK_EVENT",None,create=True):
+            with self.assertRaisesRegex(RuntimeError,"unavailable"): _ProcessPolicy.current("nt")
+
+    def test_trusted_bootstrap_releases_after_platform_containment(self):
         harness,_,_=self.fixture("from fastapi import FastAPI\napp=FastAPI()\n@app.get('/health')\ndef health(): return {'status':'ok'}\n")
         events=[]
         import tools.runtime_harness as target
-        real_job=target._WindowsJob; real_write=target.write_bytes_atomic
-        class Job:
-            def __init__(self,process): events.append("contained"); self.job=real_job(process)
-            def close(self): self.job.close()
+        real_write=target.write_bytes_atomic
+        policy=_ProcessPolicy(False,0,True,15,9)
+        process=MagicMock(); process.poll.return_value=1; process.returncode=1; process.stdout=BytesIO(b"")
+        def start(*args): events.append("contained"); return process,None
         def write(path,content):
             if path.name==".arcacore-runtime-ready": events.append("released")
             return real_write(path,content)
-        with patch.object(target,"_WindowsJob",Job),patch.object(target,"write_bytes_atomic",side_effect=write):
-            self.assertTrue(harness.run().success)
+        with patch.object(target._ProcessPolicy,"current",return_value=policy),patch.object(harness,"_start_contained",side_effect=start),patch.object(target,"write_bytes_atomic",side_effect=write):
+            self.assertFalse(harness.run().success)
         self.assertEqual(events[:2],["contained","released"])
+
+    def test_start_contained_applies_platform_creation_before_return(self):
+        harness,_,_=self.fixture("x=1")
+        process=MagicMock(); policy=MagicMock(creationflags=17,start_new_session=True)
+        policy.contain.return_value=None
+        with patch("tools.runtime_harness.subprocess.Popen",return_value=process) as popen:
+            self.assertEqual(harness._start_contained(["python"],self.root,policy),(process,None))
+        self.assertEqual(popen.call_args.kwargs["creationflags"],17)
+        self.assertTrue(popen.call_args.kwargs["start_new_session"])
+        self.assertFalse(popen.call_args.kwargs["shell"])
+        policy.contain.assert_called_once_with(process)
 
     def test_reserved_bootstrap_release_path_cannot_be_a_generated_surface(self):
         target=self.root/".arcacore-runtime-ready"; target.write_text("forged")

@@ -2,6 +2,7 @@ from hashlib import sha256
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import MagicMock, patch
 
 from tools.application_manifest import ApplicationManifest, ModuleReference, RuntimeContract
 from tools.core.field_parser import parse_fields
@@ -79,8 +80,46 @@ class RuntimeHarnessTest(unittest.TestCase):
 
     def test_process_is_terminated_and_workspace_is_cleaned(self):
         harness,_,_=self.fixture("from fastapi import FastAPI\napp=FastAPI()\n@app.get('/health')\ndef health(): return {'status':'ok'}\n")
-        self.assertTrue(harness.run().phases[-1].phase==RuntimePhase.SHUTDOWN)
-        self.assertFalse(any(p.name.startswith("arcacore-runtime-") for p in Path(self.temp.name).parent.iterdir()))
+        created=[]
+        def tracked(*args,**kwargs):
+            directory=TemporaryDirectory(*args,**kwargs); created.append(directory.name); return directory
+        with patch("tools.runtime_harness.TemporaryDirectory",side_effect=tracked):
+            self.assertTrue(harness.run().phases[-1].phase==RuntimePhase.SHUTDOWN)
+        self.assertTrue(created); self.assertTrue(all(not Path(value).exists() for value in created))
+
+    def test_shutdown_uses_bounded_process_tree_policy(self):
+        harness,_,_=self.fixture("x=1")
+        process=MagicMock(); process.poll.return_value=None
+        process.wait.side_effect=[__import__('subprocess').TimeoutExpired('runtime',2),0]
+        with patch("tools.runtime_harness.os.name","nt"), patch("tools.runtime_harness.subprocess.run") as run:
+            harness._shutdown_tree(process)
+        process.send_signal.assert_called_once(); run.assert_called_once()
+        command=run.call_args.args[0]; self.assertEqual(command[:2],["taskkill","/PID"]); self.assertFalse(run.call_args.kwargs["shell"])
+
+    def test_trusted_bootstrap_releases_only_after_job_assignment(self):
+        harness,_,_=self.fixture("from fastapi import FastAPI\napp=FastAPI()\n@app.get('/health')\ndef health(): return {'status':'ok'}\n")
+        events=[]
+        import tools.runtime_harness as target
+        real_job=target._WindowsJob; real_write=target.write_bytes_atomic
+        class Job:
+            def __init__(self,process): events.append("contained"); self.job=real_job(process)
+            def close(self): self.job.close()
+        def write(path,content):
+            if path.name==".arcacore-runtime-ready": events.append("released")
+            return real_write(path,content)
+        with patch.object(target,"_WindowsJob",Job),patch.object(target,"write_bytes_atomic",side_effect=write):
+            self.assertTrue(harness.run().success)
+        self.assertEqual(events[:2],["contained","released"])
+
+    def test_reserved_bootstrap_release_path_cannot_be_a_generated_surface(self):
+        target=self.root/".arcacore-runtime-ready"; target.write_text("forged")
+        content=target.read_bytes(); ownership=GenerationManifest.create([OwnedFile(target.name,"runtime",sha256(content).hexdigest(),D1)])
+        definition=ModuleDefinition("item","Item","item","items",parse_fields("item",["name:str"])); revision=SchemaRevision.create(definition)
+        module=ModuleReference.create(name="item",accepted_schema_digest=revision.schema_digest,schema_revision_identity=revision.revision_identity,
+            generation_manifest_digest=ownership.manifest_identity,generated_surfaces=(target.name,))
+        manifest=ApplicationManifest.create(application="runtime_app",project_name="Runtime",modules=(module,),runtime=RuntimeContract.create(database="none",required_services=("api",)))
+        report=RuntimeHarness(self.root,manifest,ownership,{"item":revision}).run()
+        self.assertEqual(report.phases[0].category,RuntimeFailure.MANIFEST)
 
 
 if __name__=="__main__": unittest.main()

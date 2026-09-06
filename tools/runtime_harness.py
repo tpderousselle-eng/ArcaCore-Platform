@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import signal
 import socket
 import subprocess
 import sys
@@ -26,6 +27,36 @@ CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 SECRET = re.compile(r"(?i)(password|token|secret|authorization|api[_-]?key)(\s*[:=]\s*)([^\s,;]+)")
 MAX_DIAGNOSTIC = 4096
 MAX_CAPTURE = 65_536
+RUNTIME_READY_NAME = ".arcacore-runtime-ready"
+
+
+class _WindowsJob:
+    """A kill-on-close job assigned immediately after process creation."""
+    def __init__(self, process):
+        import ctypes
+        from ctypes import wintypes
+        class Basic(ctypes.Structure):
+            _fields_=[("PerProcessUserTimeLimit",ctypes.c_longlong),("PerJobUserTimeLimit",ctypes.c_longlong),
+                ("LimitFlags",wintypes.DWORD),("MinimumWorkingSetSize",ctypes.c_size_t),("MaximumWorkingSetSize",ctypes.c_size_t),
+                ("ActiveProcessLimit",wintypes.DWORD),("Affinity",ctypes.c_size_t),("PriorityClass",wintypes.DWORD),("SchedulingClass",wintypes.DWORD)]
+        class Io(ctypes.Structure):
+            _fields_=[(v,ctypes.c_ulonglong) for v in ("ReadOperationCount","WriteOperationCount","OtherOperationCount","ReadTransferCount","WriteTransferCount","OtherTransferCount")]
+        class Extended(ctypes.Structure):
+            _fields_=[("BasicLimitInformation",Basic),("IoInfo",Io),("ProcessMemoryLimit",ctypes.c_size_t),("JobMemoryLimit",ctypes.c_size_t),("PeakProcessMemoryUsed",ctypes.c_size_t),("PeakJobMemoryUsed",ctypes.c_size_t)]
+        kernel=ctypes.WinDLL("kernel32",use_last_error=True); kernel.CreateJobObjectW.restype=wintypes.HANDLE
+        kernel.SetInformationJobObject.argtypes=[wintypes.HANDLE,ctypes.c_int,ctypes.c_void_p,wintypes.DWORD]
+        kernel.AssignProcessToJobObject.argtypes=[wintypes.HANDLE,wintypes.HANDLE]
+        kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+        self._kernel=kernel; self._handle=kernel.CreateJobObjectW(None,None)
+        if not self._handle: raise OSError(ctypes.get_last_error(),"Cannot create runtime job object.")
+        limits=Extended(); limits.BasicLimitInformation.LimitFlags=0x00002000
+        if not kernel.SetInformationJobObject(self._handle,9,ctypes.byref(limits),ctypes.sizeof(limits)):
+            self.close(); raise OSError(ctypes.get_last_error(),"Cannot configure runtime job object.")
+        if not kernel.AssignProcessToJobObject(self._handle,wintypes.HANDLE(int(process._handle))):
+            self.close(); raise OSError(ctypes.get_last_error(),"Cannot contain generated runtime process.")
+
+    def close(self):
+        if getattr(self,"_handle",None): self._kernel.CloseHandle(self._handle); self._handle=None
 
 
 class _BoundedCapture:
@@ -60,6 +91,7 @@ class RuntimePhase(str, Enum):
     DATABASE = "DATABASE"
     API_SMOKE = "API_SMOKE"
     GENERATED_TESTS = "GENERATED_TESTS"
+    MIGRATION = "MIGRATION"
     SHUTDOWN = "SHUTDOWN"
 
 
@@ -73,6 +105,7 @@ class RuntimeFailure(str, Enum):
     DATABASE = "DATABASE"
     API = "API"
     TEST = "TEST"
+    MIGRATION = "MIGRATION"
     PROCESS = "PROCESS"
     INFRASTRUCTURE = "INFRASTRUCTURE"
 
@@ -157,6 +190,8 @@ class RuntimeHarness:
         authorized = {path for module in self.manifest.modules for path in module.generated_surfaces}
         entries = {v.path:v for v in self.ownership.files}
         for relative in sorted(authorized):
+            if relative == RUNTIME_READY_NAME:
+                raise ValueError("Generated surface conflicts with reserved runtime control state.")
             source=self._source(relative)
             if not source.is_file(): raise ValueError(f"Generated surface is missing: {relative}")
             content=source.read_bytes()
@@ -176,6 +211,28 @@ class RuntimeHarness:
             if key in os.environ: environment[key]=os.environ[key]
         return environment
 
+    def _shutdown_tree(self, process):
+        if os.name == "nt":
+            if process.poll() is not None: return
+            try: process.send_signal(signal.CTRL_BREAK_EVENT)
+            except OSError: pass
+        else:
+            try: os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError: return
+        try:
+            process.wait(timeout=self.shutdown_timeout); return
+        except subprocess.TimeoutExpired: pass
+        if os.name == "nt":
+            try:
+                subprocess.run(["taskkill","/PID",str(process.pid),"/T","/F"],check=False,
+                    stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,
+                    shell=False,timeout=self.shutdown_timeout)
+            except (OSError,subprocess.TimeoutExpired): process.kill()
+        else:
+            try: os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError: pass
+        process.wait(timeout=self.shutdown_timeout)
+
     def run(self):
         phases=[]; process=None
         with TemporaryDirectory(prefix="arcacore-runtime-") as temporary:
@@ -185,12 +242,15 @@ class RuntimeHarness:
             except Exception as error:
                 phases.append(PhaseResult(RuntimePhase.PREPARE,False,RuntimeFailure.MANIFEST,safe_diagnostic(error,workspace)))
                 return RuntimeReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,phases)
-            capture=None
+            capture=None; job=None
             try:
                 port=self._port()
-                command=[sys.executable,"-m","uvicorn","app.main:app","--host","127.0.0.1","--port",str(port),"--log-level","warning"]
+                ready=workspace/RUNTIME_READY_NAME
+                command=[sys.executable,str(Path(__file__).with_name("runtime_child.py")),str(ready),str(port)]
                 flags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name=="nt" else 0
-                process=subprocess.Popen(command,cwd=workspace,env=self._environment(workspace),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False,creationflags=flags)
+                process=subprocess.Popen(command,cwd=workspace,env=self._environment(workspace),stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,shell=False,creationflags=flags,start_new_session=os.name!="nt")
+                if os.name=="nt": job=_WindowsJob(process)
+                write_bytes_atomic(ready,b"ready\n")
                 capture=_BoundedCapture(process.stdout); capture.start()
                 phases.append(PhaseResult(RuntimePhase.STARTUP,True,RuntimeFailure.NONE))
                 deadline=time.monotonic()+self.startup_timeout; last=""
@@ -226,13 +286,17 @@ class RuntimeHarness:
                 phases.append(PhaseResult(RuntimePhase.HEALTH,False,RuntimeFailure.HEALTH,safe_diagnostic(error,workspace)))
             finally:
                 if process is not None and process.poll() is None:
-                    process.terminate()
+                    try: self._shutdown_tree(process)
+                    except (OSError,subprocess.TimeoutExpired): phases.append(PhaseResult(RuntimePhase.SHUTDOWN,False,RuntimeFailure.PROCESS,"process tree did not terminate"))
+                if job is not None: job.close()
+                if process is not None and process.poll() is None:
                     try: process.wait(timeout=self.shutdown_timeout)
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        try: process.wait(timeout=self.shutdown_timeout)
-                        except subprocess.TimeoutExpired: phases.append(PhaseResult(RuntimePhase.SHUTDOWN,False,RuntimeFailure.PROCESS,"process did not terminate"))
+                    except subprocess.TimeoutExpired: phases.append(PhaseResult(RuntimePhase.SHUTDOWN,False,RuntimeFailure.PROCESS,"contained process did not reap"))
                 if capture is not None: capture.close()
                 if not phases or phases[-1].phase!=RuntimePhase.SHUTDOWN:
                     phases.append(PhaseResult(RuntimePhase.SHUTDOWN,True,RuntimeFailure.NONE,exit_status=process.returncode if process else None))
         return RuntimeReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,phases)
+
+    def run_with_localization(self, localizer):
+        report = self.run()
+        return report, None if report.success else localizer.localize(report)

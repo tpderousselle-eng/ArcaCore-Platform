@@ -42,6 +42,24 @@ def write_text_atomic(output_path: Path, content: str):
             temporary_path.unlink(missing_ok=True)
 
 
+def write_text_atomic_exclusive(output_path: Path, content: str):
+    """Atomically publish a new text file and fail if its name already exists."""
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=output_path.parent,
+            prefix=f".{output_path.name}.", suffix=".tmp", delete=False,
+        ) as temporary:
+            temporary.write(content)
+            temporary_path = Path(temporary.name)
+        os.link(temporary_path, output_path)
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def write_bytes_atomic(output_path: Path, content: bytes):
     """Replace a binary file only after its complete contents reach disk."""
 

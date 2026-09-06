@@ -13,7 +13,8 @@ from tools.core.field_parser import parse_fields
 from tools.core.module_definition import ModuleDefinition
 from tools.postgresql_test_server import postgresql_test_server
 from tools.schema_evolution import (
-    ChangeKind, SafetyClassification, SchemaChange, plan_schema_evolution,
+    ChangeKind, SafetyClassification, SchemaChange, SchemaEvolutionPlan,
+    plan_schema_evolution,
 )
 from tools.type_evolution import (
     TypeCompatibility, added_enum_values, classify_type_transition,
@@ -94,6 +95,17 @@ class TypeCompatibilityTest(unittest.TestCase):
         )
         with self.assertRaises(ValueError):
             classify_type_transition(forged)
+
+    def test_forged_enum_type_name_cannot_inject_generated_sql(self):
+        forged = SchemaEvolutionPlan("item", (SchemaChange(
+            ChangeKind.ENUM_CHANGED, SafetyClassification.SAFE_ADDITIVE,
+            "field:state",
+            {"name": 'ItemState"; DROP TABLE users;--', "values": ["draft"]},
+            {"name": 'ItemState"; DROP TABLE users;--', "values": ["draft", "live"]},
+            "forged",
+        ),))
+        with self.assertRaisesRegex(ValueError, "canonical"):
+            generate_alembic_migration(forged)
 
     def test_hostile_type_metadata_is_rejected_before_planning(self):
         hostile = module("value:str:length=10")

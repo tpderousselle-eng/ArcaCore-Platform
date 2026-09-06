@@ -9,7 +9,7 @@ import math
 from pathlib import Path
 import re
 
-from tools.core.engine import write_text_atomic
+from tools.core.engine import write_text_atomic, write_text_atomic_exclusive
 from tools.core.constraint_parser import constraint_name
 from tools.core.field_parser import Field
 from tools.core.module_definition import (
@@ -131,6 +131,49 @@ class MigrationPolicy:
         }
 
 
+def migration_policy_from_dict(value) -> MigrationPolicy:
+    """Parse the exact JSON policy grammar without importing or executing input."""
+
+    if not isinstance(value, dict) or set(value) - {
+        "authorized_index_removals", "verified_data_preconditions", "backfills", "assertions"
+    }:
+        raise ValueError("Migration policy JSON contains unsupported keys.")
+    collections = {}
+    for key in ("authorized_index_removals", "verified_data_preconditions", "backfills", "assertions"):
+        item = value.get(key, [])
+        if not isinstance(item, list):
+            raise ValueError(f"Migration policy {key} must be a JSON list.")
+        collections[key] = item
+    if any(not isinstance(item, str) for key in ("authorized_index_removals", "verified_data_preconditions") for item in collections[key]):
+        raise ValueError("Migration policy authorizations must be JSON string lists.")
+    backfills = []
+    for item in collections["backfills"]:
+        if not isinstance(item, dict) or set(item) != {"target_field", "transform"}:
+            raise ValueError("Backfill JSON must contain target_field and transform.")
+        transform = item["transform"]
+        if not isinstance(transform, dict) or set(transform) - {"kind", "value", "source_field"}:
+            raise ValueError("Transformation JSON contains unsupported keys.")
+        kind = TransformKind(transform.get("kind"))
+        backfills.append(BackfillPolicy(
+            item["target_field"],
+            DataTransform(kind, value=transform.get("value"), source_field=transform.get("source_field")),
+        ))
+    assertions = []
+    for item in collections["assertions"]:
+        if not isinstance(item, dict) or set(item) != {"kind", "fields", "expected_count"}:
+            raise ValueError("Assertion JSON must use the canonical shape.")
+        fields = item["fields"]
+        if not isinstance(fields, list):
+            raise ValueError("Assertion fields must be a JSON list.")
+        assertions.append(DataAssertion(AssertionKind(item["kind"]), tuple(fields), item["expected_count"]))
+    return MigrationPolicy(
+        authorized_index_removals=tuple(collections["authorized_index_removals"]),
+        verified_data_preconditions=tuple(collections["verified_data_preconditions"]),
+        backfills=tuple(backfills),
+        assertions=tuple(assertions),
+    )
+
+
 @dataclass(frozen=True)
 class AlembicMigration:
     module: str
@@ -193,6 +236,48 @@ def _validate_constraint_state(state, table):
         raise ValueError("Constraint plan state is not canonical.")
 
 
+def _validate_index_state(state, table):
+    if not isinstance(state, dict) or set(state) != {"name", "columns", "where", "unique", "expressions"}:
+        raise ValueError("Index plan state must use the canonical shape.")
+    columns = state["columns"]
+    if (
+        not isinstance(columns, list) or not columns
+        or any(not valid_public_identifier(value) for value in columns)
+        or len(set(columns)) != len(columns)
+        or type(state["unique"]) is not bool
+    ):
+        raise ValueError("Index plan state contains invalid columns or options.")
+    allowed_columns = set(columns)
+    for value in (state["where"], *(state["expressions"] or [])):
+        if isinstance(value, str):
+            allowed_columns.update(re.findall(r'"([A-Za-z][A-Za-z0-9_]*)"', value))
+    if state["where"] is not None:
+        _validate_normalized_sql(
+            state["where"], allowed_columns,
+            {"AND", "OR", "NOT", "IS", "NULL", "TRUE", "FALSE"}, "Migration index predicate",
+        )
+    expressions = state["expressions"]
+    if expressions is not None:
+        if not isinstance(expressions, list) or not expressions:
+            raise ValueError("Migration expression index requires expressions.")
+        for expression in expressions:
+            _validate_normalized_sql(
+                expression, allowed_columns, {"LOWER", "UPPER", "LENGTH", "ABS"},
+                "Migration index expression",
+            )
+    name = f"ix_{table}_{'_'.join(columns)}"
+    if expressions is not None:
+        digest = sha256(json.dumps([expressions, state["where"], state["unique"]], ensure_ascii=False).encode()).hexdigest()[:10]
+        name += f"_expr_{digest}"
+    elif state["where"] is not None:
+        digest = sha256(json.dumps([columns, state["where"], state["unique"]], ensure_ascii=False).encode()).hexdigest()[:10]
+        name += f"_partial_{digest}"
+    if len(name.encode()) > 63:
+        name = f"{name.encode()[:52].decode(errors='ignore')}_{sha256(name.encode()).hexdigest()[:10]}"
+    if state["name"] != name:
+        raise ValueError("Index plan state is not canonical.")
+
+
 def _validate_plan(plan):
     table = f"{plan.module.lower()}s"
     for change in plan.changes:
@@ -215,11 +300,7 @@ def _validate_plan(plan):
             state = change.after if change.after is not None else change.before
             if not isinstance(state, dict) or state.get("name") != match.group(1):
                 raise ValueError("Index plan state does not match its target.")
-            candidate = CompositeIndex(**state)
-            if not valid_public_identifier(candidate.name) or any(
-                not valid_public_identifier(column) for column in candidate.columns
-            ):
-                raise ValueError("Index plan state contains invalid identifiers.")
+            _validate_index_state(state, table)
         elif change.kind == ChangeKind.CONSTRAINT_ADDED:
             _validate_constraint_state(change.after, table)
         elif change.kind == ChangeKind.FOREIGN_KEY_ADDED:
@@ -232,6 +313,13 @@ def _validate_plan(plan):
             added_enum_values(change)
             validate_enum_values(match.group(1), change.before["values"])
             validate_enum_values(match.group(1), change.after["values"])
+            expected_name = f"{plan.module.capitalize()}{match.group(1).capitalize()}"
+            if (
+                not valid_public_identifier(change.before.get("name"))
+                or change.before["name"] != expected_name
+                or change.after.get("name") != expected_name
+            ):
+                raise ValueError("Enum transition name is not canonical for its module and field.")
 
 
 def _require_precondition(policy: MigrationPolicy, target: str):
@@ -365,9 +453,18 @@ def _column_expression(state, *, include_foreign_key=False):
 
 
 def _index_create(state, table):
-    if state.get("where") is not None or state.get("expressions") is not None:
-        raise UnsafeMigrationError("Partial and expression index migrations are not supported yet.")
-    return f"op.create_index({state['name']!r}, {table!r}, {state['columns']!r}, unique={state['unique']!r})"
+    values = state["columns"]
+    if state.get("expressions") is not None:
+        values_expression = "[" + ", ".join(f"sa.text({value!r})" for value in state["expressions"]) + "]"
+    else:
+        values_expression = repr(values)
+    where = ""
+    if state.get("where") is not None:
+        where = f", postgresql_where=sa.text({state['where']!r})"
+    return (
+        f"op.create_index({state['name']!r}, {table!r}, {values_expression}, "
+        f"unique={state['unique']!r}{where})"
+    )
 
 
 def _constraint_add(state, table):
@@ -602,6 +699,7 @@ def write_alembic_migration(
     *,
     policy: MigrationPolicy | None = None,
     down_revision: str | None = None,
+    overwrite: bool = True,
 ) -> Path:
     """Validate, generate, and atomically write one migration.
 
@@ -620,5 +718,8 @@ def write_alembic_migration(
         output.relative_to(directory)
     except ValueError as error:
         raise ValueError("Migration output path escapes its directory.") from error
-    write_text_atomic(output, migration.content)
+    if type(overwrite) is not bool:
+        raise ValueError("Migration overwrite policy must be boolean.")
+    writer = write_text_atomic if overwrite else write_text_atomic_exclusive
+    writer(output, migration.content)
     return output

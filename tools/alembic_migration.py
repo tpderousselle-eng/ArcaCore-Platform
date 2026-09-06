@@ -17,6 +17,7 @@ from tools.core.module_definition import (
     _validate_normalized_sql, valid_public_identifier, validate_module_definition,
 )
 from tools.schema_evolution import ChangeKind, SchemaEvolutionPlan
+from tools.type_evolution import TypeCompatibility, added_enum_values, classify_type_transition
 
 
 class UnsafeMigrationError(ValueError):
@@ -224,6 +225,13 @@ def _validate_plan(plan):
         elif change.kind == ChangeKind.FOREIGN_KEY_ADDED:
             from tools.core.field_parser import validate_foreign_key_target
             validate_foreign_key_target(match.group(1), change.after)
+        elif change.kind == ChangeKind.FIELD_TYPE_CHANGED:
+            classify_type_transition(change)
+        elif change.kind == ChangeKind.ENUM_CHANGED:
+            from tools.core.field_parser import validate_enum_values
+            added_enum_values(change)
+            validate_enum_values(match.group(1), change.before["values"])
+            validate_enum_values(match.group(1), change.after["values"])
 
 
 def _require_precondition(policy: MigrationPolicy, target: str):
@@ -377,6 +385,8 @@ def _render_operations(plan, policy):
         ChangeKind.INDEX_REMOVED: 10,
         ChangeKind.FIELD_INDEX_REMOVED: 10,
         ChangeKind.FIELD_ADDED: 20,
+        ChangeKind.FIELD_TYPE_CHANGED: 25,
+        ChangeKind.ENUM_CHANGED: 25,
         ChangeKind.DEFAULT_CHANGED: 30,
         ChangeKind.FOREIGN_KEY_ADDED: 40,
         ChangeKind.RELATIONSHIP_CHANGED: 41,
@@ -476,6 +486,30 @@ def _render_operations(plan, policy):
                 name = f"ix_{table}_{state['name']}"
                 upgrade.append(f"op.create_index({name!r}, {table!r}, {[state['name']]!r}, unique=False)")
             downgrade.insert(0, f"op.drop_column({table!r}, {state['name']!r})")
+        elif kind == ChangeKind.FIELD_TYPE_CHANGED:
+            decision = classify_type_transition(change)
+            if decision.classification != TypeCompatibility.SAFE_WIDENING:
+                raise UnsafeMigrationError(
+                    f"Type transition is not an approved safe widening: {change.target} "
+                    f"({decision.classification.value})"
+                )
+            field_name = change.target.split(":", 1)[1]
+            old_type = _type_expression(change.before)
+            new_type = _type_expression(change.after)
+            upgrade.append(
+                f"op.alter_column({table!r}, {field_name!r}, "
+                f"existing_type={old_type}, type_={new_type})"
+            )
+            downgrade.insert(0, (
+                f"raise RuntimeError({f'Downgrade requires validated data-fit precondition: {change.target}'!r})"
+            ))
+        elif kind == ChangeKind.ENUM_CHANGED:
+            values = added_enum_values(change)
+            enum_name = change.after["name"].lower()
+            for value in values:
+                sql = f'ALTER TYPE "{enum_name}" ADD VALUE IF NOT EXISTS \'{value}\''
+                upgrade.append(f"op.execute(sa.text({sql!r}))")
+            downgrade.insert(0, f"raise RuntimeError({f'Enum value removal is not safely reversible: {change.target}'!r})")
         elif kind in {ChangeKind.FIELD_INDEX_ADDED, ChangeKind.INDEX_ADDED}:
             state = change.after
             if kind == ChangeKind.FIELD_INDEX_ADDED:

@@ -218,7 +218,7 @@ _RELATIONSHIP_ATTRIBUTES = (
     "relationship_key", "cascade_delete", "passive_deletes",
 )
 _OTHER_FIELD_ATTRIBUTES = (
-    "primary_key", "max_length", "minimum", "maximum", "min_length",
+    "primary_key", "minimum", "maximum", "min_length",
     "pattern", "computed_expression", "computed_sql", "hybrid_expression",
     "hybrid_python", "hybrid_class", "hybrid_references", "format", "validators",
 )
@@ -230,9 +230,11 @@ def _field_changes(before_field, after_field) -> list[SchemaChange]:
     target = f"field:{before_field.name}"
     changes = []
 
-    old_type = {key: before[key] for key in ("python_type", "sqlalchemy_type", "type_arguments")}
-    new_type = {key: after[key] for key in ("python_type", "sqlalchemy_type", "type_arguments")}
-    if old_type != new_type:
+    old_type = {key: before[key] for key in ("python_type", "sqlalchemy_type", "type_arguments", "max_length")}
+    new_type = {key: after[key] for key in ("python_type", "sqlalchemy_type", "type_arguments", "max_length")}
+    if old_type != new_type and not (
+        before["python_type"] == after["python_type"] == "enum"
+    ):
         changes.append(_change(ChangeKind.FIELD_TYPE_CHANGED, SafetyClassification.POTENTIALLY_DESTRUCTIVE, target, old_type, new_type, "Type changes can truncate, reinterpret, or reject existing values."))
     if before["nullable"] != after["nullable"]:
         safety = SafetyClassification.SAFE_ADDITIVE if after["nullable"] else SafetyClassification.REQUIRES_DATA_MIGRATION

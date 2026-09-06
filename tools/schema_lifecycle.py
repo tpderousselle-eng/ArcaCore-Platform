@@ -142,21 +142,23 @@ class MigrationManifest:
     policy_digest: str
     predecessor_revision: str | None
     reversible: bool
+    transactional_ddl: bool
     manifest_identity: str
     version: int = STATE_VERSION
 
     @classmethod
     def create(cls, *, module, old_schema_digest, new_schema_digest, plan_digest,
-               migration, policy_digest, predecessor_revision, reversible):
+               migration, policy_digest, predecessor_revision, reversible,
+               transactional_ddl=True):
         body = {"version": STATE_VERSION, "module": module,
                 "old_schema_digest": old_schema_digest, "new_schema_digest": new_schema_digest,
                 "evolution_plan_digest": plan_digest, "migration_revision": migration.revision,
                 "migration_content_digest": sha256(migration.content.encode("utf-8")).hexdigest(),
                 "policy_digest": policy_digest, "predecessor_revision": predecessor_revision,
-                "reversible": reversible}
+                "reversible": reversible, "transactional_ddl": transactional_ddl}
         return cls(module, old_schema_digest, new_schema_digest, plan_digest, migration.revision,
                    body["migration_content_digest"], policy_digest, predecessor_revision,
-                   reversible, _digest("arcacore-migration-manifest/v1", body))
+                   reversible, transactional_ddl, _digest("arcacore-migration-manifest/v1", body))
 
     def canonical_dict(self):
         return {"version": self.version, "module": self.module,
@@ -165,7 +167,8 @@ class MigrationManifest:
                 "migration_revision": self.migration_revision,
                 "migration_content_digest": self.migration_content_digest,
                 "policy_digest": self.policy_digest, "predecessor_revision": self.predecessor_revision,
-                "reversible": self.reversible, "manifest_identity": self.manifest_identity}
+                "reversible": self.reversible, "transactional_ddl": self.transactional_ddl,
+                "manifest_identity": self.manifest_identity}
 
     def canonical_json(self): return _json(self.canonical_dict())
 
@@ -173,10 +176,12 @@ class MigrationManifest:
     def from_dict(cls, value):
         keys = {"version", "module", "old_schema_digest", "new_schema_digest",
                 "evolution_plan_digest", "migration_revision", "migration_content_digest",
-                "policy_digest", "predecessor_revision", "reversible", "manifest_identity"}
+                "policy_digest", "predecessor_revision", "reversible", "transactional_ddl",
+                "manifest_identity"}
         if not isinstance(value, dict) or set(value) != keys or value["version"] != STATE_VERSION:
             raise ValueError("Migration manifest has an invalid shape.")
-        if not valid_public_identifier(value["module"]) or type(value["reversible"]) is not bool:
+        if (not valid_public_identifier(value["module"]) or type(value["reversible"]) is not bool
+                or type(value["transactional_ddl"]) is not bool):
             raise ValueError("Migration manifest metadata is invalid.")
         for key in ("old_schema_digest", "new_schema_digest", "evolution_plan_digest",
                     "migration_content_digest", "policy_digest", "manifest_identity"):
@@ -192,7 +197,7 @@ class MigrationManifest:
         return cls(value["module"], value["old_schema_digest"], value["new_schema_digest"],
                    value["evolution_plan_digest"], value["migration_revision"],
                    value["migration_content_digest"], value["policy_digest"], predecessor,
-                   value["reversible"], identity, value["version"])
+                   value["reversible"], value["transactional_ddl"], identity, value["version"])
 
     def validate_content(self, content: str):
         if sha256(content.encode("utf-8")).hexdigest() != self.migration_content_digest:
@@ -279,6 +284,10 @@ class SchemaLifecycle:
                                   (manifest_path, manifest.canonical_json()),
                                   (pending_path, pending.canonical_json())):
                 path.relative_to(self.root)
+                if path == migration_path and path.exists():
+                    if path.read_text(encoding="utf-8") != content:
+                        raise ValueError("Existing migration artifact content mismatch.")
+                    continue
                 write_text_atomic_exclusive(path, content); created.append(path)
         except Exception:
             for path in reversed(created): path.unlink(missing_ok=True)

@@ -2,6 +2,7 @@
 
 import ast
 from dataclasses import dataclass, field
+from enum import Enum
 from hashlib import sha256
 import json
 import math
@@ -22,10 +23,84 @@ class UnsafeMigrationError(ValueError):
     """The plan needs a policy or operation not safely supported yet."""
 
 
+class TransformKind(str, Enum):
+    LITERAL = "literal"
+    COPY_FIELD = "copy_field"
+    LOWER = "lower"
+    UPPER = "upper"
+    TRIM = "trim"
+
+
+class AssertionKind(str, Enum):
+    ROW_COUNT = "row_count"
+    NULL_COUNT = "null_count"
+    UNIQUE = "unique"
+
+
+@dataclass(frozen=True)
+class DataTransform:
+    kind: TransformKind
+    value: str | int | float | bool | None = None
+    source_field: str | None = None
+
+    def __post_init__(self):
+        if not isinstance(self.kind, TransformKind):
+            raise ValueError("Transformation kind must be allowlisted.")
+        if self.kind == TransformKind.LITERAL:
+            if self.source_field is not None or type(self.value) not in {str, int, float, bool, type(None)}:
+                raise ValueError("Literal transformations accept one scalar value.")
+            if isinstance(self.value, str) and (len(self.value) > 4096 or any(ord(c) < 32 for c in self.value)):
+                raise ValueError("Literal transformation strings must be bounded and printable.")
+            if isinstance(self.value, float) and not math.isfinite(self.value):
+                raise ValueError("Literal transformation numbers must be finite.")
+        elif self.value is not None or not valid_public_identifier(self.source_field):
+            raise ValueError("Field transformations require one safe source field.")
+
+    def canonical_dict(self):
+        return {"kind": self.kind.value, "source_field": self.source_field, "value": self.value}
+
+
+@dataclass(frozen=True)
+class BackfillPolicy:
+    target_field: str
+    transform: DataTransform
+
+    def __post_init__(self):
+        if not valid_public_identifier(self.target_field) or not isinstance(self.transform, DataTransform):
+            raise ValueError("Backfill policy fields and transformations must be validated.")
+        if self.transform.source_field == self.target_field:
+            raise ValueError("A backfill cannot read from its own new target field.")
+
+    def canonical_dict(self):
+        return {"target_field": self.target_field, "transform": self.transform.canonical_dict()}
+
+
+@dataclass(frozen=True)
+class DataAssertion:
+    kind: AssertionKind
+    fields: tuple[str, ...] = field(default_factory=tuple)
+    expected_count: int = 0
+
+    def __post_init__(self):
+        if not isinstance(self.kind, AssertionKind):
+            raise ValueError("Assertion kind must be allowlisted.")
+        if not isinstance(self.fields, tuple) or not self.fields or any(not valid_public_identifier(v) for v in self.fields):
+            raise ValueError("Assertions require safe field identifiers.")
+        if self.kind != AssertionKind.UNIQUE and len(self.fields) != 1:
+            raise ValueError("Count assertions require exactly one field.")
+        if type(self.expected_count) is not int or self.expected_count < 0 or self.expected_count > 2**63 - 1:
+            raise ValueError("Assertion counts must be bounded non-negative integers.")
+
+    def canonical_dict(self):
+        return {"expected_count": self.expected_count, "fields": list(self.fields), "kind": self.kind.value}
+
+
 @dataclass(frozen=True)
 class MigrationPolicy:
     authorized_index_removals: tuple[str, ...] = field(default_factory=tuple)
     verified_data_preconditions: tuple[str, ...] = field(default_factory=tuple)
+    backfills: tuple[BackfillPolicy, ...] = field(default_factory=tuple)
+    assertions: tuple[DataAssertion, ...] = field(default_factory=tuple)
 
     def __post_init__(self):
         for values, label in (
@@ -39,10 +114,18 @@ class MigrationPolicy:
                 raise ValueError(f"Migration {label} entries must be bounded strings.")
             if len(set(values)) != len(values):
                 raise ValueError(f"Migration {label} entries must be unique.")
+        if not isinstance(self.backfills, tuple) or any(not isinstance(v, BackfillPolicy) for v in self.backfills):
+            raise ValueError("Migration backfills must be immutable BackfillPolicy values.")
+        if len({v.target_field for v in self.backfills}) != len(self.backfills):
+            raise ValueError("Migration backfills must have unique targets.")
+        if not isinstance(self.assertions, tuple) or any(not isinstance(v, DataAssertion) for v in self.assertions):
+            raise ValueError("Migration assertions must be immutable DataAssertion values.")
 
     def canonical_dict(self):
         return {
             "authorized_index_removals": sorted(self.authorized_index_removals),
+            "assertions": [v.canonical_dict() for v in sorted(self.assertions, key=lambda x: (x.kind.value, x.fields, x.expected_count))],
+            "backfills": [v.canonical_dict() for v in sorted(self.backfills, key=lambda x: x.target_field)],
             "verified_data_preconditions": sorted(self.verified_data_preconditions),
         }
 
@@ -176,6 +259,56 @@ def _sql_literal(default):
     raise UnsafeMigrationError("Only scalar literal migration defaults are supported.")
 
 
+def _value_sql_literal(value):
+    if value is None:
+        return "NULL"
+    if type(value) is bool:
+        return "TRUE" if value else "FALSE"
+    if type(value) is int:
+        return str(value)
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise UnsafeMigrationError("Backfill numeric values must be finite.")
+        return repr(value)
+    if isinstance(value, str):
+        return "'" + value.replace("'", "''") + "'"
+    raise UnsafeMigrationError("Unsupported backfill literal.")
+
+
+def _backfill_expression(transform):
+    if transform.kind == TransformKind.LITERAL:
+        return _value_sql_literal(transform.value)
+    source = f'"{transform.source_field}"'
+    if transform.kind == TransformKind.COPY_FIELD:
+        return source
+    functions = {
+        TransformKind.LOWER: "lower",
+        TransformKind.UPPER: "upper",
+        TransformKind.TRIM: "btrim",
+    }
+    return f"{functions[transform.kind]}({source})"
+
+
+def _assertion_sql(table, assertion):
+    if assertion.kind == AssertionKind.ROW_COUNT:
+        query = f'SELECT count(*) FROM "{table}"'
+    elif assertion.kind == AssertionKind.NULL_COUNT:
+        query = f'SELECT count(*) FROM "{table}" WHERE "{assertion.fields[0]}" IS NULL'
+    else:
+        columns = ", ".join(f'"{value}"' for value in assertion.fields)
+        query = (
+            f'SELECT count(*) FROM (SELECT {columns} FROM "{table}" '
+            f'GROUP BY {columns} HAVING count(*) > 1) AS duplicates'
+        )
+    message = f"ArcaCore migration assertion failed: {assertion.kind.value}:{','.join(assertion.fields)}"
+    return (
+        "op.execute(sa.text(" + repr(
+            "DO $arcacore$ BEGIN IF (" + query + f") <> {assertion.expected_count} "
+            + "THEN RAISE EXCEPTION '" + message + "'; END IF; END; $arcacore$"
+        ) + "))"
+    )
+
+
 def _type_expression(state):
     python_type = state["python_type"]
     if python_type == "str":
@@ -256,6 +389,22 @@ def _render_operations(plan, policy):
         plan.changes,
         key=lambda value: (priorities.get(value.kind, 100), value.target, value.kind.value),
     )
+    backfills = {value.target_field: value for value in policy.backfills}
+    required_additions = {
+        change.target.split(":", 1)[1]
+        for change in plan.changes
+        if change.kind == ChangeKind.FIELD_ADDED
+        and not change.after["nullable"]
+        and change.after.get("default") is None
+    }
+    if set(backfills) != required_additions:
+        missing = sorted(required_additions - set(backfills))
+        extra = sorted(set(backfills) - required_additions)
+        detail = f"missing={missing}, incompatible={extra}"
+        raise UnsafeMigrationError(f"Required-field backfill policy mismatch: {detail}")
+    upgrade.extend(_assertion_sql(table, value) for value in sorted(
+        policy.assertions, key=lambda x: (x.kind.value, x.fields, x.expected_count)
+    ))
     for change in ordered_changes:
         kind = change.kind
         if kind == ChangeKind.MODULE_ADDED:
@@ -301,7 +450,21 @@ def _render_operations(plan, policy):
         elif kind == ChangeKind.FIELD_ADDED:
             state = change.after
             if not state["nullable"] and state.get("default") is None:
-                raise UnsafeMigrationError(f"{change.target} requires a backfill policy before adding a required column.")
+                backfill = backfills[state["name"]]
+                nullable_state = dict(state)
+                nullable_state["nullable"] = True
+                upgrade.append(f"op.add_column({table!r}, {_column_expression(nullable_state)})")
+                expression = _backfill_expression(backfill.transform)
+                update_sql = (
+                    f'UPDATE "{table}" SET "{state["name"]}" = {expression} '
+                    f'WHERE "{state["name"]}" IS NULL'
+                )
+                upgrade.append(f"op.execute(sa.text({update_sql!r}))")
+                required_assertion = DataAssertion(AssertionKind.NULL_COUNT, (state["name"],), 0)
+                upgrade.append(_assertion_sql(table, required_assertion))
+                upgrade.append(f"op.alter_column({table!r}, {state['name']!r}, nullable=False)")
+                downgrade.insert(0, f"op.drop_column({table!r}, {state['name']!r})")
+                continue
             if state.get("unique") or state.get("foreign_key"):
                 _require_precondition(policy, change.target)
             upgrade.append(f"op.add_column({table!r}, {_column_expression(state)})")

@@ -139,6 +139,7 @@ def generate_schema(module: ModuleDefinition):
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
         audit_fields=module.audit_fields,
         version_column=module.version_column,
+        tenant_contract=module.tenant_contract,
         audit_schema_type=(
             SCHEMA_TYPES[module.audit_fields.python_type]
             if module.audit_fields is not None

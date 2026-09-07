@@ -44,6 +44,14 @@ class {{ class_name }}Base(_pydantic.BaseModel):
 {% endif %}
 
 class {{ class_name }}Create({{ class_name }}Base):
+{% if tenant_contract %}
+    @_pydantic.model_validator(mode="before")
+    @classmethod
+    def _reject_tenant_input(cls, data):
+        if isinstance(data, _typing.Mapping) and {{ tenant_contract.key|tojson }} in data:
+            raise ValueError("Tenant ownership is assigned by trusted server context.")
+        return data
+{% endif %}
 {% if has_computed %}
     @_pydantic.model_validator(mode="before")
     @classmethod
@@ -83,6 +91,9 @@ class {{ class_name }}Update({{ class_name }}{% if has_computed or audit_fields 
 
 
 class {{ class_name }}Response({{ class_name }}Base):
+{% if tenant_contract %}
+    {{ tenant_contract.key }}: {% if tenant_contract.python_type == "int" %}int{% elif tenant_contract.python_type == "uuid" %}_uuid.UUID{% else %}str{% endif %} = _pydantic.Field(json_schema_extra={"readOnly": True})
+{% endif %}
 {% for field in fields %}
     {{ field.name }}: {{ field.annotation }} = _pydantic.Field({{ field['response'] }})
 {% endfor %}{% if audit_fields %}

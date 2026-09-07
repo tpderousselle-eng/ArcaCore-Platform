@@ -27,6 +27,8 @@ def generate_model(module: ModuleDefinition):
     required_types = set()
     if module.audit_fields is not None:
         required_types.add(module.audit_fields.sqlalchemy_type)
+    if module.tenant_contract is not None and module.tenant_contract.python_type == "uuid":
+        required_types.add("UUID")
     primary_keys = [field.name for field in module.fields if field.primary_key]
     many_targets = set()
 
@@ -111,4 +113,5 @@ def generate_model(module: ModuleDefinition):
             for field in module.fields
         ),
         enums=module.enums,
+        tenant_contract=module.tenant_contract,
     )

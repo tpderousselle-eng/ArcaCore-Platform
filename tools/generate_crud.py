@@ -16,4 +16,5 @@ def generate_crud(module: ModuleDefinition):
         soft_delete=module.soft_delete,
         audit_fields=module.audit_fields is not None,
         primary_key_name=module.primary_key_name,
+        tenant_contract=module.tenant_contract,
     )

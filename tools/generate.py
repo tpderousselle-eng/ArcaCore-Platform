@@ -17,6 +17,7 @@ from tools.generate_router import generate_router
 from tools.registry.registry import Registry
 import tools.registry.registry as registry_module
 from tools.validators.field_validator import FieldValidator
+from tools.multitenancy import TenantContract
 
 
 _GENERATED_LAYERS = (
@@ -62,6 +63,7 @@ def generate_module(
     soft_delete = False
     audit_fields = None
     version_column = False
+    tenant_contract = None
     for definition in field_strings:
         if definition == "soft_delete":
             if soft_delete:
@@ -79,6 +81,18 @@ def generate_module(
             if version_column:
                 raise ValueError("version_column can only be specified once.")
             version_column = parse_version_column(definition)
+        elif definition == "tenant_scope" or definition.startswith("tenant_scope("):
+            if tenant_contract is not None:
+                raise ValueError("tenant_scope can only be specified once.")
+            if definition == "tenant_scope":
+                tenant_contract = TenantContract()
+            else:
+                if not definition.endswith(")"):
+                    raise ValueError("tenant_scope metadata is malformed.")
+                parts = [item.strip() for item in definition[13:-1].split(",")]
+                if len(parts) not in {1, 2} or not all(parts):
+                    raise ValueError("tenant_scope accepts key and optional type.")
+                tenant_contract = TenantContract(parts[0], parts[1] if len(parts) == 2 else "str")
         else:
             field_definitions.append(definition)
 
@@ -114,6 +128,7 @@ def generate_module(
         check_constraints=checks,
         audit_fields=audit_fields,
         version_column=version_column,
+        tenant_contract=tenant_contract,
     )
 
     print("=" * 60)

@@ -15,4 +15,5 @@ def generate_service(module: ModuleDefinition):
         fields=module.fields,
         soft_delete=module.soft_delete,
         audit_fields=module.audit_fields is not None,
+        tenant_contract=module.tenant_contract,
     )

@@ -44,8 +44,15 @@ class ModuleDefinition:
     check_constraints: list[CheckRule] = dataclass_field(default_factory=list)
     audit_fields: AuditFieldDefinition | None = None
     version_column: bool = False
+    tenant_contract: object | None = None
 
     def __post_init__(self):
+        if self.tenant_contract is not None:
+            from tools.multitenancy import TenantContract
+            if not isinstance(self.tenant_contract, TenantContract):
+                raise ValueError("Tenant metadata must be a TenantContract.")
+            if any(field.name == self.tenant_contract.key for field in self.fields):
+                raise ValueError("Tenant ownership field is generator-managed.")
         validate_audit_fields(self.audit_fields, self.fields)
         validate_version_column(self.version_column, self.fields)
         if self.soft_delete:
@@ -147,6 +154,8 @@ def _module_columns(module: ModuleDefinition) -> set[str]:
         columns.update({"created_by", "updated_by"})
     if module.version_column:
         columns.add("version_id")
+    if module.tenant_contract is not None:
+        columns.add(module.tenant_contract.key)
     return columns
 
 
@@ -263,6 +272,11 @@ def validate_module_definition(module: ModuleDefinition):
     """Apply the authoritative validation boundary for every generator entry point."""
 
     validate_module_identity(module)
+    if module.tenant_contract is not None:
+        from tools.multitenancy import TenantContract
+        if not isinstance(module.tenant_contract, TenantContract):
+            raise ValueError("Tenant metadata must be a TenantContract.")
+        TenantContract.from_dict(module.tenant_contract.canonical_dict())
     if not isinstance(module.fields, list) or any(
         not isinstance(field, Field) for field in module.fields
     ):

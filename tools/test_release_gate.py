@@ -62,6 +62,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Security hardening",
                 "Determinism / reproducibility",
                 "Autonomous runtime recovery",
+                "Background and scheduled jobs",
             ],
         )
 

@@ -93,6 +93,7 @@ CONTRACTS = (
         ("-m", "unittest", "tools.test_recovery_workflow", "tools.test_build_orchestrator", "tools.test_autonomous_security", "-v"),
         {},
     ),
+    Contract("Background and scheduled jobs", ("-m", "unittest", "tools.test_jobs", "-v"), {}),
 )
 
 

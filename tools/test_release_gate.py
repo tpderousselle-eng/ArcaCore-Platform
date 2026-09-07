@@ -61,6 +61,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Failure injection / atomicity",
                 "Security hardening",
                 "Determinism / reproducibility",
+                "Autonomous runtime recovery",
             ],
         )
 

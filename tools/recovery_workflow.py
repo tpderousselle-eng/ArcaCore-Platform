@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 import json
 from pathlib import Path
+from pathlib import PurePosixPath
+import re
 
 from tools.application_manifest import ApplicationManifest
 from tools.core.engine import write_text_atomic
@@ -11,6 +13,16 @@ from tools.failure_localization import ConfidenceClass, FailureLocalization, Rea
 from tools.minimal_regeneration import GenerationManifest, OwnershipClass
 from tools.runtime_harness import RuntimeFailure, RuntimeReport
 from tools.schema_lifecycle import _digest
+
+HEX64=re.compile(r"[0-9a-f]{64}")
+def _identity(value):
+    if not isinstance(value,str) or not HEX64.fullmatch(value): raise ValueError("Recovery identity is invalid.")
+    return value
+def _surface(value):
+    if not isinstance(value,str) or not value or len(value)>240 or "\\" in value: raise ValueError("Recovery surface is invalid.")
+    path=PurePosixPath(value)
+    if path.is_absolute() or path.as_posix()!=value or any(v in ("",".","..") for v in path.parts): raise ValueError("Recovery surface escapes its root.")
+    return value
 
 
 class RecoveryDisposition(str, Enum):
@@ -39,16 +51,28 @@ class RecoveryPlan:
     def create(cls, *, application_identity, generation_identity, failure_identity,
                localization_identity, disposition, action, surfaces=(), attempt_number=1,
                maximum_attempts=3):
-        surfaces=tuple(sorted(surfaces))
+        application_identity=_identity(application_identity); generation_identity=_identity(generation_identity)
+        failure_identity=_identity(failure_identity); localization_identity=_identity(localization_identity)
+        surfaces=tuple(sorted(_surface(v) for v in surfaces))
         if type(attempt_number) is not int or type(maximum_attempts) is not int or not 1 <= attempt_number <= maximum_attempts <= 5:
             raise ValueError("Recovery attempt budget is invalid.")
-        body={"action":RecoveryAction(action).value,"application_identity":application_identity,
-            "attempt_number":attempt_number,"disposition":RecoveryDisposition(disposition).value,
+        action=RecoveryAction(action); disposition=RecoveryDisposition(disposition)
+        allowed={
+            RecoveryAction.RETRY_RUNTIME:{RecoveryDisposition.RETRYABLE_TRANSIENT},
+            RecoveryAction.REGENERATE_RESPONSIBLE_SURFACE:{RecoveryDisposition.RECOVERABLE},
+            RecoveryAction.RECOVER_MIGRATION_STATE:{RecoveryDisposition.RECOVERABLE},
+            RecoveryAction.RECOVER_INTERRUPTED_GENERATION:{RecoveryDisposition.RECOVERABLE},
+            RecoveryAction.RERUN_VALIDATION:{RecoveryDisposition.RECOVERABLE},
+            RecoveryAction.STOP:{RecoveryDisposition.BLOCKED_USER_OWNED,RecoveryDisposition.AMBIGUOUS,RecoveryDisposition.UNSUPPORTED,RecoveryDisposition.TERMINAL}}
+        if disposition not in allowed[action] or (action in (RecoveryAction.REGENERATE_RESPONSIBLE_SURFACE,RecoveryAction.RECOVER_MIGRATION_STATE) and len(surfaces)!=1) or (action in (RecoveryAction.RETRY_RUNTIME,RecoveryAction.STOP) and surfaces):
+            raise ValueError("Recovery action is inconsistent with its disposition.")
+        body={"action":action.value,"application_identity":application_identity,
+            "attempt_number":attempt_number,"disposition":disposition.value,
             "failure_identity":failure_identity,"generation_identity":generation_identity,
             "localization_identity":localization_identity,"maximum_attempts":maximum_attempts,
             "surfaces":list(surfaces),"version":1}
         return cls(application_identity,generation_identity,failure_identity,localization_identity,
-            RecoveryDisposition(disposition),RecoveryAction(action),surfaces,attempt_number,
+            disposition,action,surfaces,attempt_number,
             maximum_attempts,_digest("arcacore-recovery-plan/v1",body))
 
     def canonical_dict(self):
@@ -67,8 +91,10 @@ class RecoveryAttempt:
 
     @classmethod
     def create(cls, plan, result_identity, success, predecessor=None):
-        if not isinstance(plan,RecoveryPlan) or type(success) is not bool or not isinstance(result_identity,str) or len(result_identity)!=64:
+        if not isinstance(plan,RecoveryPlan) or type(success) is not bool:
             raise ValueError("Recovery attempt is invalid.")
+        result_identity=_identity(result_identity)
+        if predecessor is not None: _identity(predecessor)
         body={"number":plan.attempt_number,"plan_identity":plan.plan_identity,
             "predecessor_identity":predecessor,"result_identity":result_identity,
             "success":success,"version":1}
@@ -103,6 +129,9 @@ class RecoveryPlanner:
         attempts=tuple(prior_attempts)
         if any(not isinstance(v,RecoveryAttempt) for v in attempts): raise ValueError("Recovery attempt history is invalid.")
         for index,item in enumerate(attempts):
+            body={"number":item.number,"plan_identity":item.plan_identity,"predecessor_identity":item.predecessor_identity,
+                "result_identity":item.result_identity,"success":item.success,"version":item.version}
+            if item.attempt_identity!=_digest("arcacore-recovery-attempt/v1",body): raise ValueError("Recovery attempt identity mismatch.")
             if item.number!=index+1 or item.predecessor_identity!=(attempts[index-1].attempt_identity if index else None):
                 raise ValueError("Recovery attempt lineage is forked or replayed.")
         number=len(attempts)+1
@@ -130,7 +159,15 @@ class RecoveryJournal:
     def __init__(self, root:Path):
         self.root=Path(root).resolve(); self.path=self.root/".arcacore"/"recovery-journal.json"
 
+    def _contained(self):
+        current=self.root
+        for part in (".arcacore","recovery-journal.json"):
+            current=current/part
+            if current.is_symlink(): raise ValueError("Recovery journal path contains a symbolic link.")
+        current.resolve().relative_to(self.root)
+
     def save(self, plan, attempts):
+        self._contained()
         attempts=tuple(attempts); self._validate(plan,attempts)
         body={"attempts":[v.canonical_dict() for v in attempts],"plan":plan.canonical_dict(),"version":1}
         body["journal_identity"]=_digest("arcacore-recovery-journal/v1",body)
@@ -144,10 +181,15 @@ class RecoveryJournal:
             attempt_number=plan.attempt_number,maximum_attempts=plan.maximum_attempts)
         if expected!=plan: raise ValueError("Recovery plan identity mismatch.")
         for index,item in enumerate(attempts):
+            if not isinstance(item,RecoveryAttempt): raise ValueError("Recovery attempt history is invalid.")
+            body={"number":item.number,"plan_identity":item.plan_identity,"predecessor_identity":item.predecessor_identity,
+                "result_identity":item.result_identity,"success":item.success,"version":item.version}
+            if item.attempt_identity!=_digest("arcacore-recovery-attempt/v1",body): raise ValueError("Recovery attempt identity mismatch.")
             if item.number!=index+1 or item.predecessor_identity!=(attempts[index-1].attempt_identity if index else None):
                 raise ValueError("Recovery attempt lineage is forked or replayed.")
 
     def load(self):
+        self._contained()
         try:
             if self.path.stat().st_size>1_000_000: raise ValueError("Recovery journal exceeds safety limit.")
             value=json.loads(self.path.read_text(encoding="utf-8"))
@@ -174,6 +216,8 @@ class RecoveryWorkflow:
     def __init__(self, *, retry_runtime, regenerate_surface, recover_migration):
         self._actions={RecoveryAction.RETRY_RUNTIME:retry_runtime,
             RecoveryAction.REGENERATE_RESPONSIBLE_SURFACE:regenerate_surface,
+            RecoveryAction.RECOVER_INTERRUPTED_GENERATION:regenerate_surface,
+            RecoveryAction.RERUN_VALIDATION:retry_runtime,
             RecoveryAction.RECOVER_MIGRATION_STATE:recover_migration}
 
     def execute(self, plan):

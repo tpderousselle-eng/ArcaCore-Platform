@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 import json
 from pathlib import Path
+import re
 
 from tools.application_manifest import ApplicationManifest
 from tools.core.engine import write_text_atomic, write_text_atomic_exclusive
@@ -36,8 +37,21 @@ class BuildReport:
 
     @classmethod
     def create(cls,application_identity,generation_identity,events,*,runtime_identity=None,
-               localization_identity=None,recovery_identity=None):
-        events=tuple(events); success=bool(events) and events[-1].phase==BuildPhase.COMPLETE and events[-1].success
+               localization_identity=None,recovery_identity=None,verified_runtime=None):
+        events=tuple(events)
+        if not events or len(events)>32 or any(not isinstance(v,BuildEvent) or not re.fullmatch(r"[0-9a-f]{64}",v.component_identity)
+                or not isinstance(v.success,bool) or not isinstance(v.category,str) or len(v.category)>80
+                or not isinstance(v.detail,str) or len(v.detail)>4096 or any(ord(c)<32 for c in v.category+v.detail) for v in events):
+            raise ValueError("Build report events are invalid.")
+        success=events[-1].phase==BuildPhase.COMPLETE and events[-1].success
+        if success:
+            verified=events[-2] if len(events)>1 else None
+            if (not isinstance(verified_runtime,RuntimeReport) or not verified_runtime.success
+                    or verified_runtime.report_identity!=runtime_identity or verified is None
+                    or verified.phase not in (BuildPhase.RUNTIME_VALIDATE,BuildPhase.REVALIDATE)
+                    or not verified.success or verified.component_identity!=runtime_identity
+                    or events[-1].component_identity!=runtime_identity):
+                raise ValueError("Build success lacks verified runtime provenance.")
         body={"application_identity":application_identity,"events":[v.canonical_dict() for v in events],
             "generation_identity":generation_identity,"localization_identity":localization_identity,
             "recovery_identity":recovery_identity,"runtime_identity":runtime_identity,"success":success,"version":1}
@@ -62,13 +76,24 @@ class BuildOrchestrator:
         self.planner=RecoveryPlanner(self.manifest,self.ownership,maximum_attempts=maximum_attempts)
         self.state=self.root/".arcacore"; self.lock_path=self.state/"build.lock"; self.journal_path=self.state/"build-journal.json"
 
+    def _contained_state(self):
+        current=self.root
+        for part in (".arcacore",):
+            current=current/part
+            if current.is_symlink(): raise ValueError("Build state path contains a symbolic link.")
+        for path in (self.lock_path,self.journal_path):
+            if path.is_symlink(): raise ValueError("Build state path contains a symbolic link.")
+            path.resolve().relative_to(self.root)
+
     def _journal(self,phase,predecessor=None):
+        self._contained_state()
         body={"application_identity":self.manifest.manifest_identity,"generation_identity":self.ownership.manifest_identity,
             "phase":phase.value,"predecessor":predecessor,"version":1}
         value=dict(body); value["journal_identity"]=_digest("arcacore-build-journal/v1",body)
         write_text_atomic(self.journal_path,json.dumps(value,sort_keys=True,separators=(",",":"))+"\n"); return value["journal_identity"]
 
     def _resume(self):
+        self._contained_state()
         if not self.journal_path.exists(): return None
         try:
             if self.journal_path.stat().st_size>100_000: raise ValueError("Build journal exceeds safety limit.")
@@ -82,6 +107,7 @@ class BuildOrchestrator:
         BuildPhase(value["phase"]); return identity
 
     def run(self,*,interrupt_after_phase=None):
+        self._contained_state()
         prior=self._resume(); lock_body={"application_identity":self.manifest.manifest_identity,"version":1}
         try: write_text_atomic_exclusive(self.lock_path,json.dumps(lock_body,sort_keys=True,separators=(",",":"))+"\n")
         except FileExistsError as error: raise TimeoutError("Application build is already locked.") from error
@@ -96,24 +122,26 @@ class BuildOrchestrator:
             prior=self._journal(BuildPhase.RUNTIME_VALIDATE,prior)
             if runtime.success:
                 events.append(BuildEvent(BuildPhase.COMPLETE,True,runtime.report_identity,"VERIFIED")); self.journal_path.unlink(missing_ok=True)
-                return BuildReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,events,runtime_identity=runtime.report_identity)
+                return BuildReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,events,
+                    runtime_identity=runtime.report_identity,verified_runtime=runtime)
             localization=self.localizer.localize(runtime); events.append(BuildEvent(BuildPhase.LOCALIZE_FAILURE,True,localization.localization_identity,localization.confidence.value))
             plan=self.planner.plan(runtime,localization)
             if plan.action==RecoveryAction.STOP:
                 events.append(BuildEvent(BuildPhase.FAILED,False,plan.plan_identity,plan.disposition.value))
             else:
-                result=self.workflow.execute(plan)
-                result_identity=result.report_identity if isinstance(result,RuntimeReport) else _digest("arcacore-recovery-result/v1",str(result))
-                recovery=RecoveryAttempt.create(plan,result_identity,True)
-                events.append(BuildEvent(BuildPhase.RECOVER,True,recovery.attempt_identity,plan.action.value))
-                runtime=self.harness.run(); events.append(BuildEvent(BuildPhase.REVALIDATE,runtime.success,runtime.report_identity,"PASS" if runtime.success else "FAIL"))
+                self.workflow.execute(plan)
+                runtime=self.harness.run(); recovery=RecoveryAttempt.create(plan,runtime.report_identity,runtime.success)
+                events.append(BuildEvent(BuildPhase.RECOVER,runtime.success,recovery.attempt_identity,plan.action.value))
+                events.append(BuildEvent(BuildPhase.REVALIDATE,runtime.success,runtime.report_identity,"PASS" if runtime.success else "FAIL"))
                 events.append(BuildEvent(BuildPhase.COMPLETE if runtime.success else BuildPhase.FAILED,runtime.success,runtime.report_identity,"VERIFIED" if runtime.success else "RECOVERY_FAILED"))
             self.journal_path.unlink(missing_ok=True)
             return BuildReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,events,
                 runtime_identity=runtime.report_identity,localization_identity=localization.localization_identity,
-                recovery_identity=None if recovery is None else recovery.attempt_identity)
+                recovery_identity=None if recovery is None else recovery.attempt_identity,
+                verified_runtime=runtime if runtime.success else None)
         except InterruptedError: raise
         except Exception as error:
             events.append(BuildEvent(BuildPhase.FAILED,False,self.manifest.manifest_identity,"INVARIANT",safe_diagnostic(error,self.root)))
             return BuildReport.create(self.manifest.manifest_identity,self.ownership.manifest_identity,events)
-        finally: self.lock_path.unlink(missing_ok=True)
+        finally:
+            self._contained_state(); self.lock_path.unlink(missing_ok=True)

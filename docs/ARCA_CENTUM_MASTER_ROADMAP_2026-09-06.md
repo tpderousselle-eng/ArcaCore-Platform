@@ -1499,3 +1499,16 @@ That is the future closed-loop ArcaCentum ecosystem.
 - ArcaCentum.ai visual identity stays.
 - Google OAuth must eventually become ArcaCentum-owned and ArcaCentum-branded.
 - All future ArcaCentum products should increasingly use shared ArcaCore infrastructure.
+
+---
+
+## Sprint 27 Feature-Branch Status
+
+- Sprint 27.1 canonical application manifest: certified.
+- Sprint 27.2 closed-loop runtime harness: certified.
+- Sprint 27.3 failure localization: certified.
+- Cross-platform runtime containment portability repair: certified.
+- Sprint 27.4 deterministic retry and recovery workflow: complete locally.
+- Sprint 27.5 autonomous build orchestrator: complete locally.
+- Sprint 27.6 runtime and recovery security hardening: complete locally.
+- Sprint 27 remains awaiting GitHub Security Promotion certification after this feature branch is merged to `main`.

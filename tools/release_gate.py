@@ -88,6 +88,11 @@ CONTRACTS = (
     Contract("Failure injection / atomicity", ("-m", "unittest", "tools.test_failure_injection", "-v"), {}),
     Contract("Security hardening", ("-m", "unittest", "tools.test_security_hardening", "-v"), {}),
     Contract("Determinism / reproducibility", ("-m", "unittest", "tools.test_determinism", "-v"), {}),
+    Contract(
+        "Autonomous runtime recovery",
+        ("-m", "unittest", "tools.test_recovery_workflow", "tools.test_build_orchestrator", "tools.test_autonomous_security", "-v"),
+        {},
+    ),
 )
 
 

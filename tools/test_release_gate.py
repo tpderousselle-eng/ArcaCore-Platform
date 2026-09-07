@@ -65,6 +65,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Background and scheduled jobs",
                 "Events and webhooks",
                 "File and object storage",
+                "Production intelligence",
             ],
         )
 

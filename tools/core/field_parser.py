@@ -49,6 +49,7 @@ class Field:
     relationship_key: str | None = None
     cascade_delete: bool = False
     passive_deletes: bool = False
+    relationship_scope: str | None = None
     format: str | None = None
     validators: list[str] = dataclass_field(default_factory=list)
 
@@ -245,8 +246,8 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             target = type_arguments[0]
             if any(not value.isidentifier() or iskeyword(value) for value in (name, module_name, target)):
                 raise ValueError("many_to_many() requires valid field and model identifiers.")
-            if len(parts) != 2:
-                raise ValueError(f"{name}: column modifiers are not valid for many_to_many.")
+            if len(parts) > 3 or (len(parts) == 3 and parts[2] not in {"tenant_target", "global_target"}):
+                raise ValueError(f"{name}: only tenant_target or global_target is valid for many_to_many.")
             target_reference = type_arguments[1] if len(type_arguments) == 2 else f"{target.lower()}s.id"
             target_parts = target_reference.split(".")
             if len(target_parts) != 2 or not all(part.isidentifier() for part in target_parts):
@@ -259,6 +260,7 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
             parsed.relationship_type = "many_to_many"
             parsed.association_table = f"{module_name.lower()}_{name}"
             parsed.backref = f"{module_name.lower()}s"
+            parsed.relationship_scope = ({"tenant_target": "tenant", "global_target": "global"}.get(parts[2]) if len(parts) == 3 else None)
             fields.append(parsed)
             continue
         if parsed.python_type == "enum" and parsed.type_arguments:
@@ -302,6 +304,10 @@ def parse_fields(module_name: str, field_strings: list[str]) -> list[Field]:
                 if parsed.passive_deletes:
                     raise ValueError(f"{name}: duplicate passive_deletes modifier.")
                 parsed.passive_deletes = True
+            elif modifier in {"tenant_target", "global_target"}:
+                if parsed.relationship_scope is not None:
+                    raise ValueError(f"{name}: duplicate relationship scope modifier.")
+                parsed.relationship_scope = "tenant" if modifier == "tenant_target" else "global"
             elif modifier == "one_to_one":
                 one_to_one = True
             elif modifier == "one_to_many" or modifier.startswith("one_to_many("):

@@ -8,6 +8,7 @@ from tools.core.hybrid_property_parser import validate_hybrid_properties
 from tools.core.module_definition import ModuleDefinition, module_output_path
 from tools.core.version_column_parser import validate_version_column
 from tools.renderers.sqlalchemy_renderer import SQLAlchemyRenderer
+from tools.core.constraint_parser import constraint_name
 
 
 def generate_model(module: ModuleDefinition):
@@ -21,6 +22,7 @@ def generate_model(module: ModuleDefinition):
 
     rendered_fields = []
     associations = []
+    tenant_foreign_keys = []
     hybrid_properties = []
     has_relationships = False
     has_one_to_one = False
@@ -51,9 +53,32 @@ def generate_model(module: ModuleDefinition):
                 "name": field.association_table,
                 "source_reference": f"{module.table_name}.{source_key}",
                 "target_reference": f"{field.relationship_table}.{field.relationship_key}",
+                "tenant_scoped": field.relationship_scope == "tenant" and module.tenant_contract is not None,
+                "tenant_key": module.tenant_contract.key if module.tenant_contract else None,
+                "tenant_type": module.tenant_contract.python_type if module.tenant_contract else None,
+                "source_table": module.table_name,
+                "target_table": field.relationship_table,
+                "source_key": source_key,
+                "target_key": field.relationship_key,
+                "source_constraint": constraint_name(f"fk_{field.association_table}_{module.table_name}_tenant"),
+                "target_constraint": constraint_name(f"fk_{field.association_table}_{field.relationship_table}_tenant"),
             })
 
-        relationship_arguments = SQLAlchemyRenderer.render_relationship(field)
+        if (field.foreign_key and field.relationship_scope == "tenant"
+                and module.tenant_contract is not None):
+            tenant_foreign_keys.append({
+                "name": constraint_name(f"fk_{module.table_name}_{field.name}_tenant"),
+                "tenant_key": module.tenant_contract.key,
+                "field": field.name,
+                "target_table": field.relationship_table,
+                "target_key": field.relationship_key or field.foreign_key.split(".")[1],
+            })
+
+        relationship_arguments = SQLAlchemyRenderer.render_relationship(
+            field, tenant_contract=module.tenant_contract,
+            source_class=module.class_name,
+            source_key=primary_keys[0] if primary_keys else "id",
+        )
         if relationship_arguments:
             has_relationships = True
         if field.relationship_type == "one_to_one":
@@ -114,4 +139,10 @@ def generate_model(module: ModuleDefinition):
         ),
         enums=module.enums,
         tenant_contract=module.tenant_contract,
+        tenant_foreign_keys=tenant_foreign_keys,
+        tenant_identity_constraint=(
+            constraint_name(f"uq_{module.table_name}_{module.tenant_contract.key}_{primary_keys[0] if primary_keys else 'id'}")
+            if module.tenant_contract else None
+        ),
+        primary_key_name=primary_keys[0] if primary_keys else "id",
     )

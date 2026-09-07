@@ -46,6 +46,7 @@ class ChangeKind(str, Enum):
     AUDIT_METADATA_CHANGED = "audit_metadata_changed"
     VERSION_METADATA_CHANGED = "version_metadata_changed"
     SOFT_DELETE_CHANGED = "soft_delete_changed"
+    TENANT_METADATA_CHANGED = "tenant_metadata_changed"
 
 
 @dataclass(frozen=True)
@@ -160,6 +161,7 @@ def _field_state(field) -> dict[str, Any]:
         "relationship_key": field.relationship_key,
         "cascade_delete": field.cascade_delete,
         "passive_deletes": field.passive_deletes,
+        "relationship_scope": field.relationship_scope,
         "format": field.format,
         "validators": list(field.validators),
     }
@@ -184,6 +186,7 @@ def _module_state(module: ModuleDefinition) -> dict[str, Any]:
         "soft_delete": module.soft_delete,
         "audit_fields": _audit_state(module),
         "version_column": module.version_column,
+        "tenant": module.tenant_contract.canonical_dict() if module.tenant_contract else None,
     }
 
 
@@ -216,6 +219,7 @@ _RELATIONSHIP_ATTRIBUTES = (
     "relationship_name", "relationship_class", "relationship_table",
     "relationship_type", "back_populates", "backref", "association_table",
     "relationship_key", "cascade_delete", "passive_deletes",
+    "relationship_scope",
 )
 _OTHER_FIELD_ATTRIBUTES = (
     "primary_key", "minimum", "maximum", "min_length",
@@ -340,6 +344,13 @@ def plan_schema_evolution(previous: ModuleDefinition | None, proposed: ModuleDef
     if previous.soft_delete != proposed.soft_delete:
         safety = SafetyClassification.SAFE_ADDITIVE if proposed.soft_delete else SafetyClassification.POTENTIALLY_DESTRUCTIVE
         changes.append(_change(ChangeKind.SOFT_DELETE_CHANGED, safety, "module:soft_delete", previous.soft_delete, proposed.soft_delete, "Adding soft-delete metadata is additive; removing it changes deletion semantics."))
+    old_tenant = previous.tenant_contract.canonical_dict() if previous.tenant_contract else None
+    new_tenant = proposed.tenant_contract.canonical_dict() if proposed.tenant_contract else None
+    if old_tenant != new_tenant:
+        safety = (SafetyClassification.REQUIRES_DATA_MIGRATION
+                  if old_tenant is None and new_tenant is not None
+                  else SafetyClassification.POTENTIALLY_DESTRUCTIVE)
+        changes.append(_change(ChangeKind.TENANT_METADATA_CHANGED, safety, "module:tenant", old_tenant, new_tenant, "Tenant ownership and composite relationship constraints require an explicit reviewed data migration."))
 
     changes.sort(key=lambda value: (value.target, value.kind.value, value.safety.value))
     return SchemaEvolutionPlan(proposed.name, tuple(changes))

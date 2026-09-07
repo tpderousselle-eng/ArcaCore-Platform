@@ -73,7 +73,7 @@ class SQLAlchemyRenderer:
         return arguments
 
     @staticmethod
-    def render_relationship(field: Field) -> list[str]:
+    def render_relationship(field: Field, tenant_contract=None, source_class=None, source_key=None) -> list[str]:
         if not field.relationship_name:
             return []
 
@@ -81,6 +81,16 @@ class SQLAlchemyRenderer:
         passive = ", passive_deletes=True" if field.passive_deletes else ""
         if field.relationship_type == "many_to_many":
             arguments.append(f"secondary={field.association_table}")
+            if tenant_contract is not None and field.relationship_scope == "tenant":
+                key = tenant_contract.key
+                arguments.append(
+                    f'primaryjoin="and_({source_class}.{key} == {field.association_table}.c.{key}, '
+                    f'{source_class}.{source_key} == {field.association_table}.c.source_id)"'
+                )
+                arguments.append(
+                    f'secondaryjoin="and_({field.relationship_class}.{key} == {field.association_table}.c.{key}, '
+                    f'{field.relationship_class}.{field.relationship_key} == {field.association_table}.c.target_id)"'
+                )
             arguments.append(f"backref={field.backref!r}")
         elif field.relationship_type == "one_to_one":
             arguments.append("uselist=False")

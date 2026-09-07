@@ -22,4 +22,17 @@ def generate_service(module: ModuleDefinition):
             if module.policy_contract else {}
         ),
         policy_denies=(tuple(module.policy_contract.denied_permissions) if module.policy_contract else ()),
+        tenant_relationships=[
+            {
+                "field": field.name,
+                "model": field.relationship_class,
+                "module": field.relationship_class.lower(),
+                "target_key": field.relationship_key or (field.foreign_key.split(".")[1] if field.foreign_key else "id"),
+                "tenant_key": module.tenant_contract.key,
+                "many": field.relationship_type == "many_to_many",
+                "self": field.relationship_class == module.class_name,
+            }
+            for field in module.fields
+            if module.tenant_contract is not None and field.relationship_scope == "tenant"
+        ],
     )

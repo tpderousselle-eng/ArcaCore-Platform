@@ -124,5 +124,6 @@ class Registry:
                 "relationship_key": field.relationship_key,
                 "cascade_delete": field.cascade_delete,
                 "passive_deletes": field.passive_deletes,
+                **({"relationship_scope": field.relationship_scope} if field.relationship_scope else {}),
             })
         Registry.save(registry)

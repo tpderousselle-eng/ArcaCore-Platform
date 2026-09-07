@@ -33,6 +33,9 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+{% if tenant_foreign_keys or associations %}
+    ForeignKeyConstraint,
+{% endif %}
 {% if indexes %}
     Index,
 {% endif %}
@@ -48,7 +51,7 @@ from sqlalchemy import (
     Table,
 {% endif %}
     Text,
-{% if unique_constraints %}
+{% if unique_constraints or tenant_contract %}
     UniqueConstraint,
 {% endif %}
 {% if has_uuid %}
@@ -84,6 +87,19 @@ from backend.app.db.base import Base
     Base.metadata,
     Column("source_id", ForeignKey("{{ association.source_reference }}"), primary_key=True),
     Column("target_id", ForeignKey("{{ association.target_reference }}"), primary_key=True),
+{% if association.tenant_scoped %}
+    Column("{{ association.tenant_key }}", {% if association.tenant_type == "int" %}Integer{% elif association.tenant_type == "uuid" %}UUID(as_uuid=True){% else %}String(255){% endif %}, primary_key=True),
+    ForeignKeyConstraint(
+        ["{{ association.tenant_key }}", "source_id"],
+        ["{{ association.source_table }}.{{ association.tenant_key }}", "{{ association.source_table }}.{{ association.source_key }}"],
+        name="{{ association.source_constraint }}",
+    ),
+    ForeignKeyConstraint(
+        ["{{ association.tenant_key }}", "target_id"],
+        ["{{ association.target_table }}.{{ association.tenant_key }}", "{{ association.target_table }}.{{ association.target_key }}"],
+        name="{{ association.target_constraint }}",
+    ),
+{% endif %}
 )
 
 {% endfor %}
@@ -108,8 +124,18 @@ class {{ class_name }}(Base):
     )
 {% endif %}
 
-{% if indexes or unique_constraints or check_constraints %}
+{% if indexes or unique_constraints or check_constraints or tenant_contract %}
     __table_args__ = (
+{% if tenant_contract %}
+        UniqueConstraint("{{ tenant_contract.key }}", "{{ primary_key_name }}", name="{{ tenant_identity_constraint }}"),
+{% endif %}
+{% for constraint in tenant_foreign_keys %}
+        ForeignKeyConstraint(
+            ["{{ constraint.tenant_key }}", "{{ constraint.field }}"],
+            ["{{ constraint.target_table }}.{{ constraint.tenant_key }}", "{{ constraint.target_table }}.{{ constraint.target_key }}"],
+            name="{{ constraint.name }}",
+        ),
+{% endfor %}
 {% for index in indexes %}
         {{ index }},
 {% endfor %}

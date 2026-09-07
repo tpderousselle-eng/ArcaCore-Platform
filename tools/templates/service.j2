@@ -1,4 +1,10 @@
 from backend.app.crud.{{ module }} import {{ class_name }}CRUD
+{% for relationship in tenant_relationships if not relationship.self %}
+from backend.app.models.{{ relationship.module }} import {{ relationship.model }}
+{% endfor %}
+{% if tenant_relationships %}
+from backend.app.models.{{ module }} import {{ class_name }}
+{% endif %}
 
 
 class {{ class_name }}Service:
@@ -23,14 +29,42 @@ class {{ class_name }}Service:
         if action not in permissions:
             raise PermissionError("Operation denied by policy.")
 {% endif %}
+{% if tenant_relationships %}
+    def _validate_tenant_relationships(self, values, tenant_id):
+        if tenant_id is None:
+            raise PermissionError("Relationship target is inaccessible.")
+{% for relationship in tenant_relationships %}
+        if "{{ relationship.field }}" in values and values["{{ relationship.field }}"] is not None:
+{% if relationship.many %}
+            targets = values["{{ relationship.field }}"]
+            if not isinstance(targets, (tuple, list, set, frozenset)):
+                raise PermissionError("Relationship target is inaccessible.")
+            if any(getattr(target, "{{ relationship.tenant_key }}", None) != tenant_id for target in targets):
+                raise PermissionError("Relationship target is inaccessible.")
+{% else %}
+            target = self.crud.db.query({{ class_name if relationship.self else relationship.model }}).filter(
+                {{ class_name if relationship.self else relationship.model }}.{{ relationship.target_key }} == values["{{ relationship.field }}"],
+                {{ class_name if relationship.self else relationship.model }}.{{ relationship.tenant_key }} == tenant_id,
+            ).first()
+            if target is None:
+                raise PermissionError("Relationship target is inaccessible.")
+            if hasattr(target, "deleted_at") and target.deleted_at is not None:
+                raise PermissionError("Relationship target is inaccessible.")
+{% endif %}
+{% endfor %}
+{% endif %}
 
     def create(self, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
 {% if policy_contract %}        self._authorize("create")
+{% endif %}
+{% if tenant_relationships %}        self._validate_tenant_relationships(values, tenant_id)
 {% endif %}
         return self.crud.create(values{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %})
 
     def update(self, item_id, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
 {% if policy_contract %}        self._authorize("update")
+{% endif %}
+{% if tenant_relationships %}        self._validate_tenant_relationships(values, tenant_id)
 {% endif %}
         return self.crud.update(item_id, values{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %})
 

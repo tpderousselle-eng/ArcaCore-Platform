@@ -54,6 +54,11 @@ class ModuleDefinition:
                 raise ValueError("Tenant metadata must be a TenantContract.")
             if any(field.name == self.tenant_contract.key for field in self.fields):
                 raise ValueError("Tenant ownership field is generator-managed.")
+            for item in self.fields:
+                if item.relationship_name and item.relationship_scope is None:
+                    item.relationship_scope = "tenant"
+        elif any(item.relationship_scope == "tenant" for item in self.fields):
+            raise ValueError("A global module cannot target tenant data implicitly.")
         if self.policy_contract is not None:
             from tools.authorization import PolicyContract
             if not isinstance(self.policy_contract, PolicyContract):
@@ -352,6 +357,10 @@ def validate_module_definition(module: ModuleDefinition):
             value = getattr(field, attribute)
             if value is not None and not valid_public_identifier(value):
                 raise ValueError(f"{field.name}: invalid {attribute} metadata.")
+        if field.relationship_scope not in {None, "tenant", "global"}:
+            raise ValueError(f"{field.name}: relationship scope metadata is invalid.")
+        if module.tenant_contract is None and field.relationship_scope == "tenant":
+            raise ValueError("A global module cannot target tenant data implicitly.")
     _validate_indexes_and_constraints(module)
 
 

@@ -63,6 +63,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Determinism / reproducibility",
                 "Autonomous runtime recovery",
                 "Background and scheduled jobs",
+                "Events and webhooks",
             ],
         )
 

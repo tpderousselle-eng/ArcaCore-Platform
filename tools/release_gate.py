@@ -94,6 +94,7 @@ CONTRACTS = (
         {},
     ),
     Contract("Background and scheduled jobs", ("-m", "unittest", "tools.test_jobs", "-v"), {}),
+    Contract("Events and webhooks", ("-m", "unittest", "tools.test_events", "-v"), {}),
 )
 
 

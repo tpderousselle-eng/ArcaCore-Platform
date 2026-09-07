@@ -1518,4 +1518,9 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 28.1 native multitenancy primitives: complete locally.
 - Sprint 28.2 generated RBAC and policy systems: complete locally.
 - Sprint 28.3 secrets and environment configuration lifecycle: complete locally.
-- Sprint 28 remains incomplete; Sprint 28.4–28.6 have not started.
+- Tenant-aware relationship integrity repair: complete locally.
+- Sprint 28.4 background and scheduled jobs: complete locally.
+- Sprint 28.5 events, webhooks, and event bus: complete locally.
+- Sprint 28.6 file and object storage: complete locally.
+- Sprint 28 is locally complete and awaiting merge, promotion, and certification.
+- Sprint 29 has not started.

@@ -109,14 +109,20 @@ class ReplayGuard:
         if key in self._seen: raise PermissionError("Webhook replay rejected.")
         self._seen.add(key); return True
 
+@dataclass(frozen=True)
+class WebhookTarget:
+    connect_address:str; server_hostname:str; port:int; path:str
+
 class WebhookDelivery:
     def __init__(self,url,retry=RetryPolicy(),*,resolver=socket.getaddrinfo):
-        self.url=url; self.parsed,self.addresses=validate_webhook_url(url,resolver=resolver); self.retry=retry
+        self.parsed,self.addresses=validate_webhook_url(url,resolver=resolver); self.retry=retry
+        self.target=WebhookTarget(self.addresses[0],self.parsed.hostname,self.parsed.port or 443,
+            self.parsed.path+(('?'+self.parsed.query) if self.parsed.query else ''))
     def deliver(self,sender,payload,headers):
         last=None
         for attempt in range(1,self.retry.maximum_attempts+1):
             try:
-                result=sender(self.url,payload,dict(headers),addresses=self.addresses,timeout=10,allow_redirects=False)
+                result=sender(self.target,payload,dict(headers),timeout=10,allow_redirects=False)
                 if getattr(result,"status",0) not in range(200,300): raise RuntimeError("Webhook endpoint rejected delivery.")
                 return attempt
             except (ConnectionError,TimeoutError) as error: last=error

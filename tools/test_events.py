@@ -46,6 +46,7 @@ class EventTest(unittest.TestCase):
         delivery=WebhookDelivery("https://example.com/h",RetryPolicy(2),resolver=resolved("8.8.8.8")); calls=[]
         def sender(*args,**kwargs): calls.append(kwargs); return SimpleNamespace(status=204) if len(calls)==2 else (_ for _ in ()).throw(ConnectionError())
         self.assertEqual(delivery.deliver(sender,{},{}),2); self.assertFalse(calls[-1]["allow_redirects"]); self.assertEqual(calls[-1]["timeout"],10)
+        self.assertEqual(delivery.target.connect_address,"8.8.8.8"); self.assertEqual(delivery.target.server_hostname,"example.com")
         with self.assertRaises(RuntimeError): delivery.deliver(lambda *a,**k:(_ for _ in ()).throw(TimeoutError()),{}, {})
         with self.assertRaises(RuntimeError): delivery.deliver(lambda *a,**k:SimpleNamespace(status=302),{}, {})
 

@@ -1,7 +1,7 @@
 import unittest
 
 from tools.authorization import PolicyContract, PrincipalContext
-from tools.jobs import JobDefinition, JobExecutor, JobRegistry, JobSchedule, JobStatus, RetryPolicy
+from tools.jobs import JobDefinition, JobExecutor, JobRegistry, JobSchedule, JobStatus, RetryPolicy, RetryableJobError
 from tools.multitenancy import TenantContext
 
 
@@ -21,21 +21,21 @@ class JobTest(unittest.TestCase):
         return executor.enqueue("rebuild", payload or {"value":1}, self.principal, TenantContext(tenant) if tenant else None, key)
 
     def test_success_and_idempotency(self):
-        executor=self.executor(); one=self.enqueue(executor); self.assertIs(one,self.enqueue(executor)); executor.execute(one)
+        executor=self.executor(); one=self.enqueue(executor); self.assertIs(one,self.enqueue(executor)); executor.execute(one,self.principal,TenantContext("tenant_a"))
         self.assertEqual((one.status,one.result,one.attempts),(JobStatus.SUCCEEDED,1,1))
     def test_failure_and_bounded_retry(self):
         calls=[]
-        def bad(payload,tenant): calls.append(1); raise RuntimeError("secret material")
+        def bad(payload,tenant): calls.append(1); raise RetryableJobError("secret material")
         item=self.enqueue(self.executor(bad,retry=RetryPolicy(2,0))); self.executor
-        executor=self.executor(bad,retry=RetryPolicy(2,0)); item=self.enqueue(executor); executor.execute(item)
-        self.assertEqual((item.status,item.attempts,item.error_class),(JobStatus.FAILED,2,"RuntimeError")); self.assertNotIn("secret",item.error_class)
+        executor=self.executor(bad,retry=RetryPolicy(2,0)); item=self.enqueue(executor); executor.execute(item,self.principal,TenantContext("tenant_a"))
+        self.assertEqual((item.status,item.attempts,item.error_class),(JobStatus.FAILED,2,"RetryableJobError")); self.assertNotIn("secret",item.error_class)
     def test_retry_succeeds(self):
         calls=[]
         def flaky(payload,tenant): calls.append(1); return 7 if len(calls)==2 else (_ for _ in ()).throw(ConnectionError())
-        executor=self.executor(flaky,retry=RetryPolicy(2)); item=self.enqueue(executor); executor.execute(item); self.assertEqual(item.result,7)
+        executor=self.executor(flaky,retry=RetryPolicy(2)); item=self.enqueue(executor); executor.execute(item,self.principal,TenantContext("tenant_a")); self.assertEqual(item.result,7)
     def test_timeout_fails(self):
         executor=self.executor(timeout_seconds=.1); item=self.enqueue(executor)
-        ticks=iter((0,.2)); executor.execute(item,clock=lambda:next(ticks)); self.assertEqual(item.error_class,"TimeoutError")
+        ticks=iter((0,.2)); executor.execute(item,self.principal,TenantContext("tenant_a"),clock=lambda:next(ticks)); self.assertEqual(item.error_class,"TimeoutError")
     def test_payload_and_handler_validation(self):
         executor=self.executor()
         for payload in ({"unknown":1},{"tenant_id":"b"},{"value":"x"*70000}):
@@ -54,9 +54,19 @@ class JobTest(unittest.TestCase):
         b=executor.enqueue("rebuild",{"value":1},PrincipalContext("b","b",("worker",)),TenantContext("b"),"once")
         self.assertNotEqual(a.identity,b.identity)
     def test_state_machine_and_false_success(self):
-        executor=self.executor(lambda p,t:(_ for _ in ()).throw(ValueError())); item=self.enqueue(executor); executor.execute(item)
+        executor=self.executor(lambda p,t:(_ for _ in ()).throw(ValueError())); item=self.enqueue(executor); executor.execute(item,self.principal,TenantContext("tenant_a"))
         self.assertEqual(item.status,JobStatus.FAILED)
         with self.assertRaises(ValueError): item.transition(JobStatus.SUCCEEDED)
+    def test_mutated_or_stale_execution_authority_rejected(self):
+        executor=self.executor(); item=self.enqueue(executor); item.payload["value"]=99
+        with self.assertRaises(PermissionError): executor.execute(item,self.principal,TenantContext("tenant_a"))
+        executor=self.executor(); item=self.enqueue(executor); stale=PrincipalContext("other","tenant_a",("worker",))
+        with self.assertRaises(PermissionError): executor.execute(item,stale,TenantContext("tenant_a"))
+    def test_completed_invocation_state_cannot_be_replayed(self):
+        calls=[]; executor=self.executor(lambda p,t:calls.append(1)); item=self.enqueue(executor)
+        executor.execute(item,self.principal,TenantContext("tenant_a")); item.status=JobStatus.FAILED; item.attempts=0
+        with self.assertRaises(ValueError): executor.execute(item,self.principal,TenantContext("tenant_a"))
+        self.assertEqual(len(calls),1)
     def test_schedule_determinism_and_deduplication(self):
         first=registry(lambda p,t:None,schedule=JobSchedule("0 0 * * *")); second=registry(lambda p,t:None,schedule=JobSchedule("0 0 * * *"))
         self.assertEqual(first.digest,second.digest); executor=JobExecutor(first,self.policy); self.assertEqual(executor.register_schedules(),1); self.assertEqual(executor.register_schedules(),1)

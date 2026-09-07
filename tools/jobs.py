@@ -18,6 +18,9 @@ _ID = re.compile(r"[a-z][a-z0-9_]{0,62}\Z")
 _CRON = re.compile(r"(?:\*|[0-5]?\d) (?:\*|[01]?\d|2[0-3]) (?:\*|[1-9]|[12]\d|3[01]) (?:\*|[1-9]|1[0-2]) (?:\*|[0-6])\Z")
 MAX_PAYLOAD_BYTES = 64 * 1024
 
+class RetryableJobError(Exception):
+    """Explicit handler signal for a bounded, policy-controlled retry."""
+
 
 def _identifier(value, label="Identifier"):
     if not isinstance(value, str) or not _ID.fullmatch(value):
@@ -143,7 +146,7 @@ class JobInvocation:
 class JobExecutor:
     def __init__(self, registry: JobRegistry, policy: PolicyContract):
         if not isinstance(registry, JobRegistry) or not isinstance(policy, PolicyContract): raise ValueError("Executor policy is invalid.")
-        self.registry=registry; self.policy=policy; self._invocations={}; self._schedules=set()
+        self.registry=registry; self.policy=policy; self._invocations={}; self._snapshots={}; self._states={}; self._schedules=set()
 
     def register_schedules(self):
         for definition in self.registry.definitions:
@@ -160,24 +163,42 @@ class JobExecutor:
         clean, raw=_json_payload(payload)
         if "tenant_id" in clean or set(clean) - set(definition.allowed_fields): raise ValueError("Job payload contains forbidden fields.")
         if not isinstance(idempotency_key, str) or not _ID.fullmatch(idempotency_key): raise ValueError("Idempotency key is invalid.")
-        material=json.dumps({"job":identifier,"tenant":tenant_id,"key":idempotency_key,"payload":json.loads(raw)}, sort_keys=True, separators=(",", ":"), default=str)
+        if isinstance(tenant_id,bool) or not isinstance(tenant_id,(str,int)) or isinstance(principal.principal_id,bool) or not isinstance(principal.principal_id,(str,int)):
+            raise PermissionError("Trusted job authority is not canonically serializable.")
+        material=json.dumps({"job":identifier,"tenant":tenant_id,"principal":principal.principal_id,"key":idempotency_key,"payload":json.loads(raw)}, sort_keys=True, separators=(",", ":"))
         identity=sha256(material.encode()).hexdigest()
         if identity not in self._invocations:
             self._invocations[identity]=JobInvocation(identity,definition,clean,tenant_id,principal.principal_id,idempotency_key)
+            self._snapshots[identity]=(definition,raw,tenant_id,principal.principal_id,idempotency_key)
+            self._states[identity]=(JobStatus.QUEUED,0)
         return self._invocations[identity]
 
-    def execute(self, invocation: JobInvocation, *, clock=time.monotonic, sleep=time.sleep):
-        if self._invocations.get(invocation.identity) is not invocation or invocation.status not in {JobStatus.QUEUED,JobStatus.FAILED}:
+    def execute(self, invocation: JobInvocation, principal:PrincipalContext, tenant:TenantContext|None, *, clock=time.monotonic, sleep=time.sleep):
+        if (self._invocations.get(invocation.identity) is not invocation
+                or self._states.get(invocation.identity)!=(invocation.status,invocation.attempts)
+                or invocation.status not in {JobStatus.QUEUED,JobStatus.FAILED}):
             raise ValueError("Invocation is stale or not executable.")
+        snapshot=self._snapshots.get(invocation.identity)
+        try: _,raw=_json_payload(invocation.payload)
+        except ValueError as error: raise PermissionError("Invocation provenance is invalid.") from error
+        current_tenant=trusted_tenant_id(tenant) if invocation.definition.tenant_scoped else None
+        if (snapshot!=(invocation.definition,raw,invocation.tenant_id,invocation.principal_id,invocation.idempotency_key)
+                or not isinstance(principal,PrincipalContext) or principal.principal_id!=invocation.principal_id
+                or principal.tenant_id!=invocation.tenant_id or current_tenant!=invocation.tenant_id
+                or not authorize(self.policy,principal,invocation.definition.permission,resource_tenant_id=invocation.tenant_id)):
+            raise PermissionError("Invocation authority is stale or has invalid provenance.")
         started=clock()
         while invocation.attempts < invocation.definition.retry.maximum_attempts:
             invocation.transition(JobStatus.RUNNING); invocation.attempts += 1
+            self._states[invocation.identity]=(invocation.status,invocation.attempts)
             try:
-                value=self.registry.handler(invocation.definition.handler)(dict(invocation.payload), invocation.tenant_id)
+                value=self.registry.handler(invocation.definition.handler)(json.loads(raw), invocation.tenant_id)
                 if clock()-started > invocation.definition.timeout_seconds: raise TimeoutError("Job timeout exceeded.")
-                invocation.result=value; invocation.error_class=None; invocation.transition(JobStatus.SUCCEEDED); return invocation
+                invocation.result=value; invocation.error_class=None; invocation.transition(JobStatus.SUCCEEDED)
+                self._states[invocation.identity]=(invocation.status,invocation.attempts); return invocation
             except Exception as error:
                 invocation.error_class=type(error).__name__; invocation.transition(JobStatus.FAILED)
-                if invocation.attempts >= invocation.definition.retry.maximum_attempts: return invocation
+                self._states[invocation.identity]=(invocation.status,invocation.attempts)
+                if invocation.attempts >= invocation.definition.retry.maximum_attempts or not isinstance(error,(RetryableJobError,ConnectionError,TimeoutError)): return invocation
                 sleep(invocation.definition.retry.delay_seconds)
         return invocation

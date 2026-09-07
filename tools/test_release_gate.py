@@ -64,6 +64,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Autonomous runtime recovery",
                 "Background and scheduled jobs",
                 "Events and webhooks",
+                "File and object storage",
             ],
         )
 

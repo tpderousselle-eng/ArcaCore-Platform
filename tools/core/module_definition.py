@@ -45,6 +45,7 @@ class ModuleDefinition:
     audit_fields: AuditFieldDefinition | None = None
     version_column: bool = False
     tenant_contract: object | None = None
+    policy_contract: object | None = None
 
     def __post_init__(self):
         if self.tenant_contract is not None:
@@ -53,6 +54,10 @@ class ModuleDefinition:
                 raise ValueError("Tenant metadata must be a TenantContract.")
             if any(field.name == self.tenant_contract.key for field in self.fields):
                 raise ValueError("Tenant ownership field is generator-managed.")
+        if self.policy_contract is not None:
+            from tools.authorization import PolicyContract
+            if not isinstance(self.policy_contract, PolicyContract):
+                raise ValueError("Policy metadata must be a PolicyContract.")
         validate_audit_fields(self.audit_fields, self.fields)
         validate_version_column(self.version_column, self.fields)
         if self.soft_delete:
@@ -277,6 +282,11 @@ def validate_module_definition(module: ModuleDefinition):
         if not isinstance(module.tenant_contract, TenantContract):
             raise ValueError("Tenant metadata must be a TenantContract.")
         TenantContract.from_dict(module.tenant_contract.canonical_dict())
+    if module.policy_contract is not None:
+        from tools.authorization import PolicyContract
+        if not isinstance(module.policy_contract, PolicyContract):
+            raise ValueError("Policy metadata must be a PolicyContract.")
+        PolicyContract.from_dict(module.policy_contract.canonical_dict())
     if not isinstance(module.fields, list) or any(
         not isinstance(field, Field) for field in module.fields
     ):

@@ -35,6 +35,7 @@ class Registry:
             "fields": [],
             "soft_delete": module.soft_delete,
             **({"tenant": module.tenant_contract.canonical_dict()} if module.tenant_contract else {}),
+            **({"authorization": module.policy_contract.canonical_dict()} if module.policy_contract else {}),
             **(
                 {
                     "version_column": {

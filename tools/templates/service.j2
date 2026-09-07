@@ -3,34 +3,70 @@ from backend.app.crud.{{ module }} import {{ class_name }}CRUD
 
 class {{ class_name }}Service:
 
-    def __init__(self, db):
+    def __init__(self, db{% if policy_contract %}, trusted_roles{% endif %}):
         self.crud = {{ class_name }}CRUD(db)
+{% if policy_contract %}
+        if not isinstance(trusted_roles, tuple) or any(not isinstance(role, str) for role in trusted_roles):
+            raise PermissionError("Trusted authorization context is required.")
+        self._trusted_roles = trusted_roles
+
+    def _authorize(self, action):
+        roles = {{ policy_roles|tojson }}
+        denied = frozenset({{ policy_denies|tojson }})
+        if action in denied:
+            raise PermissionError("Operation denied by policy.")
+        permissions = set()
+        for role in self._trusted_roles:
+            if role not in roles:
+                raise PermissionError("Unknown role denied by policy.")
+            permissions.update(roles[role])
+        if action not in permissions:
+            raise PermissionError("Operation denied by policy.")
+{% endif %}
 
     def create(self, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
+{% if policy_contract %}        self._authorize("create")
+{% endif %}
         return self.crud.create(values{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %})
 
     def update(self, item_id, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
+{% if policy_contract %}        self._authorize("update")
+{% endif %}
         return self.crud.update(item_id, values{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %})
 
 {% if soft_delete %}
     def get(self, item_id, include_deleted: bool = False{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("read")
+{% endif %}
         return self.crud.get(item_id, include_deleted=include_deleted{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 
     def list(self, include_deleted: bool = False{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("list")
+{% endif %}
         return self.crud.list(include_deleted=include_deleted{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 
     def delete(self, item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("delete")
+{% endif %}
         return self.crud.delete(item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 
     def restore(self, item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("restore")
+{% endif %}
         return self.crud.restore(item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 {% else %}
     def get(self, item_id{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("read")
+{% endif %}
         return self.crud.get(item_id{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 
     def list(self{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("list")
+{% endif %}
         return self.crud.list({% if tenant_contract %}tenant_id=tenant_id{% endif %})
 
     def remove(self, item_id{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if policy_contract %}        self._authorize("delete")
+{% endif %}
         return self.crud.remove(item_id{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 {% endif %}

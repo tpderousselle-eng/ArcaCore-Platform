@@ -189,10 +189,10 @@ Full discovery:
 26.4–26.6 were merged into `main`.
 
 Current certified main:
-`f7e2a45130fd7e39f9f927113b5496dad5d5f2dd`
+`641899c13dc3ddf72cf82951316dbfe34ca86d91`
 
 GitHub Security Promotion:
-- Run `34043018358`
+- Run `34120573734`
 - Result: SUCCESS
 
 Passed:
@@ -1508,7 +1508,14 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 27.2 closed-loop runtime harness: certified.
 - Sprint 27.3 failure localization: certified.
 - Cross-platform runtime containment portability repair: certified.
-- Sprint 27.4 deterministic retry and recovery workflow: complete locally.
-- Sprint 27.5 autonomous build orchestrator: complete locally.
-- Sprint 27.6 runtime and recovery security hardening: complete locally.
-- Sprint 27 remains awaiting GitHub Security Promotion certification after this feature branch is merged to `main`.
+- Sprint 27.4 deterministic retry and recovery workflow: certified.
+- Sprint 27.5 autonomous build orchestrator: certified.
+- Sprint 27.6 runtime and recovery security hardening: certified.
+- Sprint 27 is fully certified on main at `641899c13dc3ddf72cf82951316dbfe34ca86d91` by GitHub Security Promotion run `34120573734` (SUCCESS).
+
+## Sprint 28 Feature-Branch Status
+
+- Sprint 28.1 native multitenancy primitives: complete locally.
+- Sprint 28.2 generated RBAC and policy systems: complete locally.
+- Sprint 28.3 secrets and environment configuration lifecycle: complete locally.
+- Sprint 28 remains incomplete; Sprint 28.4–28.6 have not started.

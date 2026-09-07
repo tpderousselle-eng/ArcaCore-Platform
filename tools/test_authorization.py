@@ -1,4 +1,7 @@
 import unittest
+from tools.core.field_parser import parse_fields
+from tools.core.module_definition import ModuleDefinition
+from tools.test_composite_indexes import run_generation
 
 from tools.authorization import PolicyContract, PrincipalContext, authorize
 
@@ -44,6 +47,23 @@ class AuthorizationPolicyTest(unittest.TestCase):
     def test_duplicate_and_malformed_definitions_rejected(self):
         for roles in ({"Bad": {"read"}}, {"viewer": {"read;exec"}}, {"viewer": "read"}):
             with self.subTest(roles=roles), self.assertRaises(ValueError): PolicyContract.create(roles)
+
+    def test_generated_service_and_router_enforce_policy(self):
+        from unittest.mock import patch
+        import tools.generate as pipeline
+        from tools.registry.registry import Registry
+        from tools.core.engine import env
+        sources = {}
+        def capture(template_name, output_path, **context):
+            source = env.get_template(template_name).render(**context); compile(source, str(output_path), "exec"); sources[template_name] = source
+        module = ModuleDefinition("Record", "Record", "record", "records", parse_fields("Record", ["name:str"]), policy_contract=self.policy)
+        with patch("tools.generate_service.render_template", side_effect=capture), patch("tools.generate_router.render_template", side_effect=capture):
+            from tools.generate_service import generate_service
+            from tools.generate_router import generate_router
+            generate_service(module); generate_router(module)
+        self.assertIn('self._authorize("create")', sources["service.j2"])
+        self.assertIn("arcacore_roles", sources["router.j2"])
+        self.assertIn("policy_roles", sources["router.j2"])
 
 
 if __name__ == "__main__": unittest.main()

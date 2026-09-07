@@ -16,4 +16,10 @@ def generate_service(module: ModuleDefinition):
         soft_delete=module.soft_delete,
         audit_fields=module.audit_fields is not None,
         tenant_contract=module.tenant_contract,
+        policy_contract=module.policy_contract,
+        policy_roles=(
+            {role.name: tuple(role.permissions) for role in module.policy_contract.roles}
+            if module.policy_contract else {}
+        ),
+        policy_denies=(tuple(module.policy_contract.denied_permissions) if module.policy_contract else ()),
     )

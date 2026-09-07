@@ -49,6 +49,7 @@ class MultitenancyTest(unittest.TestCase):
         self.assertIn("tenant_id = Column", model)
         self.assertIn("_reject_tenant_input", schema)
         self.assertGreaterEqual(crud.count("Record.tenant_id == tenant_id"), 2)
+        self.assertIn('if tenant_id is None:', crud)
         self.assertIn('if "tenant_id" in data:', crud)
         self.assertIn("arcacore_tenant_id", router)
         self.assertIn("tenant_id=tenant_id", service)

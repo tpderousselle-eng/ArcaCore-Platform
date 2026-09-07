@@ -57,6 +57,14 @@ def _require_write_access(request: Request){% if audit_fields %} -> {{ actor_typ
     return principal_id
 {% endif %}
 
+{% if policy_contract %}
+def _require_policy_roles(request: Request):
+    raw_roles = getattr(request.state, "arcacore_roles", None)
+    if not isinstance(raw_roles, (tuple, list)) or any(not isinstance(role, str) for role in raw_roles):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authorization context required.")
+    return tuple(sorted(set(raw_roles)))
+{% endif %}
+
 {% if tenant_contract %}
 def _require_tenant(request: Request):
     tenant_id = getattr(request.state, "arcacore_tenant_id", None)
@@ -74,11 +82,13 @@ def create_{{ module }}(
     payload: {{ class_name }}Create,{% if audit_fields %}
     actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
     _principal=Depends(_require_write_access),{% endif %}
+{% if policy_contract %}    policy_roles=Depends(_require_policy_roles),
+{% endif %}
 {% if tenant_contract %}    tenant_id=Depends(_require_tenant),
 {% endif %}
     db: Session = Depends(get_db),
 ):
-    service = {{ class_name }}Service(db)
+    service = {{ class_name }}Service(db{% if policy_contract %}, policy_roles{% endif %})
     return service.create(
         payload.model_dump(exclude_unset=True){% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}
     )
@@ -87,22 +97,26 @@ def create_{{ module }}(
 @router.get("", response_model=list[{{ class_name }}Response])
 def list_{{ module }}s(
     _principal=Depends(_require_read_access),
+{% if policy_contract %}    policy_roles=Depends(_require_policy_roles),
+{% endif %}
 {% if tenant_contract %}    tenant_id=Depends(_require_tenant),
 {% endif %}
     db: Session = Depends(get_db),
 ):
-    return {{ class_name }}Service(db).list({% if tenant_contract %}tenant_id=tenant_id{% endif %})
+    return {{ class_name }}Service(db{% if policy_contract %}, policy_roles{% endif %}).list({% if tenant_contract %}tenant_id=tenant_id{% endif %})
 
 
 @router.get("/{item_id}", response_model={{ class_name }}Response)
 def get_{{ module }}(
     item_id: {{ primary_key_type }},
     _principal=Depends(_require_read_access),
+{% if policy_contract %}    policy_roles=Depends(_require_policy_roles),
+{% endif %}
 {% if tenant_contract %}    tenant_id=Depends(_require_tenant),
 {% endif %}
     db: Session = Depends(get_db),
 ):
-    item = {{ class_name }}Service(db).get(item_id{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
+    item = {{ class_name }}Service(db{% if policy_contract %}, policy_roles{% endif %}).get(item_id{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
     if item is None:
         raise HTTPException(status_code=404, detail="{{ class_name }} not found.")
     return item
@@ -114,11 +128,13 @@ def update_{{ module }}(
     payload: {{ class_name }}Update,{% if audit_fields %}
     actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
     _principal=Depends(_require_write_access),{% endif %}
+{% if policy_contract %}    policy_roles=Depends(_require_policy_roles),
+{% endif %}
 {% if tenant_contract %}    tenant_id=Depends(_require_tenant),
 {% endif %}
     db: Session = Depends(get_db),
 ):
-    service = {{ class_name }}Service(db)
+    service = {{ class_name }}Service(db{% if policy_contract %}, policy_roles{% endif %})
     item = service.update(
         item_id,
         payload.model_dump(exclude_unset=True){% if audit_fields %},
@@ -134,11 +150,13 @@ def delete_{{ module }}(
     item_id: {{ primary_key_type }},{% if audit_fields %}
     actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
     _principal=Depends(_require_write_access),{% endif %}
+{% if policy_contract %}    policy_roles=Depends(_require_policy_roles),
+{% endif %}
 {% if tenant_contract %}    tenant_id=Depends(_require_tenant),
 {% endif %}
     db: Session = Depends(get_db),
 ):
-    service = {{ class_name }}Service(db)
+    service = {{ class_name }}Service(db{% if policy_contract %}, policy_roles{% endif %})
 {% if soft_delete %}
     item = service.delete(item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
 {% else %}
@@ -155,11 +173,13 @@ def restore_{{ module }}(
     item_id: {{ primary_key_type }},{% if audit_fields %}
     actor_id: {{ actor_type }} = Depends(_require_write_access),{% else %}
     _principal=Depends(_require_write_access),{% endif %}
+{% if policy_contract %}    policy_roles=Depends(_require_policy_roles),
+{% endif %}
 {% if tenant_contract %}    tenant_id=Depends(_require_tenant),
 {% endif %}
     db: Session = Depends(get_db),
 ):
-    item = {{ class_name }}Service(db).restore(
+    item = {{ class_name }}Service(db{% if policy_contract %}, policy_roles{% endif %}).restore(
         item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=tenant_id{% endif %}
     )
     if item is None:

@@ -13,6 +13,10 @@ class {{ class_name }}CRUD:
         self.db = db
 
     def create(self, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         data = dict(values){% if audit_fields %}
         data["created_by"] = actor_id{% endif %}
 {% if tenant_contract %}
@@ -32,6 +36,8 @@ class {{ class_name }}CRUD:
 
     def update(self, item_id, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
 {% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
         if "{{ tenant_contract.key }}" in values:
             raise ValueError("Tenant ownership cannot be changed.")
 {% endif %}
@@ -51,6 +57,10 @@ class {{ class_name }}CRUD:
 
 {% if soft_delete %}
     def get(self, item_id, include_deleted: bool = False{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         query = self.db.query({{ class_name }}).filter(
             {{ class_name }}.{{ primary_key_name }} == item_id
         )
@@ -62,6 +72,10 @@ class {{ class_name }}CRUD:
         return query.first()
 
     def list(self, include_deleted: bool = False{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         query = self.db.query({{ class_name }})
 {% if tenant_contract %}
         query = query.filter({{ class_name }}.{{ tenant_contract.key }} == tenant_id)
@@ -71,6 +85,10 @@ class {{ class_name }}CRUD:
         return query.all()
 
     def delete(self, item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         item = self.get(item_id, include_deleted=True{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
         if item is None or item.deleted_at is not None:
             return item
@@ -86,6 +104,10 @@ class {{ class_name }}CRUD:
         return item
 
     def restore(self, item_id{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         item = self.get(item_id, include_deleted=True{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
         if item is None or item.deleted_at is None:
             return item
@@ -101,6 +123,10 @@ class {{ class_name }}CRUD:
         return item
 {% else %}
     def get(self, item_id{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         return (
             self.db.query({{ class_name }})
             .filter({{ class_name }}.{{ primary_key_name }} == item_id{% if tenant_contract %}, {{ class_name }}.{{ tenant_contract.key }} == tenant_id{% endif %})
@@ -108,6 +134,10 @@ class {{ class_name }}CRUD:
         )
 
     def list(self{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         return (
             self.db.query({{ class_name }})
             {% if tenant_contract %}.filter({{ class_name }}.{{ tenant_contract.key }} == tenant_id){% endif %}
@@ -115,6 +145,10 @@ class {{ class_name }}CRUD:
         )
 
     def remove(self, item_id{% if tenant_contract %}, tenant_id=None{% endif %}):
+{% if tenant_contract %}
+        if tenant_id is None:
+            raise PermissionError("Trusted tenant context is required.")
+{% endif %}
         item = self.get(item_id{% if tenant_contract %}, tenant_id=tenant_id{% endif %})
         if item is None:
             return None

@@ -22,6 +22,7 @@ def generate_router(module: ModuleDefinition):
         soft_delete=module.soft_delete,
         audit_fields=module.audit_fields is not None,
         tenant_contract=module.tenant_contract,
+        policy_contract=module.policy_contract,
         actor_type=(
             {"int": "int", "str": "str", "uuid": "UUID"}[
                 module.audit_fields.python_type

@@ -341,7 +341,55 @@ Emergent becomes optional development tooling only.
 
 ---
 
-## 13. Implementation Sequence
+## 13. ArcaOS End-User Mission Control Personalization
+
+ArcaOS should also expose a safe **user personalization layer** for Mission Control itself.
+
+The official Mission Control design remains the protected default. Users customize only their own presentation layer unless an authorized organization administrator publishes a shared default.
+
+User capabilities should include:
+- drag-and-drop dashboard rearrangement
+- resize cards/widgets
+- show/hide modules
+- choose which metrics appear first
+- select or generate background imagery
+- choose approved themes such as cosmic, minimal, or compact
+- adjust bounded glow/motion intensity
+- compact vs spacious density
+- save multiple named layouts such as CEO View, Product View, Finance View, or Operations View
+- reset instantly to the official default
+- preview desktop/tablet/mobile where applicable
+- optional team layout sharing where permissions allow
+
+The personalization architecture should be:
+
+`Official Mission Control shell → protected functional layout contract → per-user personalization layer → optional organization default`
+
+Customization must never break:
+- routes
+- permissions
+- RBAC
+- authentication
+- required alerts
+- required compliance/security surfaces
+- underlying ArcaOS data models
+- system-critical actions
+
+Examples of user AI commands:
+- “Put Product Health, Blockers, and Revenue at the top.”
+- “Make my Mission Control cleaner and more executive.”
+- “Use this background image but keep all widgets readable.”
+- “Create a Finance View and an Operations View.”
+
+ArcaOS should preview the personalized layout before applying it.
+
+Organization administrators should eventually be able to define a branded organization default using approved company assets, colors, backgrounds, and widget ordering without altering the underlying ArcaOS application shell.
+
+This capability should use the same Visual Scene Model, asset provenance, preview, rollback, reduced-motion, and bounded-control principles as the main Visual Control Center.
+
+---
+
+## 14. Implementation Sequence
 
 Do **not** derail ArcaCore Sprints 28–30 to build this prematurely.
 
@@ -357,15 +405,17 @@ Recommended sequence:
 8. Integrate Site Intelligence recommendations.
 9. Add structured AI design commands.
 10. Add preview / before-after / device simulation.
-11. Integrate ArcaCore validation/security/release checks.
-12. Integrate GitHub branch/approval workflow.
-13. Connect to ArcaCentum-owned deployment infrastructure.
-14. Migrate visual-maintenance workflows away from Emergent.
-15. Retain Emergent only as optional tooling if useful.
+11. Add End-User Mission Control Personalization and saved per-user layouts.
+12. Add organization-level branded/default Mission Control layouts with RBAC controls.
+13. Integrate ArcaCore validation/security/release checks.
+14. Integrate GitHub branch/approval workflow.
+15. Connect to ArcaCentum-owned deployment infrastructure.
+16. Migrate visual-maintenance workflows away from Emergent.
+17. Retain Emergent only as optional tooling if useful.
 
 ---
 
-## 14. Definition of Success
+## 15. Definition of Success
 
 This capability is complete when Tyler can make a request such as:
 
@@ -384,14 +434,20 @@ and ArcaOS can:
 - deploy through ArcaCentum-owned infrastructure
 - rollback safely if needed
 
-without requiring Emergent.
+It should also be complete when an end user can say:
+
+> “Make my Mission Control cleaner, move Product Health and Blockers to the top, use this background, and save it as CEO View.”
+
+and ArcaOS can safely preview and apply that personalization without changing the protected functional shell.
 
 ---
 
-## 15. Locked Decision
+## 16. Locked Decision
 
 **ArcaOS Visual Control Center is a formal future ArcaCentum capability.**
 
-It is not optional polish and should not be forgotten after ArcaCore v1.
+**End-User Mission Control Personalization is also a formal future ArcaOS capability.**
 
-Its strategic purpose is to give ArcaCentum private, durable control over visual design, site maintenance, motion, previews, approvals, fixes, and deployment across the ecosystem.
+These are not optional polish and should not be forgotten after ArcaCore v1.
+
+Their strategic purpose is to give ArcaCentum private, durable control over visual design, site maintenance, motion, previews, approvals, fixes, deployment, and safe user-customizable Mission Control experiences across the ecosystem.

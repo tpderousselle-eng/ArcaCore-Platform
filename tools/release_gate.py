@@ -96,7 +96,7 @@ CONTRACTS = (
     Contract("Background and scheduled jobs", ("-m", "unittest", "tools.test_jobs", "-v"), {}),
     Contract("Events and webhooks", ("-m", "unittest", "tools.test_events", "-v"), {}),
     Contract("File and object storage", ("-m", "unittest", "tools.test_storage", "-v"), {}),
-    Contract("Production intelligence", ("-m", "unittest", "tools.test_structured_logging", "tools.test_observability", "tools.test_health_intelligence", "-v"), {}),
+    Contract("Production intelligence", ("-m", "unittest", "tools.test_structured_logging", "tools.test_observability", "tools.test_health_intelligence", "tools.test_resource_intelligence", "-v"), {}),
 )
 
 

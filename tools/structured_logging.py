@@ -8,7 +8,8 @@ from tools.configuration_lifecycle import SecretValue
 from tools.multitenancy import TenantContext,trusted_tenant_id
 
 _NAME=re.compile(r"[a-z][a-z0-9_.-]{0,126}\Z"); _CORR=re.compile(r"[A-Za-z0-9_-]{1,128}\Z")
-_SENSITIVE=frozenset({"authorization","password","token","access_token","api_key","secret","private_key","database_password"})
+_SENSITIVE=frozenset({"authorization","password","token","access_token","api_key","secret","private_key","database_password","email","phone","address","full_name"})
+_RESERVED_ATTRIBUTES=frozenset({"tenant","tenant_id","correlation_id","request_id"})
 MAX_ATTRIBUTES=32; MAX_SERIALIZED=16384
 class LogLevel(str,Enum): DEBUG="DEBUG"; INFO="INFO"; WARNING="WARNING"; ERROR="ERROR"
 def correlation_id(value):
@@ -33,7 +34,7 @@ def _redact(value,secrets,depth=0):
         if len(value)>MAX_ATTRIBUTES: raise ValueError("Too many log attributes.")
         out={}
         for k in sorted(value):
-            if not isinstance(k,str) or not _NAME.fullmatch(k): raise ValueError("Log attribute name is invalid.")
+            if not isinstance(k,str) or not _NAME.fullmatch(k) or k.lower() in _RESERVED_ATTRIBUTES: raise ValueError("Log attribute name is invalid.")
             out[k]="[REDACTED]" if k.lower() in _SENSITIVE else _redact(value[k],secrets,depth+1)
         return out
     raise ValueError("Log attribute type is unsupported.")

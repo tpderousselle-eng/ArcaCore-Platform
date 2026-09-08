@@ -1522,5 +1522,8 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 28.4 background and scheduled jobs: complete locally.
 - Sprint 28.5 events, webhooks, and event bus: complete locally.
 - Sprint 28.6 file and object storage: complete locally.
-- Sprint 28 is locally complete and awaiting merge, promotion, and certification.
-- Sprint 29 has not started.
+- Sprint 28 is fully certified on main at `457e68b2c0f27ef108969ebcf33e6605f6fcd78c` by GitHub Security Promotion run `34169875473` (SUCCESS).
+- Sprint 29.1 structured logging: complete locally.
+- Sprint 29.2 metrics and tracing: complete locally.
+- Sprint 29.3 runtime health intelligence: complete locally.
+- Sprint 29 remains incomplete; Sprint 29.4, 29.5, and 29.6 have not started.

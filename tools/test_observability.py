@@ -8,6 +8,8 @@ class ObservabilityTest(unittest.TestCase):
   self.assertEqual(len(r.values[("request.duration",())]["buckets"]),2)
  def test_metric_labels_and_cardinality_fail_closed(self):
   with self.assertRaises(ValueError):MetricDefinition("bad",MetricKind.COUNTER,("tenant_id",))
+  with self.assertRaises(ValueError):MetricDefinition("bad",MetricKind.COUNTER,("credential",))
+  with self.assertRaises(ValueError):MetricDefinition("bad",MetricKind.HISTOGRAM,(),(float("inf"),))
   r=MetricRegistry((MetricDefinition("jobs.total",MetricKind.COUNTER,("status",)),),max_series=1);r.observe("jobs.total",1,{"status":"ok"})
   with self.assertRaises(ValueError):r.observe("jobs.total",1,{"status":"bad"})
   with self.assertRaises(ValueError):r.observe("jobs.total",1,{"unknown":"x"})
@@ -19,6 +21,8 @@ class ObservabilityTest(unittest.TestCase):
   t=Tracer(LocalTraceExporter(),max_depth=1);root=t.start("request",TraceContext("a"*32,"b"*16))
   with self.assertRaises(ValueError):t.start("child",TraceContext("a"*32,"c"*16),parent=root)
   with self.assertRaises(ValueError):Tracer(LocalTraceExporter()).start("db",TraceContext("a"*32,"b"*16),attributes={"sql_parameters":"password"})
+  with self.assertRaises(ValueError):Tracer(LocalTraceExporter()).start("db",TraceContext("a"*32,"b"*16),attributes={"nested":{"db.statement":"select secret"}})
+  with self.assertRaises(ValueError):Tracer(LocalTraceExporter()).start("child",TraceContext("c"*32,"d"*16),parent=root)
  def test_local_exporter_bounded_no_network(self):
   e=LocalTraceExporter(1);t=Tracer(e);s=t.start("job",TraceContext("a"*32,"b"*16));t.finish(s,True)
   with self.assertRaises(ValueError):e.export(s)

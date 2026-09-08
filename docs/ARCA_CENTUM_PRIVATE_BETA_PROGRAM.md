@@ -334,21 +334,105 @@ If minors are ever permitted to use ArcaCentum.ai directly, create a separate ag
 
 ---
 
-## 17. Beta Credits / Limits
+## 17. Beta Credits / Limits — LOCKED POLICY
 
-Private beta accounts may receive a controlled testing allowance.
+### Founding Tester pricing
 
-Possible model:
+The first private beta cohort — **ArcaCentum.ai Founding Testers** — receives beta access **free of charge**.
 
-- beta credit grant
-- bounded monthly build allowance
-- bounded AI usage
+Founding Testers should not be required to purchase normal production credits in order to help ArcaCentum test an unfinished product.
+
+Their primary value to ArcaCentum during this phase is:
+
+- real-world usage
+- product feedback
+- build-failure discovery
+- edge-case discovery
+- usability feedback
+- bug reports
+- repeated testing
+
+### Free does not mean unlimited
+
+Founding Tester usage must remain bounded and server-enforced.
+
+Recommended starting model:
+
+- initial beta credit grant per selected tester
+- target starting range: approximately **500–1,000 beta credits** per tester unless later testing shows a different amount is more appropriate
+- credits may expire at the end of the beta/cohort period
+- no automatic unlimited refill
+- bounded AI/model usage
+- bounded build count where needed
 - bounded storage
-- no unlimited resource consumption
+- abuse/rate controls remain active
 
-Usage limits should be transparent in the account area.
+The exact numeric credit grant remains configurable and may change as real usage cost is understood.
 
-Beta limits should be enforced server-side.
+### Manual top-ups
+
+ArcaCentum may manually grant additional beta credits when a tester:
+
+- is actively providing useful feedback
+- reaches the limit through legitimate testing
+- is testing an important scenario
+- needs additional credits to reproduce a defect
+
+Manual top-ups should be auditable.
+
+Do not silently create unlimited accounts.
+
+### Beta credit identity
+
+Beta credits should be distinguishable from normal purchased/promotional production credits where practical.
+
+Possible metadata:
+
+- grant type: `FOUNDING_BETA`
+- amount granted
+- amount remaining
+- granted timestamp
+- expiration timestamp if applicable
+- grant reason
+- authorized grant source
+
+This prevents beta grants from being confused with cash-equivalent purchased balances.
+
+### User-visible transparency
+
+Beta testers should be able to see:
+
+- their beta credit balance
+- approximate usage
+- expiration if applicable
+- whether additional testing credits can be requested
+
+Do not surprise testers with charges.
+
+### No automatic billing
+
+Founding Testers must not be automatically converted into a paid subscription merely because the private beta ends.
+
+Any future paid conversion requires a clear affirmative user action and disclosure of pricing.
+
+### Future pricing progression
+
+The planned progression is:
+
+- **Founding Private Beta:** free access + capped beta credits
+- **Expanded Private Beta:** may remain free or introduce selectively discounted credits depending on platform maturity and testing goals
+- **Public Beta:** may introduce normal paid plans, paid credit packs, launch discounts, or promotional credits
+- **General Availability:** standard production pricing model
+
+Do not begin charging beta testers merely because infrastructure costs exist; charging should begin when ArcaCentum can provide sufficiently reliable productive value rather than primarily asking users to debug the platform.
+
+### Billing-system separation
+
+Beta entitlements and free beta-credit grants should integrate with the account/credit system without creating fake payment transactions.
+
+A free beta grant is not a Stripe purchase and should not be represented as one.
+
+Usage limits must remain enforced at trusted server/service boundaries.
 
 ---
 
@@ -368,6 +452,11 @@ Focus:
 - onboarding confusion
 - high-severity defects
 
+Commercial policy:
+- free private-beta access
+- capped ArcaCentum-provided beta credits
+- manual top-ups for productive testing when approved
+
 ### Cohort 2 — Expanded Private Beta
 20–50 testers after Cohort 1 blockers are resolved.
 
@@ -378,6 +467,8 @@ Focus:
 - collaboration
 - account/credit behavior
 
+Commercial policy may remain free or begin testing discounted credit models only after ArcaCentum is providing reliable productive value.
+
 ### Cohort 3 — Pre-Public Beta
 Larger controlled audience.
 
@@ -387,6 +478,8 @@ Focus:
 - abuse controls
 - performance
 - conversion/onboarding
+
+This cohort may be used to validate production pricing and paid-credit behavior before broad launch.
 
 Do not increase cohort size simply because signups exist.
 
@@ -430,6 +523,8 @@ Possible recognition later:
 
 Do not promise permanent free access or lifetime benefits unless ArcaCentum intentionally adopts such a policy.
 
+The locked beta-credit policy does **not** create a permanent free-account entitlement after the beta.
+
 ---
 
 ## 21. Implementation Sequence
@@ -442,13 +537,17 @@ Recommended sequence:
 4. Implement private-beta application page/form.
 5. Implement applicant state model and admin review.
 6. Implement invitation/entitlement workflow.
-7. Implement first-login beta onboarding.
-8. Implement in-product feedback capture.
-9. Implement ArcaOS Beta Operations dashboard.
-10. Add beta analytics and failure correlation.
-11. Create Founding Tester cohort.
-12. Invite first 5–10 testers.
-13. Resolve blocking findings before expanding cohort.
+7. Implement beta-credit grant ledger and server-side beta usage limits.
+8. Implement first-login beta onboarding.
+9. Implement in-product feedback capture.
+10. Implement ArcaOS Beta Operations dashboard.
+11. Add beta analytics and failure correlation.
+12. Create Founding Tester cohort.
+13. Grant each selected tester a bounded free beta-credit allowance.
+14. Invite first 5–10 testers.
+15. Manually top up productive testers when justified.
+16. Resolve blocking findings before expanding cohort.
+17. Test paid/discounted credit behavior only when the platform is mature enough to provide reliable productive value.
 
 Do not use Emergent as the hidden builder behind beta showcase results once ArcaCentum's own ArcaCore/ArcaDev path is capable of producing them.
 
@@ -462,6 +561,9 @@ The private beta system is working when ArcaCentum can:
 - review/select a small cohort
 - invite approved testers securely
 - grant beta access server-side
+- grant bounded free beta credits without fake billing transactions
+- show remaining beta credits clearly
+- top up legitimate testers through an auditable admin workflow
 - onboard users quickly
 - let them attempt a real build
 - capture structured feedback and failures
@@ -470,7 +572,7 @@ The private beta system is working when ArcaCentum can:
 - revoke/pause beta access when needed
 - expand cohorts intentionally
 
-without manually managing the entire program through DMs, spreadsheets, or ad-hoc email lists.
+without manually managing the entire program through DMs, spreadsheets, ad-hoc email lists, or manual payment workarounds.
 
 ---
 
@@ -481,5 +583,11 @@ without manually managing the entire program through DMs, spreadsheets, or ad-ho
 The first beta cohort should be small, curated, and intentionally diverse in technical experience and product goals.
 
 Email collection is required for beta communication, with explicit beta-specific consent.
+
+**ArcaCentum.ai Founding Testers will not pay for their initial private-beta usage. They will receive free, capped, server-enforced beta credits in exchange for meaningful testing and feedback.**
+
+**Founding beta access is not unlimited, is not a promise of lifetime free access, and will not automatically convert into a paid subscription.**
+
+The exact initial beta-credit amount remains configurable; the current planning target is approximately **500–1,000 credits per Founding Tester**, with auditable manual top-ups when justified.
 
 The beta program is designed to generate product-learning and operational intelligence for ArcaOS, not merely collect signups.

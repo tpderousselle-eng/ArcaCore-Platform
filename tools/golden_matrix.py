@@ -1,4 +1,4 @@
-"""Canonical application definitions for Stabilization 25.1.
+"""Canonical generated-application definitions for ArcaCore certification.
 
 The definitions in this module are intentionally data only.  The golden matrix
 test suite generates every application in a temporary directory through the
@@ -23,6 +23,18 @@ class GoldenApplication:
     name: str
     description: str
     modules: tuple[GoldenModule, ...]
+
+
+# Capabilities implemented outside the module generator are still part of the
+# application certification matrix.  Keeping this routing data-only makes gaps
+# visible without introducing a second execution or validation path.
+CERTIFICATION_CONTRACTS = {
+    "migrations": "tools.test_schema_lifecycle",
+    "rbac": "tools.test_authorization",
+    "jobs": "tools.test_jobs",
+    "events": "tools.test_events",
+    "storage": "tools.test_storage",
+}
 
 
 GOLDEN_APPLICATIONS = (
@@ -109,6 +121,7 @@ GOLDEN_APPLICATIONS = (
             GoldenModule(
                 "Workspace",
                 (
+                    "tenant_scope(tenant_id,int)",
                     "slug:str:format=slug:length=80:unique",
                     "name:str:min_length=1:length=160",
                 ),
@@ -116,6 +129,7 @@ GOLDEN_APPLICATIONS = (
             GoldenModule(
                 "User",
                 (
+                    "tenant_scope(tenant_id,int)",
                     "email:str:format=email:length=254:unique",
                     "display_name:str:length=160",
                 ),
@@ -123,8 +137,9 @@ GOLDEN_APPLICATIONS = (
             GoldenModule(
                 "Member",
                 (
-                    "workspace_id:int:fk=workspaces.id:one_to_many(Workspace,members):cascade_delete:passive_deletes",
-                    "user_id:int:fk=users.id:one_to_many(User,members):cascade_delete:passive_deletes",
+                    "tenant_scope(tenant_id,int)",
+                    "workspace_id:int:fk=workspaces.id:one_to_many(Workspace,members):tenant_target:cascade_delete:passive_deletes",
+                    "user_id:int:fk=users.id:one_to_many(User,members):tenant_target:cascade_delete:passive_deletes",
                     "role:choice(Owner,Admin,Member):default='Member'",
                     "unique_together(workspace_id,user_id)",
                     "index(workspace_id,role)",

@@ -13,7 +13,11 @@ import unittest
 from unittest.mock import patch
 
 from tools import generate as pipeline
-from tools.golden_matrix import GOLDEN_APPLICATIONS, GoldenApplication
+from tools.golden_matrix import (
+    CERTIFICATION_CONTRACTS,
+    GOLDEN_APPLICATIONS,
+    GoldenApplication,
+)
 import tools.generate_crud as crud_generator
 import tools.generate_model as model_generator
 import tools.generate_router as router_generator
@@ -36,7 +40,7 @@ DECLARATION_PREFIXES = (
     "unique_together(",
     "check(",
 )
-MODULE_OPTIONS = {"soft_delete", "audit_fields", "version_column"}
+MODULE_OPTIONS = {"soft_delete", "audit_fields", "version_column", "tenant_scope"}
 REGISTRY_FIELD_KEYS = {
     "name",
     "python_type",
@@ -73,6 +77,7 @@ def declared_field_names(definitions):
         if definition not in MODULE_OPTIONS
         and not definition.startswith("audit_fields(")
         and not definition.startswith("version_column(")
+        and not definition.startswith("tenant_scope(")
         and not definition.startswith(DECLARATION_PREFIXES)
     ]
 
@@ -177,6 +182,35 @@ class GoldenMatrixSmokeTest(unittest.TestCase):
         self.assertTrue(
             all(application.description for application in GOLDEN_APPLICATIONS)
         )
+
+    def test_v1_capability_matrix_has_no_certification_gaps(self):
+        declarations = {
+            definition
+            for application in GOLDEN_APPLICATIONS
+            for module in application.modules
+            for definition in module.fields
+        }
+        generated_capabilities = {
+            "field types": any("decimal(" in item for item in declarations),
+            "relationships": any(":fk=" in item for item in declarations),
+            "indexes": any(item.startswith("index(") for item in declarations),
+            "validation": any(":min" in item or ":format=" in item for item in declarations),
+            "encryption": any(":encrypted=" in item for item in declarations),
+            "auditing": any(item.startswith("audit_fields") for item in declarations),
+            "versioning": "version_column" in declarations,
+            "soft delete": "soft_delete" in declarations,
+            "multitenancy": any(item.startswith("tenant_scope") for item in declarations),
+        }
+        self.assertTrue(all(generated_capabilities.values()), generated_capabilities)
+        self.assertEqual(
+            set(CERTIFICATION_CONTRACTS),
+            {"migrations", "rbac", "jobs", "events", "storage"},
+        )
+        for capability, module_name in CERTIFICATION_CONTRACTS.items():
+            with self.subTest(capability=capability):
+                module = importlib.import_module(module_name)
+                suite = unittest.defaultTestLoader.loadTestsFromModule(module)
+                self.assertGreater(suite.countTestCases(), 0)
 
     def test_every_application_generates_all_layers_and_only_expected_files(self):
         for application in GOLDEN_APPLICATIONS:

@@ -1529,5 +1529,5 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 29.4 resource and capacity intelligence: complete locally.
 - Sprint 29.5 controlled extension hooks: complete locally.
 - Sprint 29.6 stable internal SDK: complete locally.
-- Sprint 29 is locally complete and awaiting merge, promotion, and certification.
+- Sprint 29 is fully certified on main at implementation SHA `aa1eb512d5b58788f280bf30c116796f50459562` by GitHub Security Promotion run `34355073210` (SUCCESS).
 - Sprint 30 has not started.

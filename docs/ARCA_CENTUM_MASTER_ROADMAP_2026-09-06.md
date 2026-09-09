@@ -1513,7 +1513,7 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 27.6 runtime and recovery security hardening: certified.
 - Sprint 27 is fully certified on main at `641899c13dc3ddf72cf82951316dbfe34ca86d91` by GitHub Security Promotion run `34120573734` (SUCCESS).
 
-## Sprint 28 and Sprint 29 Status
+## Sprint 28, Sprint 29, and Sprint 30 Status
 
 - Sprint 28.1 native multitenancy primitives: complete locally.
 - Sprint 28.2 generated RBAC and policy systems: complete locally.
@@ -1530,4 +1530,9 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 29.5 controlled extension hooks: complete locally.
 - Sprint 29.6 stable internal SDK: complete locally.
 - Sprint 29 is fully certified on main at implementation SHA `aa1eb512d5b58788f280bf30c116796f50459562` by GitHub Security Promotion run `34355073210` (SUCCESS).
-- Sprint 30 has not started.
+- Sprint 30.1 expanded golden application certification matrix: certified.
+- Sprint 30.2 autonomous generation lifecycle certification: certified.
+- Sprint 30.3 hostile specification certification: certified.
+- Sprint 30.4 production platform contract certification: certified.
+- Sprint 30.5 ArcaCore v1 release gate: certified.
+- Sprint 30 and ArcaCore v1 are fully certified at implementation SHA `615c47e0fbadf15306d51d200203702dea1cb277` by GitHub Security Promotion run `34401493991` (SUCCESS).

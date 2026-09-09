@@ -89,6 +89,17 @@ CONTRACTS = (
     Contract("Security hardening", ("-m", "unittest", "tools.test_security_hardening", "-v"), {}),
     Contract("Determinism / reproducibility", ("-m", "unittest", "tools.test_determinism", "-v"), {}),
     Contract(
+        "Autonomous generation lifecycle",
+        (
+            "-m", "unittest",
+            "tools.test_schema_lifecycle", "tools.test_schema_evolution",
+            "tools.test_alembic_migration", "tools.test_minimal_regeneration",
+            "tools.test_runtime_harness", "tools.test_failure_localization",
+            "-v",
+        ),
+        {},
+    ),
+    Contract(
         "Autonomous runtime recovery",
         ("-m", "unittest", "tools.test_recovery_workflow", "tools.test_build_orchestrator", "tools.test_autonomous_security", "-v"),
         {},

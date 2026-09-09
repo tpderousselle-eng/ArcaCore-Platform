@@ -61,6 +61,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Failure injection / atomicity",
                 "Security hardening",
                 "Determinism / reproducibility",
+                "Autonomous generation lifecycle",
                 "Autonomous runtime recovery",
                 "Background and scheduled jobs",
                 "Events and webhooks",
@@ -68,6 +69,22 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Production intelligence",
             ],
         )
+
+    def test_autonomous_lifecycle_contract_is_complete_and_non_recursive(self):
+        contract = next(
+            item for item in release_gate.CONTRACTS
+            if item.name == "Autonomous generation lifecycle"
+        )
+        modules = set(contract.arguments)
+        self.assertTrue({
+            "tools.test_schema_lifecycle",
+            "tools.test_schema_evolution",
+            "tools.test_alembic_migration",
+            "tools.test_minimal_regeneration",
+            "tools.test_runtime_harness",
+            "tools.test_failure_localization",
+        } <= modules)
+        self.assertNotIn("tools.test_release_gate", modules)
 
     def test_discovery_is_non_recursive_and_disables_docker_opt_in(self):
         discovery = release_gate.CONTRACTS[0]

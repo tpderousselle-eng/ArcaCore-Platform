@@ -57,6 +57,12 @@ def generate_module(
 ):
     if not valid_public_identifier(name):
         raise ValueError("Module name must be a public ASCII Python identifier.")
+    if (
+        not isinstance(field_strings, list)
+        or len(field_strings) > 512
+        or any(not isinstance(value, str) or len(value) > 4096 for value in field_strings)
+    ):
+        raise ValueError("Module declarations must be a bounded list of strings.")
     field_definitions = []
     index_definitions = []
     constraint_definitions = []

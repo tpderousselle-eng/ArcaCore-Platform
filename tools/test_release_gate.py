@@ -60,6 +60,7 @@ class ReleaseCandidateGateTest(unittest.TestCase):
                 "Kubernetes & health validation",
                 "Failure injection / atomicity",
                 "Security hardening",
+                "Hostile specification audit",
                 "Determinism / reproducibility",
                 "Autonomous generation lifecycle",
                 "Autonomous runtime recovery",

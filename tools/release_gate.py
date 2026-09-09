@@ -87,6 +87,11 @@ CONTRACTS = (
     ),
     Contract("Failure injection / atomicity", ("-m", "unittest", "tools.test_failure_injection", "-v"), {}),
     Contract("Security hardening", ("-m", "unittest", "tools.test_security_hardening", "-v"), {}),
+    Contract(
+        "Hostile specification audit",
+        ("-m", "unittest", "tools.test_v1_hostile_specs", "tools.test_autonomous_security", "tools.test_extensions", "-v"),
+        {},
+    ),
     Contract("Determinism / reproducibility", ("-m", "unittest", "tools.test_determinism", "-v"), {}),
     Contract(
         "Autonomous generation lifecycle",

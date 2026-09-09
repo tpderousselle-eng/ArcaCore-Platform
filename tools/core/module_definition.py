@@ -111,6 +111,7 @@ class ModuleDefinition:
 def valid_public_identifier(value: str) -> bool:
     return (
         isinstance(value, str)
+        and len(value) <= 128
         and value.isascii()
         and value.isidentifier()
         and not iskeyword(value)

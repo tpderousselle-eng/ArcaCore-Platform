@@ -420,6 +420,27 @@ class ReleaseCandidateGateTest(unittest.TestCase):
         self.assertIn("ARCCORE FUNCTIONAL RELEASE GATE: PASS", output)
         self.assertIn("ARCCORE SECURITY PROMOTION GATE: BLOCKED", output)
         self.assertIn("ARCCORE RELEASE GATE: FAIL", output)
+        self.assertNotIn("ARCCORE V1: COMPLETE", output)
+
+    def test_v1_completion_is_emitted_only_after_both_gates_pass(self):
+        results = [
+            *(release_gate.GateResult(contract.name, True, "1 tests", tests=1) for contract in release_gate.CONTRACTS),
+            release_gate.GateResult("Independent security review", True, "trusted"),
+        ]
+        metadata = {
+            "commit": COMMIT,
+            "python": "3.13",
+            "platform": "test",
+            "tests": len(release_gate.CONTRACTS),
+            "docker_executed": True,
+            "postgresql_executed": True,
+            "fixture_sha256": {},
+        }
+        output = release_gate.render(results, metadata)
+        self.assertIn("ARCCORE FUNCTIONAL RELEASE GATE: PASS", output)
+        self.assertIn("ARCCORE SECURITY PROMOTION GATE: PASS", output)
+        self.assertIn("ARCCORE RELEASE GATE: PASS", output)
+        self.assertTrue(output.endswith("ARCCORE V1: COMPLETE"))
 
 
 if __name__ == "__main__":

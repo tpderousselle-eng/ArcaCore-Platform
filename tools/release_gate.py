@@ -497,6 +497,8 @@ def render(results: Sequence[GateResult], metadata: Mapping[str, object]) -> str
             f"ARCCORE RELEASE GATE: {'PASS' if passed else 'FAIL'}",
         )
     )
+    if passed:
+        lines.append("ARCCORE V1: COMPLETE")
     return "\n".join(lines)
 
 

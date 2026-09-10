@@ -71,6 +71,21 @@ from .planning_engine import (
     validate_adapter_candidate,
     validate_plan_candidate,
 )
+from .plan_clarification import (
+    ARCADEV_PLAN_CLARIFICATION_ANSWER_SCHEMA,
+    ARCADEV_PLAN_CLARIFICATION_ANSWER_SCHEMA_VERSION,
+    ARCADEV_PLAN_FINALIZATION_SCHEMA,
+    ARCADEV_PLAN_FINALIZATION_SCHEMA_VERSION,
+    PlanClarificationAnswer,
+    PlanClarificationHistoryEntry,
+    PlanFinalization,
+    PlanningConflict,
+    PlanningDecision,
+    PlanResolutionAction,
+    PlanResolutionOutcome,
+    planning_question_id,
+    resolve_plan_clarification,
+)
 
 __all__ = [
     "ARCADEV_PROJECT_SCHEMA",
@@ -132,4 +147,17 @@ __all__ = [
     "generate_baseline_plan",
     "validate_adapter_candidate",
     "validate_plan_candidate",
+    "ARCADEV_PLAN_CLARIFICATION_ANSWER_SCHEMA",
+    "ARCADEV_PLAN_CLARIFICATION_ANSWER_SCHEMA_VERSION",
+    "ARCADEV_PLAN_FINALIZATION_SCHEMA",
+    "ARCADEV_PLAN_FINALIZATION_SCHEMA_VERSION",
+    "PlanClarificationAnswer",
+    "PlanClarificationHistoryEntry",
+    "PlanFinalization",
+    "PlanningConflict",
+    "PlanningDecision",
+    "PlanResolutionAction",
+    "PlanResolutionOutcome",
+    "planning_question_id",
+    "resolve_plan_clarification",
 ]

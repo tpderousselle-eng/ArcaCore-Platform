@@ -65,6 +65,12 @@ from .software_plan import (
     UserJourney,
     validate_software_plan_candidate,
 )
+from .planning_engine import (
+    PlanCandidateAdapter,
+    generate_baseline_plan,
+    validate_adapter_candidate,
+    validate_plan_candidate,
+)
 
 __all__ = [
     "ARCADEV_PROJECT_SCHEMA",
@@ -122,4 +128,8 @@ __all__ = [
     "SoftwarePlan",
     "UserJourney",
     "validate_software_plan_candidate",
+    "PlanCandidateAdapter",
+    "generate_baseline_plan",
+    "validate_adapter_candidate",
+    "validate_plan_candidate",
 ]

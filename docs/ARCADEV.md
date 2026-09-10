@@ -151,4 +151,12 @@ The plan identity is derived only from canonical plan content and its approved h
 
 The Gaming Studio example contract can represent its product objective, five approved core capabilities, the game-project workflow, GitHub dependency/integration, web constraints, milestone, deterministic risk, and acceptance criteria. Authentication and deployment decisions remain traceable to the frozen approved IDEA. This increment defines what a plan is and how it validates; it deliberately does not call an AI model or generate a plan.
 
+## Plan generation and candidate validation
+
+ArcaDev 2.2 adds a conservative deterministic planner. It consumes only the certified 1.4 frozen snapshot, turns approved capabilities into traceable functional requirements and acceptance criteria, groups approved work into milestones, carries constraints, authentication, integrations, and deployment forward, and records deterministic dependencies and risks. It does not infer unsupported business features.
+
+The provider-neutral `PlanCandidateAdapter` boundary allows future model integrations to return JSON-like candidate data without coupling the domain to a vendor, model name, response format, or network client. Every candidate is untrusted: exact schema and binding are validated, unknown and duplicate fields are rejected, identities and readiness are recomputed, material scope is checked against deterministically grounded capabilities, and secret, malformed, control-character, and oversized data fails closed. Provider claims and metadata never enter canonical identity.
+
+Gaming Studio generation preserves Desktop web, Mobile web, Email/password, Google OAuth, GitHub, and ArcaCentum managed cloud while planning its game-project, asset, build, test, publishing, authentication, and integration workflows. It exposes genuinely unresolved questions for build execution, asset storage, publishing targets, and GitHub synchronization, so its initial plan is not yet ready for architecture. IDEA questions are not reopened. ArcaDev 2.2 stops at PLAN: it performs no ARCHITECTURE transition and invokes no model, backend, frontend, file, shell, network, or ArcaCore generation behavior.
+
 Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow.

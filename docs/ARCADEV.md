@@ -131,6 +131,16 @@ The v1 loader rejects unknown or missing fields, duplicate JSON keys, unsupporte
 
 `save_project` accepts only validated project objects and canonical relative paths. It rejects traversal, Windows path aliases, and symbolic-link components, then uses an atomic same-directory replacement so an interrupted write does not replace the prior accepted file. It has no deletion behavior and executes no commands, imports, templates, callbacks, or generated code.
 
+## IDEA to PLAN transition gate
+
+ArcaDev 1.4 closes the IDEA lifecycle with the versioned `arcadev.idea_plan_handoff` contract. The gate binds the certified project identity to the finalized `IdeaIntake` identity, freezes the approved project, accepted requirements, provenance, clarification history, readiness, and consistency evaluation, and derives a content-addressed handoff identity. Consumers must use this frozen snapshot instead of independently re-normalizing the original wording.
+
+The consistency evaluator applies a deliberately small deterministic rule set. It blocks incompatible web/mobile platform combinations, authentication mechanisms combined with “no authentication,” integrations combined with “no external integrations,” and contradictory managed-cloud/self-hosted deployment choices. An unsupported project-type compatibility rule produces a warning rather than guessed intent.
+
+Transition eligibility requires a READY project still at IDEA, a ready finalized intake, no blocking clarification, assumptions, conflicts, identity mismatch, or consistency blocker, and a structurally valid handoff. A successful gate returns a new immutable project value with status `IN_PROGRESS` and stage `PLAN`; the source project remains recoverable as READY at IDEA. A blocked gate retains the original lifecycle state. Neither outcome contains plan content.
+
+For Gaming Studio, the approved Desktop web and Mobile web targets, Email/password and Google OAuth authentication, GitHub integration, and ArcaCentum managed-cloud deployment pass consistency. The deterministic handoff becomes eligible and yields the new PLAN-stage project while its frozen snapshot retains the complete approved IDEA and clarification trail. ArcaDev 1.4 controls the boundary only; software-plan definition and generation remain later responsibilities.
+
 ## Future extension boundary
 
-Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow. ArcaDev 1.3 ends at deterministic IDEA finalization and does not implement any of those future stages.
+Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow.

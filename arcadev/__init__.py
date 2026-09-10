@@ -38,6 +38,19 @@ from .clarification import (
     resolve_clarification,
     validate_resolution_candidate,
 )
+from .idea_plan_handoff import (
+    ARCADEV_IDEA_PLAN_HANDOFF_SCHEMA,
+    ARCADEV_IDEA_PLAN_HANDOFF_SCHEMA_VERSION,
+    ConsistencyEvaluation,
+    ConsistencyFinding,
+    FindingSeverity,
+    FrozenIdeaSnapshot,
+    IdeaPlanHandoff,
+    TransitionDecision,
+    create_idea_plan_handoff,
+    evaluate_idea_consistency,
+    validate_idea_plan_handoff,
+)
 
 __all__ = [
     "ARCADEV_PROJECT_SCHEMA",
@@ -72,4 +85,15 @@ __all__ = [
     "idea_intake_id",
     "resolve_clarification",
     "validate_resolution_candidate",
+    "ARCADEV_IDEA_PLAN_HANDOFF_SCHEMA",
+    "ARCADEV_IDEA_PLAN_HANDOFF_SCHEMA_VERSION",
+    "ConsistencyEvaluation",
+    "ConsistencyFinding",
+    "FindingSeverity",
+    "FrozenIdeaSnapshot",
+    "IdeaPlanHandoff",
+    "TransitionDecision",
+    "create_idea_plan_handoff",
+    "evaluate_idea_consistency",
+    "validate_idea_plan_handoff",
 ]

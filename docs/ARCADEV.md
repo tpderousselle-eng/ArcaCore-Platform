@@ -79,6 +79,40 @@ the deterministic normalizer preserves that sentence unchanged, extracts `users`
 
 `IdeaIntake.to_project` is the only intake-to-project conversion. It refuses an intake that is not ready and requires caller-supplied validated `ProjectMetadata`, preserving the 1.1 rule against implicit timestamps. It builds `ProjectSpecification` and `ArcaDevProject` through their public constructors rather than duplicating the project schema. The resulting project has status `READY` but remains at build stage `IDEA`; no PLAN transition occurs. Non-functional requirements and technology preferences are carried into the existing 1.1 `user_constraints` field with explicit category prefixes.
 
+## Clarification resolution and IDEA finalization
+
+ArcaDev 1.3 resolves ambiguity without introducing PLAN-stage behavior. `IdeaFinalization` is an immutable, versioned session containing the initial 1.2 `IdeaIntake`, the current intake, active conflicts, and an ordered clarification history. The initial intake remains byte-for-byte available throughout the session. Each accepted or conflicting user answer is appended unchanged to the current intake's source transcript, so new explicit evidence can be validated by the 1.2 contract without overwriting earlier user wording.
+
+Every intake state has a deterministic `arcadev_idea_...` identity derived only from canonical intake content. A `ClarificationAnswer` names that identity, one requirement, the unchanged user answer, its evidence, an action, accepted candidate values, and—only for deliberate explicit replacement—the expected previous values. Supported actions are:
+
+- `answer`: resolve a currently open requirement;
+- `confirm_assumption`: confirm an existing tentative interpretation without changing its normalized value;
+- `reject_assumption`: remove a tentative interpretation and leave its requirement unresolved when needed;
+- `replace_assumption`: replace a tentative interpretation with corrected explicit intent; and
+- `replace_explicit`: deliberately resolve a recorded conflict against exact expected prior values.
+
+Answers are accepted only for the named requirement. Scalar requirements accept exactly one normalized value; collection requirements accept one or more values, reject case-insensitive duplicates, and serialize in canonical order. Unrelated values retain their existing value, confidence, evidence, and provenance. Accepted clarification values are always `explicitly_stated` with high confidence and evidence drawn from the unchanged answer.
+
+### Conflicts
+
+An ordinary answer cannot silently replace established explicit or deterministically derived intent. A contradictory answer creates an `IntentConflict`, retains the existing value, records the proposed values as rejected for that attempt, and adds a blocking clarification. Resolving it requires `replace_explicit` against the current intake identity and the exact previous values. The deliberate replacement affects only that requirement; related fields are not guessed or silently changed.
+
+### Deterministic history and replay
+
+Each `ClarificationHistoryEntry` records the complete answer contract, outcome, previous/accepted/rejected normalized values, resulting intake identity, readiness before and after, and unresolved requirements and assumptions before and after. No clock or host metadata is present. History order reflects user resolution order; unordered values inside each event are canonicalized.
+
+Deserialization replays every answer from the preserved initial intake and requires every history entry, conflict, current intake, identity, and readiness value to match the deterministic replay. A stale answer cannot be replayed against a newer intake identity. History is bounded to 256 entries.
+
+### Gaming Studio finalization
+
+The 1.2 Gaming Studio intake begins not ready, with a tentative name and unresolved type, platforms, authentication, integrations, and deployment. A representative 1.3 session explicitly confirms `Gaming Studio`, sets `web_application`, selects `Desktop web` and `Mobile web`, chooses `Email/password` and `Google OAuth`, integrates `GitHub`, and selects `ArcaCentum managed cloud` deployment.
+
+After those six resolutions, the assumption list, blocking clarifications, and conflicts are empty, and the reused 1.2 readiness evaluator reports `ready_for_plan: true`. `IdeaFinalization.to_project` validates the entire history by replay, then calls the existing 1.2 conversion. The resulting ArcaDev 1.1 project has status `READY` and stage `IDEA`. Readiness authorizes a future transition; it does not perform one.
+
+### Clarification trust boundary
+
+Clarification answers and future AI-produced candidates are untrusted data. Exact schemas reject unknown fields, unsupported versions/actions/provenance, duplicate JSON keys or collection values, invalid Unicode and controls, oversized answers/documents/history, credential-like assignments, private keys, invalid project-type identifiers, forged intake identities/readiness, stale replay, nonexistent requirements, mismatched assumptions, and incorrect prior values. Provider/model metadata is not accepted and cannot enter identity. Commands, source code, prompts, and paths discussed as product requirements remain inert strings: clarification resolution performs no imports, shell execution, filesystem access, network access, generation, or deserialization beyond strict JSON parsing.
+
 ## Canonical project schema
 
 Schema `arcadev.project`, version `1`, separates three concerns:
@@ -99,4 +133,4 @@ The v1 loader rejects unknown or missing fields, duplicate JSON keys, unsupporte
 
 ## Future extension boundary
 
-Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow. ArcaDev 1.2 ends at readiness evaluation and does not implement any of those future stages.
+Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow. ArcaDev 1.3 ends at deterministic IDEA finalization and does not implement any of those future stages.

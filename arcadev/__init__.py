@@ -51,6 +51,20 @@ from .idea_plan_handoff import (
     evaluate_idea_consistency,
     validate_idea_plan_handoff,
 )
+from .software_plan import (
+    ARCADEV_SOFTWARE_PLAN_SCHEMA,
+    ARCADEV_SOFTWARE_PLAN_SCHEMA_VERSION,
+    Milestone,
+    PlanItem,
+    PlanProvenance,
+    PlanReadiness,
+    PlanRisk,
+    PlanScope,
+    PlanningQuestion,
+    SoftwarePlan,
+    UserJourney,
+    validate_software_plan_candidate,
+)
 
 __all__ = [
     "ARCADEV_PROJECT_SCHEMA",
@@ -96,4 +110,16 @@ __all__ = [
     "create_idea_plan_handoff",
     "evaluate_idea_consistency",
     "validate_idea_plan_handoff",
+    "ARCADEV_SOFTWARE_PLAN_SCHEMA",
+    "ARCADEV_SOFTWARE_PLAN_SCHEMA_VERSION",
+    "Milestone",
+    "PlanItem",
+    "PlanProvenance",
+    "PlanReadiness",
+    "PlanRisk",
+    "PlanScope",
+    "PlanningQuestion",
+    "SoftwarePlan",
+    "UserJourney",
+    "validate_software_plan_candidate",
 ]

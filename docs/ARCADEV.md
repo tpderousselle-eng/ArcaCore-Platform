@@ -143,4 +143,12 @@ For Gaming Studio, the approved Desktop web and Mobile web targets, Email/passwo
 
 ## Future extension boundary
 
+## Canonical software planning contract
+
+ArcaDev 2.1 defines the versioned `arcadev.software_plan` domain contract consumed at PLAN. A `SoftwarePlan` is bound to one approved 1.4 handoff and project identity and contains typed plan items, scope, capabilities, user roles and journeys, functional and non-functional requirements, milestones, dependencies, integrations, assumptions, risks and mitigations, planning questions, acceptance criteria, and constraints. Plan items record whether they reproduce approved IDEA content or are deterministic planning derivations, with source references back into the frozen IDEA; IDEA provenance itself is never rewritten.
+
+The plan identity is derived only from canonical plan content and its approved handoff. Readiness is separately recomputed: scope, capabilities, workflows, functional and applicable non-functional requirements, milestones, dependencies, risks, and acceptance criteria must be present, and no blocking planning question may remain. Presence alone therefore cannot forge readiness. A 2.1 plan remains at PLAN and contains no architecture output.
+
+The Gaming Studio example contract can represent its product objective, five approved core capabilities, the game-project workflow, GitHub dependency/integration, web constraints, milestone, deterministic risk, and acceptance criteria. Authentication and deployment decisions remain traceable to the frozen approved IDEA. This increment defines what a plan is and how it validates; it deliberately does not call an AI model or generate a plan.
+
 Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow.

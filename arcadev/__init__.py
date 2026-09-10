@@ -86,6 +86,19 @@ from .plan_clarification import (
     planning_question_id,
     resolve_plan_clarification,
 )
+from .plan_approval import (
+    ARCADEV_APPROVED_PLAN_SCHEMA,
+    ARCADEV_APPROVED_PLAN_SCHEMA_VERSION,
+    ApprovalDecision,
+    ApprovedPlan,
+    FrozenApprovedPlanPackage,
+    PlanConsistencyEvaluation,
+    PlanConsistencyFinding,
+    PlanFindingSeverity,
+    approve_plan,
+    evaluate_plan_consistency,
+    reject_plan,
+)
 
 __all__ = [
     "ARCADEV_PROJECT_SCHEMA",
@@ -160,4 +173,15 @@ __all__ = [
     "PlanResolutionOutcome",
     "planning_question_id",
     "resolve_plan_clarification",
+    "ARCADEV_APPROVED_PLAN_SCHEMA",
+    "ARCADEV_APPROVED_PLAN_SCHEMA_VERSION",
+    "ApprovalDecision",
+    "ApprovedPlan",
+    "FrozenApprovedPlanPackage",
+    "PlanConsistencyEvaluation",
+    "PlanConsistencyFinding",
+    "PlanFindingSeverity",
+    "approve_plan",
+    "evaluate_plan_consistency",
+    "reject_plan",
 ]

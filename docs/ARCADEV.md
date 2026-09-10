@@ -167,4 +167,12 @@ The finalization layer retains the original `SoftwarePlan`, current decisions, u
 
 PLAN decisions may add implementation details such as storage policy, isolated build execution, repository synchronization, and release controls, but they cannot rewrite frozen IDEA authority. A tagged contradiction such as replacing approved web targets with iOS-only becomes an explicit blocking conflict. Accepted decisions can be replaced only through a deliberate action naming the exact prior value. In the Gaming Studio certification fixture, four explicit answers resolve asset storage, build execution, publishing, and GitHub synchronization; the base plan and frozen IDEA remain canonical and the project stays at PLAN with no architecture output.
 
+## Final PLAN consistency and approval
+
+ArcaDev 2.4 introduces the versioned `arcadev.approved_plan` contract. Its frozen package embeds the valid IDEA handoff, original SoftwarePlan, finalized planning decisions and history, plus a freshly recomputed PLAN consistency evaluation. That package is sufficient for a later architecture stage to consume without rerunning IDEA normalization or planning.
+
+Consistency checks require resolved questions, no conflicts, correct project/handoff/plan/finalization binding, matching scope and capabilities, and preservation of approved integrations, authentication, platform, and deployment constraints. Deterministically recognizable scope conflicts block approval; unclassified explicit decision semantics are preserved as warnings instead of guessed failures.
+
+Readiness never implies approval. Approval requires a nonempty explicit statement and an eligible, consistent finalization; rejection is a separate immutable result that retains the full plan and history without marking it approved. The Gaming Studio certification fixture becomes eligible only after all four planning decisions are resolved, then produces a deterministic approved snapshot while the original SoftwarePlan and IN_PROGRESS/PLAN project remain unchanged. Approval does not transition to ARCHITECTURE or generate architecture content.
+
 Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow.

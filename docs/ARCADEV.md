@@ -175,4 +175,12 @@ Consistency checks require resolved questions, no conflicts, correct project/han
 
 Readiness never implies approval. Approval requires a nonempty explicit statement and an eligible, consistent finalization; rejection is a separate immutable result that retains the full plan and history without marking it approved. The Gaming Studio certification fixture becomes eligible only after all four planning decisions are resolved, then produces a deterministic approved snapshot while the original SoftwarePlan and IN_PROGRESS/PLAN project remain unchanged. Approval does not transition to ARCHITECTURE or generate architecture content.
 
+## PLAN to ARCHITECTURE transition
+
+ArcaDev 2.5 completes the PLAN lifecycle with the versioned `arcadev.plan_architecture_handoff` contract. The handoff binds the source project, IDEA handoff, approved-plan package, SoftwarePlan, and PlanFinalization identities, then freezes the entire approved PLAN package as the authoritative input for future architecture work. It never re-normalizes IDEA content or reruns planning.
+
+Transition requires an IN_PROGRESS project still at PLAN, explicit approval, effective readiness, passing PLAN consistency, no unresolved questions or conflicts, and exact identity binding with no stale state. Success returns a new immutable project value that remains IN_PROGRESS and advances to ARCHITECTURE; the source project remains recoverable at PLAN.
+
+The Gaming Studio handoff is deterministic and retains the complete approved IDEA, SoftwarePlan, planning decisions, history, consistency evidence, and approval statement. No architecture specification is generated, and no ArcaCore, backend, or frontend generator is invoked. Architecture generation begins only in a later ArcaDev increment.
+
 Later increments may add explicit versioned contracts for planning, architecture, models, generation requests, test/security evidence, previews, and deployments. Those stages should reference this project identity and integrate with ArcaCore only through its stable public manifests and orchestration contracts. ArcaDev must not weaken or patch ArcaCore internals to advance its own workflow.

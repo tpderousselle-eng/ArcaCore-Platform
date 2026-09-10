@@ -99,6 +99,14 @@ from .plan_approval import (
     evaluate_plan_consistency,
     reject_plan,
 )
+from .plan_architecture_handoff import (
+    ARCADEV_PLAN_ARCHITECTURE_HANDOFF_SCHEMA,
+    ARCADEV_PLAN_ARCHITECTURE_HANDOFF_SCHEMA_VERSION,
+    ArchitectureTransitionDecision,
+    PlanArchitectureHandoff,
+    create_plan_architecture_handoff,
+    validate_plan_architecture_handoff,
+)
 
 __all__ = [
     "ARCADEV_PROJECT_SCHEMA",
@@ -184,4 +192,10 @@ __all__ = [
     "approve_plan",
     "evaluate_plan_consistency",
     "reject_plan",
+    "ARCADEV_PLAN_ARCHITECTURE_HANDOFF_SCHEMA",
+    "ARCADEV_PLAN_ARCHITECTURE_HANDOFF_SCHEMA_VERSION",
+    "ArchitectureTransitionDecision",
+    "PlanArchitectureHandoff",
+    "create_plan_architecture_handoff",
+    "validate_plan_architecture_handoff",
 ]

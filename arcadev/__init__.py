@@ -130,7 +130,18 @@ from .architecture_clarification import (
     ArchitectureResolutionOutcome, resolve_architecture_clarification,
 )
 
+from .architecture_approval import (
+    ARCADEV_APPROVED_ARCHITECTURE_SCHEMA, ARCADEV_APPROVED_ARCHITECTURE_SCHEMA_VERSION,
+    ArchitectureConsistencyEvaluation, ArchitectureConsistencyFinding, ArchitectureFindingSeverity,
+    ApprovedArchitecture, FrozenApprovedArchitecturePackage, approve_architecture,
+    reject_architecture, evaluate_architecture_consistency, validate_approved_architecture,
+)
+
 __all__ = [
+    "ARCADEV_APPROVED_ARCHITECTURE_SCHEMA", "ARCADEV_APPROVED_ARCHITECTURE_SCHEMA_VERSION",
+    "ArchitectureConsistencyEvaluation", "ArchitectureConsistencyFinding", "ArchitectureFindingSeverity",
+    "ApprovedArchitecture", "FrozenApprovedArchitecturePackage", "approve_architecture",
+    "reject_architecture", "evaluate_architecture_consistency", "validate_approved_architecture",
     "ARCADEV_ARCHITECTURE_CLARIFICATION_ANSWER_SCHEMA", "ARCADEV_ARCHITECTURE_CLARIFICATION_ANSWER_SCHEMA_VERSION",
     "ARCADEV_ARCHITECTURE_FINALIZATION_SCHEMA", "ARCADEV_ARCHITECTURE_FINALIZATION_SCHEMA_VERSION",
     "ArchitectureClarificationAnswer", "ArchitectureDecision", "ArchitectureConflict",

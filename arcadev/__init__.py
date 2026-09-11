@@ -137,7 +137,16 @@ from .architecture_approval import (
     reject_architecture, evaluate_architecture_consistency, validate_approved_architecture,
 )
 
+from .architecture_models_handoff import (
+    ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA, ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA_VERSION,
+    ArchitectureModelsHandoff, ModelsTransitionDecision,
+    create_architecture_models_handoff, validate_architecture_models_handoff,
+)
+
 __all__ = [
+    "ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA", "ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA_VERSION",
+    "ArchitectureModelsHandoff", "ModelsTransitionDecision",
+    "create_architecture_models_handoff", "validate_architecture_models_handoff",
     "ARCADEV_APPROVED_ARCHITECTURE_SCHEMA", "ARCADEV_APPROVED_ARCHITECTURE_SCHEMA_VERSION",
     "ArchitectureConsistencyEvaluation", "ArchitectureConsistencyFinding", "ArchitectureFindingSeverity",
     "ApprovedArchitecture", "FrozenApprovedArchitecturePackage", "approve_architecture",

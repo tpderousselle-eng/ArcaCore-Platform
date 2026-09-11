@@ -108,7 +108,21 @@ from .plan_architecture_handoff import (
     validate_plan_architecture_handoff,
 )
 
+from .architecture_specification import (
+    ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA,
+    ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA_VERSION,
+    ArchitectureArea, ArchitectureAspect, ArchitectureComponent, ArchitectureConnection,
+    ArchitectureFact, ArchitectureProvenance, ArchitectureQuestion, ArchitectureReadiness,
+    ArchitectureSpecification, approved_architecture_sources, architecture_question_id,
+    plan_source_id, validate_architecture_specification,
+)
+
 __all__ = [
+    "ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA", "ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA_VERSION",
+    "ArchitectureArea", "ArchitectureAspect", "ArchitectureComponent", "ArchitectureConnection",
+    "ArchitectureFact", "ArchitectureProvenance", "ArchitectureQuestion", "ArchitectureReadiness",
+    "ArchitectureSpecification", "approved_architecture_sources", "architecture_question_id",
+    "plan_source_id", "validate_architecture_specification",
     "ARCADEV_PROJECT_SCHEMA",
     "ARCADEV_PROJECT_SCHEMA_VERSION",
     "ArcaDevProject",

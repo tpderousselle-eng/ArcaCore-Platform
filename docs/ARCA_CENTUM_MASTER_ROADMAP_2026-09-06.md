@@ -1536,3 +1536,7 @@ That is the future closed-loop ArcaCentum ecosystem.
 - Sprint 30.4 production platform contract certification: certified.
 - Sprint 30.5 ArcaCore v1 release gate: certified.
 - Sprint 30 and ArcaCore v1 are fully certified at implementation SHA `615c47e0fbadf15306d51d200203702dea1cb277` by GitHub Security Promotion run `34401493991` (SUCCESS).
+
+## Future Learning and Intelligence Layer
+
+Preserve ArcaKnowledge (validated engineering knowledge), ArcaMemory (approved decisions/history), ArcaEval (quality/regression validation), ArcaTelemetry (build/test/deploy/failure observations), and ArcaModelRouter (provider-neutral task routing) as future ArcaCentum platform capabilities. The ArcaLearning Loop is Build → Test → Observe → Evaluate → Repair → Validate → Promote trusted lessons. Only validated/evaluated evidence may become trusted reusable knowledge; never learn blindly from raw AI output, unverified user behavior, or failed builds. ArcaDev 3.1–3.3 does not implement this layer or require generated applications to depend on it. ArcaOS remains higher-level company/product operational intelligence.

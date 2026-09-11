@@ -386,3 +386,74 @@ state/question removal, invented scope, forged binding/readiness, malformed and
 oversized JSON, unknown metadata, secrets, and inert hostile labels. Neither
 the engine nor its candidate boundary resolves questions, approves models,
 transitions to BACKEND, generates SQL/ORM/migrations/APIs, or invokes ArcaCore.
+
+## ArcaDev 4.3: explicit model clarification
+
+`arcadev.model_clarification_answer` and `arcadev.model_finalization` are version
+1 immutable contracts. `ModelFinalization.start` validates the original model
+through the 4.2 candidate boundary. A clarification targets its exact model ID,
+current finalization ID, and a question ID already present in that original.
+Question identities reuse 4.1 canonical question text, blocking status, area,
+architecture sources, and affected entity/relationship references. An answer
+preserves the raw user text and requires literal evidence for every normalized
+choice; it cannot infer consent or resolve another question as a side effect.
+
+Each accepted `ModelDecision` records its deterministic identity, original
+question, unchanged answer, accepted values, affected model elements, architecture
+source references, explicit-user provenance, evidence, and replacement metadata.
+Typed `ModelClaim` records bound the chosen logical details to existing entities.
+The original specification and every upstream frozen package remain unchanged;
+the effective model is the original plus its explicit decision layer. Proposed
+choices in the original remain proposals unless supported by accepted decisions.
+
+The initial bounded vocabulary supports logical identity types (`uuid`, `string`,
+`integer`, `external_reference`), external principal IDs, non-secret external
+identifier references, explicit lifecycle/retention labels, identity-only
+uniqueness and identity lookups, and testing-outcome references on existing state.
+Relationship answers use canonical inert JSON with source/target entity IDs,
+source/target cardinality, ownership, and deletion behavior, covering the affected
+records. The explicit `independent` choice represents no relationships among
+those records. Logical cardinality and ownership use the 4.1 vocabulary. These
+choices describe domain intent; they specify no physical index, database key
+generation, foreign key, migration, or runtime operation. Unsupported choices
+remain blocking conflicts rather than receiving guessed semantics.
+
+ARCHITECTURE remains authoritative for responsibilities, capabilities, persistence
+requirements, and accepted implementation boundaries. MODELS can choose unresolved
+logical details. Bounded rules detect explicit removal of required architecture
+state/policies, unsupported product capabilities, another question's area, and
+contradictory decisions governing the same logical choice and entity scope.
+This is a deterministic contract boundary, not a general natural-language judge.
+Conflicts preserve accepted decisions and unresolved questions and block effective
+readiness. A later valid answer for the same question can clear its conflict.
+Stale, replayed, forged, nonexistent, or already-resolved targets are rejected.
+
+`replace_decision` requires an existing decision and exact currently accepted
+prior values. A mismatch records a conflict without overwriting that decision.
+A successful replacement records the predecessor decision ID and previous values;
+an unchanged replacement is rejected. Replacement cannot override architecture.
+Every attempt appends deterministic history containing the answer/action,
+accepted/rejected/prior values, outcome, resulting decision, readiness before and
+after, unresolved question IDs, and conflicts before and after. Round trips and
+public resolution replay the full history and compare every event and canonical
+state; asserted identities, decisions, histories, and readiness are never trusted.
+
+Effective readiness reuses original structural validity and structural blockers,
+then requires all blocking model questions resolved and no active conflict.
+Nonblocking questions alone do not prevent readiness. Safety limits are 256
+history entries, 100,000 characters per answer, 5 MB per serialized document,
+and the shared bounded JSON depth/collection rules. Unknown fields, duplicate
+JSON keys, duplicate Unicode-normalized values, malformed Unicode, controls,
+literal secrets/tokens/private keys, and executable serialized objects fail
+validation. SQL/code/commands in permitted text remain inert.
+
+The Gaming Studio test fixture explicitly resolves all 22 baseline questions:
+UUID identities, external principal IDs, repository references, build/publication
+states, deletion/retention labels, project relationships, identity uniqueness and
+lookups, and a build-owned testing-outcome reference. These are TEST FIXTURE ONLY
+decisions, not production defaults. Each answer removes exactly one question;
+effective readiness moves from false to true while the five original entities,
+original model bytes, approved architecture, and IN_PROGRESS/MODELS project remain
+unchanged. This increment stops before model approval and before BACKEND: it adds
+no approval contract, transition, SQL/ORM/migrations/API generation, or ArcaCore
+invocation.

@@ -157,7 +157,20 @@ from .domain_model_engine import (
     validate_domain_model_candidate, validate_domain_model_adapter_candidate,
 )
 
+from .model_clarification import (
+    ARCADEV_MODEL_CLARIFICATION_ANSWER_SCHEMA, ARCADEV_MODEL_CLARIFICATION_ANSWER_SCHEMA_VERSION,
+    ARCADEV_MODEL_FINALIZATION_SCHEMA, ARCADEV_MODEL_FINALIZATION_SCHEMA_VERSION,
+    ModelClarificationAnswer, ModelDecision, ModelClaim, ModelConflict,
+    ModelClarificationHistoryEntry, ModelFinalization, ModelResolutionAction,
+    ModelResolutionOutcome, resolve_model_clarification,
+)
+
 __all__ = [
+    "ARCADEV_MODEL_CLARIFICATION_ANSWER_SCHEMA", "ARCADEV_MODEL_CLARIFICATION_ANSWER_SCHEMA_VERSION",
+    "ARCADEV_MODEL_FINALIZATION_SCHEMA", "ARCADEV_MODEL_FINALIZATION_SCHEMA_VERSION",
+    "ModelClarificationAnswer", "ModelDecision", "ModelClaim", "ModelConflict",
+    "ModelClarificationHistoryEntry", "ModelFinalization", "ModelResolutionAction",
+    "ModelResolutionOutcome", "resolve_model_clarification",
     "DomainModelCandidateAdapter", "generate_baseline_domain_model",
     "validate_domain_model_candidate", "validate_domain_model_adapter_candidate",
     "ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA", "ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA_VERSION",

@@ -122,7 +122,20 @@ from .architecture_engine import (
     validate_architecture_candidate, validate_architecture_adapter_candidate,
 )
 
+from .architecture_clarification import (
+    ARCADEV_ARCHITECTURE_CLARIFICATION_ANSWER_SCHEMA, ARCADEV_ARCHITECTURE_CLARIFICATION_ANSWER_SCHEMA_VERSION,
+    ARCADEV_ARCHITECTURE_FINALIZATION_SCHEMA, ARCADEV_ARCHITECTURE_FINALIZATION_SCHEMA_VERSION,
+    ArchitectureClarificationAnswer, ArchitectureDecision, ArchitectureConflict,
+    ArchitectureClarificationHistoryEntry, ArchitectureFinalization, ArchitectureResolutionAction,
+    ArchitectureResolutionOutcome, resolve_architecture_clarification,
+)
+
 __all__ = [
+    "ARCADEV_ARCHITECTURE_CLARIFICATION_ANSWER_SCHEMA", "ARCADEV_ARCHITECTURE_CLARIFICATION_ANSWER_SCHEMA_VERSION",
+    "ARCADEV_ARCHITECTURE_FINALIZATION_SCHEMA", "ARCADEV_ARCHITECTURE_FINALIZATION_SCHEMA_VERSION",
+    "ArchitectureClarificationAnswer", "ArchitectureDecision", "ArchitectureConflict",
+    "ArchitectureClarificationHistoryEntry", "ArchitectureFinalization", "ArchitectureResolutionAction",
+    "ArchitectureResolutionOutcome", "resolve_architecture_clarification",
     "ArchitectureCandidateAdapter", "generate_baseline_architecture",
     "validate_architecture_candidate", "validate_architecture_adapter_candidate",
     "ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA", "ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA_VERSION",

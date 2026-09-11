@@ -152,7 +152,14 @@ from .domain_model_specification import (
     validate_domain_model_specification,
 )
 
+from .domain_model_engine import (
+    DomainModelCandidateAdapter, generate_baseline_domain_model,
+    validate_domain_model_candidate, validate_domain_model_adapter_candidate,
+)
+
 __all__ = [
+    "DomainModelCandidateAdapter", "generate_baseline_domain_model",
+    "validate_domain_model_candidate", "validate_domain_model_adapter_candidate",
     "ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA", "ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA_VERSION",
     "DomainModelSpecification", "LogicalType", "DataClassification", "ModelArea", "ModelProvenance",
     "ModelFact", "ModelQuestion", "ModelEntity", "ModelField", "ModelValueDomain", "ModelRelationship",

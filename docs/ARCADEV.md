@@ -336,3 +336,53 @@ private keys, executable objects, and oversized data. SQL, code, shell text,
 and paths are inert strings. This increment stops at the contract: it provides
 no model engine, clarification resolution, approval, BACKEND transition,
 ArcaCore invocation, or generated application artifacts.
+
+## ArcaDev 4.2: deterministic domain models and candidate validation
+
+`generate_baseline_domain_model` consumes the certified MODELS handoff and its
+frozen approved architecture. Storage ownership determines required state;
+integration adapters require a non-secret external identifier decision. The
+engine groups state by frozen architecture owner, rather than creating an entity
+for every noun or a table for every relationship. An exact scoped canonical
+identity-field payload in an accepted architecture decision can supply a known
+identifier without reopening that choice. Free-form implementation selections
+do not imply identifier types or lifecycle states.
+
+The Gaming Studio fixture produces five required state structures: project,
+asset, build, publishing, and GitHub integration state. It has 22 blocking
+questions covering identifier representation, uniqueness, lookups, external and
+principal references, build/publication lifecycle values, deletion policy,
+ownership/cardinality, and testing-outcome representation. The frozen architecture
+does not assign separate testing persistence, so that responsibility stays an
+explicit question about representing/referencing outcomes. It does not become
+an invented persistent Test Run entity. No passwords, OAuth secrets, timestamps,
+generic metadata, guessed fields, lifecycle values, cascade rules, or join tables
+are generated. The fixture remains structurally valid but not ready for later
+finalization, at IN_PROGRESS/MODELS.
+
+`DomainModelCandidateAdapter.create_candidate` is a provider-neutral protocol.
+Trusted adapter code may return plain inert mappings, a mapping proxy, or JSON.
+The canonical module includes no provider SDK or live network call. Arbitrary
+mapping subclasses are rejected before their methods can execute. Candidate
+validation uses the 4.1 contract to recompute identity, readiness, exact binding,
+and all graph/type/provenance checks, then enforces required capability coverage,
+frozen ownership boundaries, and preservation of every unresolved material
+question. Required question wording is deterministic and refers to frozen
+architecture responsibility rather than candidate entity labels.
+
+Entity renaming is accepted when capability coverage and question scope remain
+complete. Grouping follows the approved owner: a separate test fixture explicitly
+groups architecture responsibilities and chooses a UUID identifier upstream;
+the model preserves both decisions. A candidate cannot merge distinct frozen
+owners for convenience. Proposed fields, value domains, relationships, constraints,
+and access requirements must cite the appropriate retained model question or
+an exact approved declarative payload. Additional unrelated questions cannot
+launder invented material content into a candidate. Logical proposals remain
+unapproved while their questions are open.
+
+Dedicated adversarial tests cover candidate adapters, alternate grounded
+reference/lifecycle/relationship proposals, renaming, approved grouping,
+state/question removal, invented scope, forged binding/readiness, malformed and
+oversized JSON, unknown metadata, secrets, and inert hostile labels. Neither
+the engine nor its candidate boundary resolves questions, approves models,
+transitions to BACKEND, generates SQL/ORM/migrations/APIs, or invokes ArcaCore.

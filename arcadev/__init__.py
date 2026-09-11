@@ -117,7 +117,14 @@ from .architecture_specification import (
     plan_source_id, validate_architecture_specification,
 )
 
+from .architecture_engine import (
+    ArchitectureCandidateAdapter, generate_baseline_architecture,
+    validate_architecture_candidate, validate_architecture_adapter_candidate,
+)
+
 __all__ = [
+    "ArchitectureCandidateAdapter", "generate_baseline_architecture",
+    "validate_architecture_candidate", "validate_architecture_adapter_candidate",
     "ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA", "ARCADEV_ARCHITECTURE_SPECIFICATION_SCHEMA_VERSION",
     "ArchitectureArea", "ArchitectureAspect", "ArchitectureComponent", "ArchitectureConnection",
     "ArchitectureFact", "ArchitectureProvenance", "ArchitectureQuestion", "ArchitectureReadiness",

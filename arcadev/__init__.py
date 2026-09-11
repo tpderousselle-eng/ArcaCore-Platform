@@ -143,7 +143,22 @@ from .architecture_models_handoff import (
     create_architecture_models_handoff, validate_architecture_models_handoff,
 )
 
+from .domain_model_specification import (
+    ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA, ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA_VERSION,
+    DomainModelSpecification, LogicalType, DataClassification, ModelArea, ModelProvenance,
+    ModelFact, ModelQuestion, ModelEntity, ModelField, ModelValueDomain, ModelRelationship,
+    ModelConstraint, ModelAccessRequirement, ModelReadiness, model_question_id,
+    model_element_id, model_architecture_sources, persistent_model_capabilities,
+    validate_domain_model_specification,
+)
+
 __all__ = [
+    "ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA", "ARCADEV_DOMAIN_MODEL_SPECIFICATION_SCHEMA_VERSION",
+    "DomainModelSpecification", "LogicalType", "DataClassification", "ModelArea", "ModelProvenance",
+    "ModelFact", "ModelQuestion", "ModelEntity", "ModelField", "ModelValueDomain", "ModelRelationship",
+    "ModelConstraint", "ModelAccessRequirement", "ModelReadiness", "model_question_id",
+    "model_element_id", "model_architecture_sources", "persistent_model_capabilities",
+    "validate_domain_model_specification",
     "ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA", "ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA_VERSION",
     "ArchitectureModelsHandoff", "ModelsTransitionDecision",
     "create_architecture_models_handoff", "validate_architecture_models_handoff",

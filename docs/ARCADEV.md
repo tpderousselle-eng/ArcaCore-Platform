@@ -273,4 +273,66 @@ Success returns a new project value at IN_PROGRESS/MODELS. The original project 
 
 The Gaming Studio certification starts with the explicitly approved 3.4 fixture. It verifies complete upstream identity binding, canonical round trip, frozen PLAN/architecture/finalization preservation, source immutability, and the new MODELS stage. Implementation choices remain test-only decisions. Future ArcaDev 4.x must consume this frozen approved architecture as its authoritative input rather than rerunning planning or architecture workflows, reinterpreting approval, or silently replacing technology choices.
 
-ArcaDev 3.5 moves lifecycle state only. It creates no entities, fields, tables, schemas, ORM definitions, migrations, relationships, indexes, API contracts, backend/frontend code or deployments, and invokes no ArcaCore generator. Domain/data-model design begins in 4.x; ArcaDev 4.1 is not part of this batch. The future ArcaCentum intelligence direction and the rule that only validated/evaluated evidence may become trusted reusable knowledge remain unchanged and unimplemented here.
+ArcaDev 3.5 moves lifecycle state only. It creates no entities, fields, tables, schemas, ORM definitions, migrations, relationships, indexes, API contracts, backend/frontend code or deployments, and invokes no ArcaCore generator. Domain/data-model design begins in 4.x. The future ArcaCentum intelligence direction and the rule that only validated/evaluated evidence may become trusted reusable knowledge remain unchanged and unimplemented here.
+
+## ArcaDev 4.1: canonical logical domain model
+
+`arcadev.domain_model_specification` version 1 introduces immutable
+`DomainModelSpecification` records bound to the certified
+`ArchitectureModelsHandoff`. The binding includes project, PLAN handoff,
+approved architecture, original architecture, architecture finalization, and
+MODELS handoff identities. The complete frozen approved package is validated
+through the 3.5 public contract. A bounded cache keys validation by complete
+canonical handoff bytes, never a caller's asserted identity.
+
+MODELS describes logical entities, fields, reusable value domains, relationships,
+declarative constraints, access requirements, classifications, and open model
+questions. It does not describe SQL tables, ORM classes, indexes, migrations,
+API code, or database-specific types. Its bounded logical types are string,
+text, integer, decimal, boolean, date, datetime, UUID, enum, JSON, binary reference,
+and external reference. Collection, required, mutable, and uniqueness semantics
+are explicit. Unknown identifier representation stays an identity requirement
+with a blocking question; no field type or generation strategy is guessed.
+
+Entity graph handles derive from logical name, architecture source references,
+and owned capabilities. Other graph handles derive from their name, sources,
+and scope. The specification identity hashes the full canonical graph and
+questions, excluding computed readiness. Graph collections sort canonically;
+duplicate normalized names and values, forged handles, dangling references,
+contradictory bounds, unsupported types, and ambiguous identity semantics fail
+validation. Legitimate relationship cycles are supported. Cardinality `many`
+means zero or more; `one` is required and `zero_or_one` is optional.
+
+Material entity responsibility derives from exact frozen capability ownership.
+Storage responsibilities identify required persistent capabilities; integration
+adapters require safe external reference state or a blocking reference question.
+Authentication remains an external credential ownership boundary. A capability
+whose persistence is not assigned by architecture can be represented as a
+proposal only with an explicit blocking lifecycle question. No new product
+capabilities may be introduced. Names remain presentation labels, not evidence
+of semantics. Sources address frozen architecture components, aspects, the
+original objective, or accepted architecture decisions.
+
+`ModelFact` distinguishes exact approved content, a small named deterministic
+derivation, and a proposed choice attached to an unresolved question. A citation
+alone cannot authorize arbitrary field types, enum states, ownership, or
+constraints: approved choices must repeat an exact inert declarative payload,
+otherwise they require a scoped blocking model question. Defaults additionally
+require explicit approved authorization. Proposed defaults and credential
+storage are rejected. Decimal constraint bounds use canonical decimal text;
+patterns are inert and are never compiled or executed.
+
+Readiness is recomputed. Structural validity requires complete required
+capability coverage, stable identity requirements, and resolved graph references.
+Blocking model questions prevent readiness for later finalization. The manual
+Gaming Studio test fixture represents projects, assets, builds, test state,
+publishing, and repository references. Its test persistence, type, lifecycle,
+and relationship choices are unapproved fixture proposals, not product policy.
+It exercises all logical types and a cyclic relationship graph.
+
+Strict JSON boundaries reject unknown fields, duplicate keys, unsupported
+versions, malformed Unicode, controls, literal secrets and recognizable tokens,
+private keys, executable objects, and oversized data. SQL, code, shell text,
+and paths are inert strings. This increment stops at the contract: it provides
+no model engine, clarification resolution, approval, BACKEND transition,
+ArcaCore invocation, or generated application artifacts.

@@ -186,7 +186,14 @@ from .backend_specification import (
     BackendQuestion, BackendReadiness, backend_question_id, validate_backend_specification,
 )
 
+from .backend_engine import (
+    BackendSpecificationCandidateAdapter, generate_baseline_backend_specification,
+    validate_backend_specification_candidate, validate_backend_specification_adapter_candidate,
+)
+
 __all__ = [
+    "BackendSpecificationCandidateAdapter", "generate_baseline_backend_specification",
+    "validate_backend_specification_candidate", "validate_backend_specification_adapter_candidate",
     "ARCADEV_BACKEND_SPECIFICATION_SCHEMA", "ARCADEV_BACKEND_SPECIFICATION_SCHEMA_VERSION",
     "BackendSpecification", "BackendRole", "BackendArea", "BackendFailure", "BackendFact",
     "BackendComponent", "BackendDataBinding", "BackendOperation", "BackendPolicy",

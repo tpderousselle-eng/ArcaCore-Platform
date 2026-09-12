@@ -638,3 +638,56 @@ This authority layer does not generate source, SQL, ORM, migrations, transport
 routes or ArcaCore inputs. It invokes no generator and performs no approval or
 FRONTEND transition. Deterministic baseline generation and clarification follow
 in 5.2 and 5.3 respectively.
+
+## Backend specification generation and candidates (ArcaDev 5.2)
+
+`generate_baseline_backend_specification` consumes the certified public handoff
+and its complete resolved model. It retains architecture ownership units rather
+than creating a service or generic CRUD set per entity. Each approved capability
+has one logical workflow/integration operation. Shared storage, identity and
+worker boundaries remain separate when frozen architecture requires them.
+Testing uses its accepted build-owned outcome reference; contextual citations to
+other owners do not grant those operations additional model state.
+
+The Gaming Studio baseline has nine components, seven logical operations, five
+data bindings and ten blocking implementation questions. They address physical
+naming, transport, related-state atomic writes, worker completion delivery,
+integration failure handling and retry, release/sync deduplication, storage
+reference mapping and certification before generation. They do not reopen
+PostgreSQL, managed storage, authentication, GitHub, logical identities or
+relationships, isolated containers, leased execution or idempotent build-job
+identifiers. Readiness is false; the project stays IN_PROGRESS/BACKEND.
+
+`BackendSpecificationCandidateAdapter.create_candidate` is a provider-neutral
+protocol returning JSON text or inert mapping data. Trusted adapter implementation
+code is separate from its untrusted return value. Canonical implementation imports
+no provider SDK and makes no network calls. Validation uses the 5.1 loader to
+reconstruct identities, readiness, exact resolved data, ownership and policy
+boundaries. It then reconstructs required material questions and matches their
+frozen sources and model/operation scope. Components may be renamed or compatible
+owners grouped: question targets follow the units containing those exact owners,
+not their presentation labels. Boundary record and operation scope is derived
+from the original architecture owners even inside a grouped unit: grouping asset
+and project services never grants asset storage policy authority over project
+records or operations. An advisory refinement may narrow an existing
+question using the exact `Advisory review: ` prefix and original question text;
+it cannot introduce new scope, reopen a frozen choice or remove any blocker.
+
+The ArcaCore compatibility inspection was read-only: `tools/generate.py` exposes
+`generate_module(name, field_strings)`; `ModuleDefinition` supplies physical
+module/class/table/field metadata; `ApplicationManifest`/`RuntimeContract` bind
+accepted module provenance and a FastAPI runtime with PostgreSQL or no database.
+`tools/jobs.py` supplies registered trusted handlers, bounded retry, authorization
+and idempotency primitives; `tools/sdk.py` provides a bounded version 1.0 SDK.
+These public contracts do **not** certify an application-specific GitHub adapter,
+publishing adapter, persisted leased job implementation or OCI isolation launcher.
+The explicit compatibility question requires a certification precondition before
+any later generation. No capability is silently dropped or declared supported.
+Backend authority approval readiness and certified generation eligibility are
+different gates; later translation must fail closed when a required capability
+has no certified generator representation.
+
+No ArcaCore tool is invoked by this module. No source, module declaration, SQL,
+migration, ORM, route, deployment configuration or generated application artifact
+is emitted. Existing repository runtime tests retain their certified temporary
+generation behavior. ArcaDev itself remains the authority/validation layer.

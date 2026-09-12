@@ -266,7 +266,15 @@ def backend_policy_entities(handoff, aspect, kind, components):
     if kind == "background":
         sources.update(edge.source for edge in backend_architecture(handoff).original_architecture.interfaces
                        if edge.destination in aspect.component_ids)
-    return tuple(sorted({eid for c in components if sources & set(c.architecture_source_ids) for eid in c.model_entity_ids}))
+    capabilities = {cap for c in backend_architecture(handoff).original_architecture.components
+                    if c.component_id in sources for cap in c.owned_capabilities}
+    return tuple(sorted(e.entity_id for e in model.entities if capabilities & set(e.owned_capabilities)))
+
+
+def backend_policy_operations(handoff, aspect, kind, operations):
+    capabilities = {cap for c in backend_architecture(handoff).original_architecture.components
+                    if c.component_id in aspect.component_ids for cap in c.owned_capabilities}
+    return tuple(sorted(o.operation_id for o in operations if kind == "authorization" or o.capability_id in capabilities))
 
 
 def _fact(raw, handoff):
@@ -496,7 +504,7 @@ def _validate_graph(handoff, components, bindings, operations, policies, questio
         scope = {source_owner[s] for s in aspect.component_ids if s in source_owner}
         if set(policy.component_ids) != scope:
             raise ValueError("Backend boundary changes frozen component scope.")
-        expected_ops = set(operation_map) if policy.kind == "authorization" else {o.operation_id for o in operations if o.component_id in scope}
+        expected_ops = set(backend_policy_operations(handoff, aspect, policy.kind, operations))
         if set(policy.operation_ids) != expected_ops:
             raise ValueError("Backend boundary changes operation scope.")
         if policy.authority != BackendFact.create(handoff=handoff, source_ids=(source,)):

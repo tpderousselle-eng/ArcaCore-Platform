@@ -8,7 +8,7 @@ from arcadev import create_models_backend_handoff, BuildStage
 from arcadev.backend_specification import (
     BackendSpecification, BackendFact, BackendComponent, BackendDataBinding,
     BackendOperation, BackendPolicy, BackendQuestion, BackendArea, BackendRole,
-    backend_architecture, backend_owners, backend_operation_entities, backend_policy_entities,
+    backend_architecture, backend_owners, backend_operation_entities, backend_policy_entities, backend_policy_operations,
     identify_backend_record, validate_backend_specification,
 )
 from tools.test_arcadev_model_approval import approved_model
@@ -59,7 +59,7 @@ def contract_fixture(handoff=None, *, groups=None):
         kind = kinds[a.area.value]
         cids = tuple(sorted({mapping[s] for s in a.component_ids if s in mapping}))
         mids = backend_policy_entities(h, a, kind, components)
-        oids = tuple(sorted(o.operation_id for o in operations if kind == "authorization" or o.component_id in cids))
+        oids = backend_policy_operations(h, a, kind, operations)
         policy = BackendPolicy("", kind, cids, oids, mids, fact((a.aspect_id,)), (a.aspect_id,), mids, (a.aspect_id,))
         policies.append(identify_backend_record(policy, "policy", "policy_id"))
     auth = tuple(sorted(p.policy_id for p in policies if p.kind == "authorization"))

@@ -523,3 +523,57 @@ explicit approval and canonical round trip, immutable rejection, and unchanged
 approved architecture, models handoff, original model, finalization and source
 IN_PROGRESS/MODELS project. These choices remain fixture decisions, not universal
 Gaming Studio defaults. ArcaDev 4.4 stops before the BACKEND transition.
+
+## MODELS to BACKEND transition (ArcaDev 4.5)
+
+`arcadev.models_backend_handoff`, version 1, completes the MODELS lifecycle.
+`create_models_backend_handoff` requires the current source project and a certified
+explicitly approved `ApprovedDomainModel`. The 4.4 validator reconstructs the
+complete frozen package, final consistency and resolved logical-model authority.
+This gate consumes that authority without changing decisions or interpreting
+clarification prose. Certified replay is validation only, as described for 4.4.
+
+The source must be IN_PROGRESS/MODELS. Transition requires explicit APPROVED,
+`approved` and `approval_eligible` true, effective model readiness, passing
+consistency, zero blocking findings and zero active conflicts. It is stricter
+than approval: **every unresolved model question, including an advisory question,
+must be resolved before BACKEND**. Rejected, forged, stale, unready, conflicted,
+wrong-stage and already-transitioned current sources are refused.
+
+`ModelsBackendHandoff` embeds the complete `frozen_approved_domain_model`. It binds
+project identity, PLAN handoff, approved architecture, architecture specification
+and finalization, architecture/models handoff, original model specification,
+model finalization and model approval identities. Its content-derived handoff ID
+hashes schema/version, those bindings, the full frozen approval, eligibility,
+explicit `BackendTransitionDecision.TRANSITIONED`, and resulting project. Equal
+unchanged authority yields equal canonical bytes and identity. It introduces no
+timestamps, random material or provider metadata.
+
+Success returns a new immutable IN_PROGRESS/BACKEND project value with the same
+project identity and metadata. The source remains IN_PROGRESS/MODELS, and the
+frozen model, history, decisions and complete upstream authority remain unchanged.
+Repeated use of the same unchanged MODELS snapshot is deterministic; supplying
+the resulting BACKEND project as a current source is rejected.
+
+Standalone loading reconstructs the embedded approval and verifies every asserted
+identity, flag, decision and resulting project. `validate_models_backend_handoff`
+additionally accepts optional current project, approved model, architecture/models
+handoff, model specification and model finalization references. These must match
+complete canonical content, not IDs alone. Standalone historical integrity does
+not establish external freshness without current references. Shared bounded JSON
+validation rejects unknown fields, duplicate keys, unsupported versions, secrets,
+tokens, private keys and executable objects; permitted hostile-looking text is
+inert data.
+
+The Gaming Studio certification follows the complete MODELS lifecycle: original
+unready model, 22 explicit TEST FIXTURE ONLY decisions, effective readiness,
+final consistency, explicit model approval, then deterministic BACKEND handoff.
+It verifies exact upstream binding, canonical round trip, deep immutability,
+unchanged source/architecture/model/finalization/approval, stale-current-reference
+checks, rejection of already-transitioned sources, and the stricter advisory rule.
+
+ArcaDev 4.5 changes lifecycle state only. It generates no backend/frontend source,
+routers, services, repositories, API contracts, SQL, tables, ORM/Pydantic
+implementation models, migrations, indexes, physical constraints, Docker or
+Kubernetes changes, or deployment files, and invokes no ArcaCore generator.
+BACKEND implementation begins in ArcaDev 5.x; 5.1 is not implemented here.

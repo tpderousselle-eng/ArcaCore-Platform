@@ -173,7 +173,16 @@ from .model_approval import (
     reject_domain_model, evaluate_model_consistency, validate_approved_domain_model,
 )
 
+from .models_backend_handoff import (
+    ARCADEV_MODELS_BACKEND_HANDOFF_SCHEMA, ARCADEV_MODELS_BACKEND_HANDOFF_SCHEMA_VERSION,
+    BackendTransitionDecision, ModelsBackendHandoff,
+    create_models_backend_handoff, validate_models_backend_handoff,
+)
+
 __all__ = [
+    "ARCADEV_MODELS_BACKEND_HANDOFF_SCHEMA", "ARCADEV_MODELS_BACKEND_HANDOFF_SCHEMA_VERSION",
+    "BackendTransitionDecision", "ModelsBackendHandoff",
+    "create_models_backend_handoff", "validate_models_backend_handoff",
     "ARCADEV_APPROVED_DOMAIN_MODEL_SCHEMA", "ARCADEV_APPROVED_DOMAIN_MODEL_SCHEMA_VERSION",
     "ApprovedDomainModel", "FrozenApprovedDomainModelPackage", "ResolvedLogicalModel",
     "ResolvedModelEntity", "ResolvedModelChoice", "ModelConsistencyEvaluation",

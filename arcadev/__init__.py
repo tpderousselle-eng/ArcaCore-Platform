@@ -179,7 +179,18 @@ from .models_backend_handoff import (
     create_models_backend_handoff, validate_models_backend_handoff,
 )
 
+from .backend_specification import (
+    ARCADEV_BACKEND_SPECIFICATION_SCHEMA, ARCADEV_BACKEND_SPECIFICATION_SCHEMA_VERSION,
+    BackendSpecification, BackendRole, BackendArea, BackendFailure, BackendFact,
+    BackendComponent, BackendDataBinding, BackendOperation, BackendPolicy,
+    BackendQuestion, BackendReadiness, backend_question_id, validate_backend_specification,
+)
+
 __all__ = [
+    "ARCADEV_BACKEND_SPECIFICATION_SCHEMA", "ARCADEV_BACKEND_SPECIFICATION_SCHEMA_VERSION",
+    "BackendSpecification", "BackendRole", "BackendArea", "BackendFailure", "BackendFact",
+    "BackendComponent", "BackendDataBinding", "BackendOperation", "BackendPolicy",
+    "BackendQuestion", "BackendReadiness", "backend_question_id", "validate_backend_specification",
     "ARCADEV_MODELS_BACKEND_HANDOFF_SCHEMA", "ARCADEV_MODELS_BACKEND_HANDOFF_SCHEMA_VERSION",
     "BackendTransitionDecision", "ModelsBackendHandoff",
     "create_models_backend_handoff", "validate_models_backend_handoff",

@@ -577,3 +577,64 @@ routers, services, repositories, API contracts, SQL, tables, ORM/Pydantic
 implementation models, migrations, indexes, physical constraints, Docker or
 Kubernetes changes, or deployment files, and invokes no ArcaCore generator.
 BACKEND implementation begins in ArcaDev 5.x; 5.1 is not implemented here.
+
+## Canonical backend authority (ArcaDev 5.1)
+
+`arcadev.backend_specification`, version 1, describes implementation obligations
+and consumes the public `ModelsBackendHandoff` validator. Its immutable
+`BackendSpecification` binds project, handoff, approved architecture/specification/
+finalization and approved model/specification/finalization identities. An additional
+content identity binds the **complete** handoff, including all upstream packages
+and the resulting IN_PROGRESS/BACKEND project. Loading requires that handoff;
+standalone asserted IDs cannot establish source integrity or freshness.
+
+`resolved_model` retains the complete 4.4 `ResolvedLogicalModel`. Data bindings
+assign each approved persisted entity to its frozen capability owner. The resolved
+view carries approved fields, value domains, relationships, constraints, accesses,
+and accepted structured choices with ModelDecision provenance. Proposed fields in
+the original model never become approved implementation fields. Every accepted
+architecture decision is also retained as exact evidence, including persistence
+technology, isolated execution, authorized synchronization and release control.
+
+Backend components retain exact architecture responsibilities, capabilities,
+interfaces, dependencies and model ownership. A bounded `BackendRole` constrains
+their implementation role. Names are inert presentation labels; compatible
+components may be grouped without transferring their frozen capability ownership.
+Operations express the approved capability as a logical workflow or integration
+action. They retain exact owner and model references, including test outcomes
+accepted on build state. This deliberately avoids automatic per-entity CRUD.
+
+`BackendPolicy` represents authentication/principal, integration, storage and
+background boundaries with exact evidence, owners, operation scope, input
+authority, resulting logical state and external-boundary references. Principal
+ownership is the accepted non-secret model reference, not local credentials.
+Background state follows the approved worker's callers. Optional retry,
+idempotency, transaction and bounded failure fields reserve explicit semantics;
+unspecified runtime choices cannot be asserted by a candidate. Frozen boundary
+payloads remain intact. Accepted architecture decisions still govern when an
+optional backend refinement is null; null does not erase an upstream choice.
+Material implementation unknowns use `BackendQuestion`,
+whose identity includes text, blocking flag, area, architecture/model sources and
+affected components/operations. Resolving backend questions cannot reopen approval
+of authentication, GitHub, lifecycle, persistence or isolation.
+
+Facts either retain one exact frozen source or use a named derivation that
+preserves exact source payloads. They cannot paraphrase unsupported behavior into
+authority. Structural validation recomputes complete coverage, references,
+ownership and boundaries; blocking backend questions separately prevent readiness
+for later approval. 5.1 structural readiness alone is not backend approval and is
+not proof that all material implementation questions have been enumerated.
+
+Canonical loaders reconstruct all derived values and reject unknown fields,
+duplicate JSON keys, unsupported versions, malformed Unicode/control characters,
+credentials/private keys/tokens, executable objects, forged IDs/readiness and
+invalid graph/model references. Shared limits are 5 MB per document, 256 items per
+collection, depth 40 and 100,000 characters per general inert text value; component
+and operation labels are bounded to 240 characters. SQL/code/commands are never
+executed. Gaming Studio is representable with nine frozen backend responsibilities,
+seven logical capability operations and five exact persisted-entity bindings.
+
+This authority layer does not generate source, SQL, ORM, migrations, transport
+routes or ArcaCore inputs. It invokes no generator and performs no approval or
+FRONTEND transition. Deterministic baseline generation and clarification follow
+in 5.2 and 5.3 respectively.

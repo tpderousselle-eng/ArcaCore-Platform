@@ -165,7 +165,20 @@ from .model_clarification import (
     ModelResolutionOutcome, resolve_model_clarification,
 )
 
+from .model_approval import (
+    ARCADEV_APPROVED_DOMAIN_MODEL_SCHEMA, ARCADEV_APPROVED_DOMAIN_MODEL_SCHEMA_VERSION,
+    ApprovedDomainModel, FrozenApprovedDomainModelPackage, ResolvedLogicalModel,
+    ResolvedModelEntity, ResolvedModelChoice, ModelConsistencyEvaluation,
+    ModelConsistencyFinding, ModelFindingSeverity, approve_domain_model,
+    reject_domain_model, evaluate_model_consistency, validate_approved_domain_model,
+)
+
 __all__ = [
+    "ARCADEV_APPROVED_DOMAIN_MODEL_SCHEMA", "ARCADEV_APPROVED_DOMAIN_MODEL_SCHEMA_VERSION",
+    "ApprovedDomainModel", "FrozenApprovedDomainModelPackage", "ResolvedLogicalModel",
+    "ResolvedModelEntity", "ResolvedModelChoice", "ModelConsistencyEvaluation",
+    "ModelConsistencyFinding", "ModelFindingSeverity", "approve_domain_model",
+    "reject_domain_model", "evaluate_model_consistency", "validate_approved_domain_model",
     "ARCADEV_MODEL_CLARIFICATION_ANSWER_SCHEMA", "ARCADEV_MODEL_CLARIFICATION_ANSWER_SCHEMA_VERSION",
     "ARCADEV_MODEL_FINALIZATION_SCHEMA", "ARCADEV_MODEL_FINALIZATION_SCHEMA_VERSION",
     "ModelClarificationAnswer", "ModelDecision", "ModelClaim", "ModelConflict",

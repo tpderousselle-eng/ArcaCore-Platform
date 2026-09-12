@@ -457,3 +457,69 @@ original model bytes, approved architecture, and IN_PROGRESS/MODELS project rema
 unchanged. This increment stops before model approval and before BACKEND: it adds
 no approval contract, transition, SQL/ORM/migrations/API generation, or ArcaCore
 invocation.
+
+## Final logical model consistency and explicit approval (ArcaDev 4.4)
+
+`arcadev.approved_domain_model`, version 1, separates effective model readiness
+from explicit approval. `approve_domain_model` and `reject_domain_model` consume
+the certified `ArchitectureModelsHandoff`, original `DomainModelSpecification`,
+and replay-valid `ModelFinalization`. They preserve complete frozen authority;
+they do not run an adapter, obtain new decisions, or replace earlier stages.
+Certified candidate validation may reconstruct a deterministic baseline solely
+to validate the original state, as required by the existing 4.3 replay contract.
+
+`FrozenApprovedDomainModelPackage` contains the complete architecture handoff,
+original model, finalization (including all decisions, questions, conflicts and
+history), final consistency, and `ResolvedLogicalModel`. The resolved view
+combines original choices already authorized by frozen architecture with accepted
+structured `ModelClaim` records and their decision/question IDs. It retains
+entity identity and capability ownership. Identity, principal/external/outcome
+references, lifecycle/value domains, retention, relationship cardinality and
+ownership/deletion, uniqueness and lookup slots have the bounded 4.3 semantics.
+Consumers need no interpretation of user answers or quoted evidence.
+
+Question-backed candidate fields, domains, relationships, constraints and access
+requirements remain proposals in the immutable original specification. They are
+excluded from the resolved view; resolving their question authorizes its accepted
+claims, not every proposed detail. The view deliberately does not invent physical
+fields, storage technology, SQL, tables, ORM classes, migrations or APIs.
+
+Final consistency reuses certified 4.1/4.2 structural, logical type, capability,
+ownership, source, credential and scope validation and full 4.3 decision/history
+replay. It checks accepted identity coverage, closed references and contradictions
+with frozen lifecycle, relationships and uniqueness in the combined view. Invalid
+or forged source inputs fail loading. A bounded source-replay cache uses complete
+canonical content, never asserted IDs, and stores only validated immutable values.
+Valid unresolved blockers, active conflicts, ineffective readiness, missing
+accepted identity or a frozen relationship contradiction yield BLOCKING findings.
+Unknown backend implementation compatibility is a WARNING, not a logical blocker;
+unresolved advisory questions also produce a warning.
+
+Explicit APPROVED requires IN_PROGRESS/MODELS, effective readiness, passing
+consistency, zero blocking findings, zero blocking questions and zero conflicts,
+plus a nonempty validated statement. Readiness alone grants no approval.
+Explicit REJECTED records an immutable non-approved artifact even for a valid
+unready or conflicted model, preserving all original and finalization content.
+Neither decision changes the source project or transitions to BACKEND.
+
+The approval identity hashes canonical schema/version, every upstream identity
+(project, PLAN handoff, architecture approval/specification/finalization, models
+handoff, model specification/finalization), the complete package, consistency,
+readiness, eligibility, explicit decision and statement. No new timestamps,
+randomness or provider metadata are introduced. Equal authority and decision
+content produce identical canonical approval. Loaders reconstruct derived fields,
+reject unknown fields/duplicate JSON keys/unsupported versions/oversize data and
+credentials, and treat permitted SQL/code/shell-looking text as inert data.
+
+`validate_approved_domain_model` proves embedded integrity standalone. Optional
+current project, handoff, model and finalization references must match complete
+canonical content, not asserted IDs. Without current references, a historical
+artifact cannot establish that newer external authority does not exist.
+
+The complete Gaming Studio 4.3 TEST FIXTURE ONLY decisions resolve all 22 original
+blocking questions. Certification verifies false initial readiness, true effective
+readiness, passing consistency with an implementation warning, deterministic
+explicit approval and canonical round trip, immutable rejection, and unchanged
+approved architecture, models handoff, original model, finalization and source
+IN_PROGRESS/MODELS project. These choices remain fixture decisions, not universal
+Gaming Studio defaults. ArcaDev 4.4 stops before the BACKEND transition.

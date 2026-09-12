@@ -191,7 +191,20 @@ from .backend_engine import (
     validate_backend_specification_candidate, validate_backend_specification_adapter_candidate,
 )
 
+from .backend_clarification import (
+    ARCADEV_BACKEND_CLARIFICATION_ANSWER_SCHEMA, ARCADEV_BACKEND_CLARIFICATION_ANSWER_SCHEMA_VERSION,
+    ARCADEV_BACKEND_FINALIZATION_SCHEMA, ARCADEV_BACKEND_FINALIZATION_SCHEMA_VERSION,
+    BackendClarificationAnswer, BackendFinalization, BackendDecision, BackendClaim,
+    BackendConflict, BackendClarificationHistoryEntry, BackendResolutionAction,
+    BackendResolutionOutcome, resolve_backend_clarification,
+)
+
 __all__ = [
+    "ARCADEV_BACKEND_CLARIFICATION_ANSWER_SCHEMA", "ARCADEV_BACKEND_CLARIFICATION_ANSWER_SCHEMA_VERSION",
+    "ARCADEV_BACKEND_FINALIZATION_SCHEMA", "ARCADEV_BACKEND_FINALIZATION_SCHEMA_VERSION",
+    "BackendClarificationAnswer", "BackendFinalization", "BackendDecision", "BackendClaim",
+    "BackendConflict", "BackendClarificationHistoryEntry", "BackendResolutionAction",
+    "BackendResolutionOutcome", "resolve_backend_clarification",
     "BackendSpecificationCandidateAdapter", "generate_baseline_backend_specification",
     "validate_backend_specification_candidate", "validate_backend_specification_adapter_candidate",
     "ARCADEV_BACKEND_SPECIFICATION_SCHEMA", "ARCADEV_BACKEND_SPECIFICATION_SCHEMA_VERSION",

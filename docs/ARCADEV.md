@@ -691,3 +691,79 @@ No ArcaCore tool is invoked by this module. No source, module declaration, SQL,
 migration, ORM, route, deployment configuration or generated application artifact
 is emitted. Existing repository runtime tests retain their certified temporary
 generation behavior. ArcaDev itself remains the authority/validation layer.
+
+## Backend clarification and effective readiness (ArcaDev 5.3)
+
+`BackendFinalization.start` validates the original specification through the 5.2
+candidate boundary, including every material question. The immutable original
+and complete frozen handoff remain unchanged. `arcadev.backend_clarification_answer`
+and `arcadev.backend_finalization` use schema version 1. An answer targets the
+exact backend, current finalization and original question. Canonical question
+identity includes text, blocking flag, area, architecture/model sources and
+affected component/operation IDs, with no time or randomness.
+
+`BackendDecision` retains the complete source question, unchanged explicit user
+answer, accepted values, quoted evidence, exact affected scope, structured claims
+and explicit-user provenance. Decision identity hashes that complete record.
+`BackendClaim` contains a bounded slot, component/operation/model references and
+profile semantics. The supported profiles are deliberately small:
+
+| Area | Explicit accepted profile | Bounded meaning |
+| --- | --- | --- |
+| Persistence mapping | `snake_case_unfixed_names` | Snake case for unfixed physical names only; preserve approved logical state. |
+| API boundary | `http_json` | HTTP/JSON exposure preserving frozen authorization. |
+| Transaction | `operation_atomic` | Atomic related-state writes per operation, preserving approved constraints. |
+| Async execution | `authenticated_completion_callback` or `authorized_status_polling` | Completion delivery preserving frozen execution and isolation. |
+| External integration | `no_automatic_retry` or `transient_retry_twice_no_delay` | One attempt, or at most two for transient failures with no delay, under explicit user authorization. |
+| Failure semantics | `return_failure_without_state_promotion` | Surface external integration failure without promoting unsuccessful state. |
+| Idempotency | `caller_request_key` | A request key scoped by principal and operation, preserving explicit action control. |
+| Storage | `entity_identity_reference` | Existing entity identity reference, preserving retention/deletion. |
+| Implementation technology | `require_generator_capability_certification` | Certify all approved responsibilities before generation; fail closed for missing representations. |
+
+These are supported choices, not automatically selected defaults. Profile names
+and quoted evidence must occur in the unchanged explicit answer. A request key
+is a non-secret invocation control reference, not a new logical field or a rule
+preventing all future actions on the same entity. Failure handling adds no
+lifecycle values. Profiles create no physical columns, routes, handlers or code.
+Other profiles/areas remain unresolved until a supported contract exists.
+
+The authority hierarchy remains IDEA/PLAN, frozen ARCHITECTURE, approved resolved
+MODELS, then question-scoped BACKEND choices. A bounded deterministic recognizer
+reports explicit architecture removal, isolation/technology changes and approved
+relationship/state removal. Relationship checks use actual resolved edges and
+accepted model claims, never merely proposed relationships. This is not a general
+natural-language consistency evaluator: only whitelisted structured claims grant
+implementation authority; raw prose must never become translator instructions.
+Unsupported scope, area mismatch and uncertified generator representations create
+conflicts. Existing decisions with different semantics for the same slot and
+overlapping operation scope conflict; model/component scope is the fallback when
+operations are absent. Grouped owners do not conflate unrelated release and
+repository operations.
+
+Ordinary answers cannot resolve an already resolved question. Deliberate
+`replace_decision` requires an existing decision and its exact accepted prior
+values; an unchanged replacement is rejected. Accepted replacements link the old
+decision ID and preserve prior values/history. Conflicting replacements retain
+the prior decision and create a blocking conflict. A corrected new answer can
+clear its question's conflict while retaining the rejected attempt in history.
+
+Every attempt records action, accepted/rejected/prior values, resulting decision,
+readiness, unresolved question IDs and conflicts before/after. Loading and public
+resolution replay all history, reject stale targets and duplicate attempts, and
+compare recomputed complete state/identity. Inputs use strict inert JSON, exact
+fields/version, Unicode/control/credential checks, duplicate-key/value rejection,
+100,000-character answers, 256 history entries and the shared 5 MB document limit.
+Source/SQL/shell-looking evidence stays inert; arbitrary executable claims and
+serialized objects are rejected.
+
+Effective readiness requires structural validity, every blocking question
+resolved, no active conflicts and valid identity/replay. Advisory questions may
+remain open but an active advisory conflict also blocks readiness. The Gaming
+Studio TEST FIXTURE ONLY answers resolve the ten questions actually emitted by
+5.2, yielding ten decisions and effective readiness while preserving the original
+unready specification and IN_PROGRESS/BACKEND project. This does not approve the
+backend, transition to FRONTEND or certify generation eligibility. In particular,
+the compatibility decision preserves the mandatory future certification gate;
+it does not assert that current ArcaCore represents GitHub/publishing handlers,
+OCI execution or persisted leased jobs. No ArcaCore invocation, source generation,
+provider call or application-file output occurs in this lifecycle.

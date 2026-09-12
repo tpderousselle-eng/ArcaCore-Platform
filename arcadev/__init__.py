@@ -199,7 +199,20 @@ from .backend_clarification import (
     BackendResolutionOutcome, resolve_backend_clarification,
 )
 
+from .backend_approval import (
+    ARCADEV_APPROVED_BACKEND_SCHEMA, ARCADEV_APPROVED_BACKEND_SCHEMA_VERSION,
+    ApprovedBackend, FrozenApprovedBackendPackage, ResolvedBackendAuthority,
+    ResolvedBackendChoice, BackendConsistencyEvaluation, BackendConsistencyFinding,
+    BackendFindingSeverity, approve_backend, reject_backend,
+    evaluate_backend_consistency, validate_approved_backend,
+)
+
 __all__ = [
+    "ARCADEV_APPROVED_BACKEND_SCHEMA", "ARCADEV_APPROVED_BACKEND_SCHEMA_VERSION",
+    "ApprovedBackend", "FrozenApprovedBackendPackage", "ResolvedBackendAuthority",
+    "ResolvedBackendChoice", "BackendConsistencyEvaluation", "BackendConsistencyFinding",
+    "BackendFindingSeverity", "approve_backend", "reject_backend",
+    "evaluate_backend_consistency", "validate_approved_backend",
     "ARCADEV_BACKEND_CLARIFICATION_ANSWER_SCHEMA", "ARCADEV_BACKEND_CLARIFICATION_ANSWER_SCHEMA_VERSION",
     "ARCADEV_BACKEND_FINALIZATION_SCHEMA", "ARCADEV_BACKEND_FINALIZATION_SCHEMA_VERSION",
     "BackendClarificationAnswer", "BackendFinalization", "BackendDecision", "BackendClaim",

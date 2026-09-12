@@ -767,3 +767,34 @@ the compatibility decision preserves the mandatory future certification gate;
 it does not assert that current ArcaCore represents GitHub/publishing handlers,
 OCI execution or persisted leased jobs. No ArcaCore invocation, source generation,
 provider call or application-file output occurs in this lifecycle.
+
+## ArcaDev 5.4: explicit BACKEND approval
+
+`approve_backend` creates immutable `ApprovedBackend`
+(`arcadev.approved_backend`, version 1) only with an explicit nonempty human
+approval statement and a current IN_PROGRESS/BACKEND project. Readiness alone
+does not approve anything. `reject_backend` records explicit rejection without
+changing the specification, finalization, or project stage.
+
+The frozen package contains the complete ModelsBackendHandoff (including PLAN,
+Architecture and approved logical model authority), original BackendSpecification,
+replay-validated BackendFinalization with its complete history, reconstructed
+consistency evaluation and deterministic resolved backend authority. The resolved
+view separates frozen components/bindings/operations/policies from accepted
+bounded implementation choices and remaining provisional questions. Each choice
+retains its exact decision ID, question ID, slot and scope; user prose is evidence.
+
+Final validation reconstructs upstream ownership, state, authorization and graph
+contracts, and replays decisions to reject invalid history, contradictory claims,
+unsupported scope and credentials. Blocking questions, active conflicts and
+ineffective readiness prevent approval. ArcaCore compatibility is a warning:
+approval certifies WHAT is authorized, not whether ArcaCore can generate it.
+
+Identity includes the entire canonical package, decision and statement without
+timestamps, randomness or provider metadata. `validate_approved_backend` compares
+supplied current references by complete canonical content, including the project;
+standalone integrity cannot establish external freshness. Deserialization
+reconstructs consistency and resolved authority instead of trusting asserted IDs.
+Neither approval nor rejection transitions to FRONTEND or invokes a generator.
+The dedicated Gaming Studio fixture explicitly resolves all ten 5.3 blockers and
+approves the backend. Those decisions are test data, never universal defaults.

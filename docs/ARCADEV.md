@@ -871,3 +871,85 @@ source. Five separate public-generator tests generate only temporary evidence an
 verify rejection before database access, normal updates, and unchanged creation.
 This is the batch's explicit, necessary exception to preserving production
 `tools/` byte-for-byte. ArcaDev's 5.5 request creation remains non-executing.
+
+## ArcaDev 5.6 — controlled generation and artifact validation
+
+`generate_backend` consumes only a fully reconstructed, certified
+`ArcaCoreGenerationRequest`. The immutable results are
+`arcadev.backend_generation_run` version 1 (`BackendGenerationRun`) and
+`arcadev.backend_artifact_manifest` version 1 (`BackendArtifactManifest`).
+Dispositions distinguish `GENERATED`, `BLOCKED_INCOMPATIBLE`,
+`FAILED_GENERATION`, and `FAILED_VALIDATION`. A blocked request is a valid
+compatibility outcome. It returns before temporary-directory creation or
+subprocess invocation and preserves the full request, approval and findings.
+An asserted eligible flag never bypasses the reconstructive 5.5 validator.
+Executor-boundary review also makes every accepted upstream PLAN decision an
+explicit compatibility mapping. Retaining a decision in the frozen package does
+not certify its implementation. Such decisions require certification until a
+public translator represents them. A full-chain fixture with an approved manual
+checkpoint for record updates proves that otherwise standard CRUD is blocked
+before workspace creation, preserving that additional approved authority.
+
+An eligible request runs in a fresh OS temporary directory outside the source
+repository. Only the trusted static `tools.generate` import closure, package
+initializers and certified generator templates are copied. Existing registry
+entries, application source, `.git`, `.codex`, `tools.zip`, `.env` and credentials
+are not copied. ArcaDev transports trusted generator inputs without editing them.
+The public entrypoint is exactly the current Python executable with
+`-B -m tools.generate MODULE FIELD...`, an argv list with `shell=False`.
+Neither executable, output directory, command text nor arbitrary environment
+variables can be supplied through generation authority.
+
+The child receives an explicit environment rooted in its temporary workspace.
+Python bytecode/user-site loading is disabled. A separate temporary runtime
+directory holds Black caches and user/temp paths. No PATH or credential values
+are inherited; only the OS Windows-directory variables are preserved. Generation
+needs no network service. This is controlled trusted-code execution, not a claim
+of an OS sandbox for arbitrary hostile programs.
+
+On Windows the process starts suspended, is assigned to a kill-on-close Job,
+and resumes only after containment. Formatter descendants remain in that Job.
+POSIX uses a new process session and group termination. Each invocation has a
+60-second deadline. Stdout and stderr are drained in bounded chunks with a
+65,536-byte limit per stream; raw subprocess output is never retained in run
+authority. Fixed diagnostic categories avoid embedding secrets, absolute paths
+or environment-dependent logs. Process trees and temporary workspaces are
+cleaned before a successful result is accepted.
+
+Validation requires every public module surface: model, schema, CRUD, service,
+API/router and registry. Paths come from the public `module_output_path`
+contract and the certified registry path. Validation rejects absolute or
+noncanonical paths, traversal, duplicate normalized paths, symlinks, reparse
+points, linked files, extra directories/files, secret files and unexpected
+executable surfaces. Copied trusted implementation must remain byte-identical.
+Generated Python parses and compiles in memory without importing the application;
+expected public classes/router and exact registry module/field metadata are
+checked. Existing credential detectors examine generated text. File digests and
+sizes are measured from observed bytes, never invented.
+
+Each artifact records normalized relative path, SHA-256 digest, byte size,
+surface and originating module request IDs. Shared registry provenance lists all
+originating modules. The manifest binds the complete request digest and records
+the public entrypoint, trusted generator-source digest and interpreter version.
+Its public ArcaCore `GenerationManifest` is derived from observed `OwnedFile`
+records. Accepted schema revision, final `ApplicationManifest` and runtime
+validation remain explicitly pending. No schema identities are fabricated and
+BuildOrchestrator is not invoked without its required authority.
+
+Run and artifact authority add no execution timestamps, random values or temporary
+absolute paths; existing frozen upstream metadata is retained exactly. Strict
+loaders reconstruct schemas, paths, evidence invariants and public
+ownership manifests; optional current request comparison checks complete content.
+Standalone integrity is not proof of external freshness or that externally
+supplied artifact bytes exist. Source snapshots compare `backend`, `frontend`,
+`shared` and `tools` before and after execution; dependency/cache directories
+(`.venv`, `node_modules`, `__pycache__`) are excluded from source hashing.
+
+The independent standard-module fixture proves two fresh real public-generator
+runs produce identical canonical artifact manifests. Generated artifacts remain
+temporary test evidence and are never copied into the repository. Gaming Studio
+remains `BLOCKED_INCOMPATIBLE`, with zero invocation and zero generated files,
+because its complete approved scope still exceeds certified public generation
+support. Its approval and IN_PROGRESS/BACKEND state remain unchanged. Partial
+generation never masquerades as complete Gaming Studio generation; 5.6 performs
+no FRONTEND transition and does not begin 5.7.

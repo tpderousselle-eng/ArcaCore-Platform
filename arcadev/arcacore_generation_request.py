@@ -289,6 +289,13 @@ class ArcaCoreGenerationRequest(Record):
                 "Bounded naming, transport or certification precondition is preserved." if supported else "Accepted implementation choice requires a certified application translator.",
                 ("tools.generate.generate_module",))
         represented_sources = {sid for module in modules for sid in module.source_decision_ids}
+        # Approved planning decisions remain implementation authority through the
+        # entire frozen chain. Retaining their bytes is not a translation: each
+        # needs an explicit capability mapping before execution is authorized.
+        for decision in backend_architecture(approved.package.models_backend_handoff).plan_handoff.frozen_approved_plan.package.plan_finalization.decisions:
+            mapping(decision.decision_id, C.IMPLEMENTATION_CHOICE, R,
+                "Accepted PLAN implementation decision requires certified generation representation.",
+                ("tools.generate.generate_module", "tools.application_manifest.ApplicationManifest"))
         architecture_decisions = {d.decision_id: d for d in backend_architecture(
             approved.package.models_backend_handoff).architecture_finalization.decisions}
         for fact in spec.approved_architecture_decisions:

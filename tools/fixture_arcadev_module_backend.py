@@ -4,7 +4,8 @@ from functools import lru_cache
 
 from arcadev import (
     IdeaIntake, IdeaFinalization, ProjectMetadata, create_idea_plan_handoff,
-    generate_baseline_plan, PlanFinalization, approve_plan, create_plan_architecture_handoff,
+    generate_baseline_plan, SoftwarePlan, PlanningQuestion, PlanClarificationAnswer,
+    planning_question_id, PlanFinalization, approve_plan, create_plan_architecture_handoff,
     generate_baseline_architecture, ArchitectureSpecification, ArchitectureQuestion,
     ArchitectureFinalization, approve_architecture, create_architecture_models_handoff,
     generate_baseline_domain_model, DomainModelSpecification, ModelField, ModelFact,
@@ -19,8 +20,8 @@ from tools.test_arcadev_model_clarification import answer_for as model_answer, f
 from tools.test_arcadev_backend_clarification import answer_for as backend_answer
 
 
-@lru_cache(maxsize=2)
-def minimal_approved_backend(authentication=STANDARD_AUTHORITY):
+@lru_cache(maxsize=3)
+def minimal_approved_backend(authentication=STANDARD_AUTHORITY, *, planning_decision=False):
     values = ("Module Certification", "api_service", "A standard record module", "test operators",
         "Manage records", STANDARD_MODULE_CAPABILITY, "Local API", authentication,
         "No integrations", "Local", "PostgreSQL", STANDARD_TIMESTAMP_AUTHORITY)
@@ -39,7 +40,20 @@ def minimal_approved_backend(authentication=STANDARD_AUTHORITY):
     handoff = create_idea_plan_handoff(project, idea)
     plan = generate_baseline_plan(handoff)
     assert not plan.open_planning_questions
-    approved_plan = approve_plan(handoff=handoff, finalization=PlanFinalization.start(plan, handoff=handoff), approval_statement="TEST FIXTURE ONLY: explicitly approve this standard module scope.")
+    if planning_decision:
+        question = PlanningQuestion.create("TEST FIXTURE ONLY: What implementation control applies to record updates?",
+            False, (STANDARD_MODULE_CAPABILITY,), handoff=handoff)
+        arguments = {key: getattr(plan, key) for key in ("product_objective", "user_problem_statement", "scope",
+            "in_scope_capabilities", "user_roles", "user_journeys", "functional_requirements", "non_functional_requirements",
+            "milestones", "dependencies", "integrations", "assumptions", "risks", "acceptance_criteria", "planning_constraints")}
+        plan = SoftwarePlan.create(handoff=handoff, open_planning_questions=(question,), **arguments)
+    plan_state = PlanFinalization.start(plan, handoff=handoff)
+    if planning_decision:
+        value = "Require an explicitly approved manual checkpoint for every record update."
+        answer = PlanClarificationAnswer.create(target_plan_id=plan.plan_id, target_finalization_id=plan_state.finalization_id,
+            target_question_id=planning_question_id(question), user_answer=value, normalized_values=(value,), evidence=(value,))
+        plan_state = plan_state.resolve(answer, handoff=handoff)
+    approved_plan = approve_plan(handoff=handoff, finalization=plan_state, approval_statement="TEST FIXTURE ONLY: explicitly approve this standard module scope.")
     ah = create_plan_architecture_handoff(source_project=handoff.resulting_project, approved_plan=approved_plan)
     architecture = generate_baseline_architecture(ah)
     owner = next(c for c in architecture.components if c.owned_capabilities and c.category == "service")

@@ -214,7 +214,20 @@ from .arcacore_generation_request import (
     ApplicationManifestPlan, validate_arcacore_generation_request,
 )
 
+from .backend_generation import (
+    ARCADEV_BACKEND_GENERATION_RUN_SCHEMA, ARCADEV_BACKEND_GENERATION_RUN_SCHEMA_VERSION,
+    ARCADEV_BACKEND_ARTIFACT_MANIFEST_SCHEMA, ARCADEV_BACKEND_ARTIFACT_MANIFEST_SCHEMA_VERSION,
+    ArcaCoreGenerationProvenance, BackendGenerationRun, BackendArtifactManifest, GeneratedArtifact,
+    GenerationDisposition, GenerationDiagnostic, generate_backend,
+    validate_backend_generation_run, validate_backend_artifact_manifest,
+)
+
 __all__ = [
+    "ARCADEV_BACKEND_GENERATION_RUN_SCHEMA", "ARCADEV_BACKEND_GENERATION_RUN_SCHEMA_VERSION",
+    "ARCADEV_BACKEND_ARTIFACT_MANIFEST_SCHEMA", "ARCADEV_BACKEND_ARTIFACT_MANIFEST_SCHEMA_VERSION",
+    "ArcaCoreGenerationProvenance", "BackendGenerationRun", "BackendArtifactManifest", "GeneratedArtifact",
+    "GenerationDisposition", "GenerationDiagnostic", "generate_backend",
+    "validate_backend_generation_run", "validate_backend_artifact_manifest",
     "ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA", "ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA_VERSION",
     "ArcaCoreGenerationRequest", "ModuleGenerationRequest", "ArcaCoreCapability",
     "ArcaCoreCapabilityStatus", "ArcaCoreCapabilityMapping", "ArcaCoreCompatibilityFinding",

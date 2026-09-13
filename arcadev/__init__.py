@@ -378,3 +378,17 @@ __all__ = [
     "create_plan_architecture_handoff",
     "validate_plan_architecture_handoff",
 ]
+
+from .model_amendment_request import (
+    ARCADEV_MODEL_AMENDMENT_REQUEST_SCHEMA, ARCADEV_MODEL_AMENDMENT_REQUEST_SCHEMA_VERSION,
+    ModelAmendmentArea, ModelAmendmentTarget, ModelAmendmentQuestion,
+    ModelAmendmentFieldProposal, ModelAmendmentCandidate, ModelAmendmentCandidateAdapter,
+    ModelAmendmentRequest, suggest_model_amendment, model_amendment_review,
+)
+
+__all__ += [
+    "ARCADEV_MODEL_AMENDMENT_REQUEST_SCHEMA", "ARCADEV_MODEL_AMENDMENT_REQUEST_SCHEMA_VERSION",
+    "ModelAmendmentArea", "ModelAmendmentTarget", "ModelAmendmentQuestion",
+    "ModelAmendmentFieldProposal", "ModelAmendmentCandidate", "ModelAmendmentCandidateAdapter",
+    "ModelAmendmentRequest", "suggest_model_amendment", "model_amendment_review",
+]

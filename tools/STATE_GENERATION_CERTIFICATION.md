@@ -136,3 +136,88 @@ the initial logs are retained and every discovered test identity was reconciled.
 No production timeout or test assertion was relaxed. PostgreSQL runtime and
 migration suites separately passed all 16 tests. Protected-file hash comparison
 found zero differences, including the initial absence of `tools.zip`.
+
+## 31.3 isolated multi-module execution and actual state report
+
+Re-audited `arcadev/backend_generation.py`, `_generation_process.py`, the public
+`tools.generate` entrypoint, transactional registry, artifact validation and
+model/schema templates. The existing controller already isolated multi-module
+generation and rejected incomplete inventories. It now explicitly executes the
+derived dependency plan through the same bounded subprocess transport. Only
+the full validated request may earn a complete artifact manifest. The internal
+module executor returns invocation/diagnostic evidence, never approval or an
+application-completion claim. A failed later module discards the overall manifest
+and the entire temporary workspace.
+
+`arcadev.state_certification.state_certification_report(request, previous_counts=...)`
+reconstructs current request authority before reporting per-entity dispositions,
+exact reasons, module IDs, dependency evidence and every capability group.
+Historical totals are explicitly supplied comparison context. Current totals
+and support are always computed; changing historical context cannot grant support.
+The report distinguishes `all_state_generatable` from
+`eligible_for_backend_generation`. Even a fully representable state model cannot
+bypass an unsupported authentication or application responsibility.
+
+The approved two-module fixture exercises exact choice values/defaults and
+integer checks through all five public generator layers. Two fresh runs compare
+artifact bytes, hashes, inventory, registry and canonical run evidence. A separate
+explicit physical Parent/Child fixture executes the same dependency transport
+and verifies exact FK, reverse, cascade and passive-delete output. This proves
+public relationship execution; it does not invent the missing logical FK binding
+needed to approve an application relationship.
+
+### Gaming Studio result reconstructed from frozen authority
+
+The original model and finalization identities remain
+`arcadev_domain_model_fa14437a45ef581d1da735a1f2c22d5a` and
+`arcadev_model_final_69a80476151dcf829cee5d282af6de9a`.
+Every entity below is **BLOCKED** with the same exact reconstructed reason:
+“Approved logical choices have no named approved fields or bound identity;
+physical fields and defaults cannot be invented.”
+
+| Frozen entity | Entity ID |
+| --- | --- |
+| build management state | `arcadev_model_entity_4935d6f577e3901634ec8e38f30e4200` |
+| game project management state | `arcadev_model_entity_4f2a09fa4cdda29266fb2715bfe64ae6` |
+| GitHub integration state | `arcadev_model_entity_591a87513228eb7ae3d6d22573264131` |
+| publishing workflow state | `arcadev_model_entity_7271c84ed97605a31a93482b6267a8ad` |
+| asset management state | `arcadev_model_entity_feb97c2c6ca333bca2718663710def20` |
+
+No testing-outcome entity or field is inferred. Zero entities are generatable,
+zero module requests are created, and no workspace or generator starts for this
+request. Backend authority remains APPROVED, project IN_PROGRESS / BACKEND,
+generation BLOCKED_INCOMPATIBLE. No FRONTEND transition occurs.
+
+| Remaining capability | Unsupported | Requires certification | Total |
+| --- | ---: | ---: | ---: |
+| LOGICAL_STATE | 0 | 5 | 5 |
+| STANDARD_MODULE | 0 | 5 | 5 |
+| AUTHORIZATION | 0 | 3 | 3 |
+| APPLICATION_OPERATION | 0 | 12 | 12 |
+| EXTERNAL_INTEGRATION | 3 | 0 | 3 |
+| PUBLISHING | 1 | 0 | 1 |
+| ISOLATED_WORKER | 1 | 0 | 1 |
+| APPLICATION_JOB | 1 | 0 | 1 |
+| STORAGE | 0 | 2 | 2 |
+| IMPLEMENTATION_CHOICE | 0 | 24 | 24 |
+| **Total** | **6** | **51** | **57** |
+
+Before: 57 / 6 / 51. After: 57 / 6 / 51. Delta: zero in every count.
+These are observed results, not targets imposed on the translator. GitHub
+integration, publishing, isolated workers, jobs and application-specific handlers
+remain unsupported or uncertified; state certification does not implement them.
+
+Dedicated verification: `python -B -m unittest tools.test_arcadev_state_generation -v`.
+The final repository runner schedules the two startup-timing modules serially
+after the remaining discovered modules, with unchanged tests and timeouts.
+
+Final certification of the completed 31.3 implementation: all three dedicated
+suites passed (14 field, 20 relation, 14 multi-module/report tests). Complete
+ArcaDev discovery passed 471 tests with zero failures, errors or skips. Complete
+repository discovery executed all 1,203 tests across 97 modules with zero
+failures/errors and one allowed Docker runtime opt-in skip; both startup-timing
+modules passed on their first serial execution in this final run. The separate
+PostgreSQL runtime/migration invocation passed all 16 tests. No source application
+files were generated or patched; successful fixture manifests contain temporary
+evidence only and still require accepted schema, application-manifest and runtime
+authority before any application-completion claim.

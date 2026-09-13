@@ -20,6 +20,7 @@ from ._generation_process import invoke_module
 from .arcacore_generation_request import ArcaCoreGenerationRequest, module_definition, validate_arcacore_generation_request
 from .architecture_specification import Record, _exact, _identity, _json, _pairs, _parse
 from .domain_model_specification import _model_safe
+from .generation_dependencies import generation_dependency_plan
 
 ARCADEV_BACKEND_GENERATION_RUN_SCHEMA = "arcadev.backend_generation_run"
 ARCADEV_BACKEND_GENERATION_RUN_SCHEMA_VERSION = 1
@@ -429,6 +430,19 @@ def _validate_artifacts(workspace, request, bundle):
     return validate_backend_artifact_manifest(result, request=request)
 
 
+def _invoke_dependency_plan(modules, workspace, runtime):
+    """Execute exact public declarations in derived order; return no artifact authority."""
+    plan = generation_dependency_plan(modules)
+    by_id = {m.module_request_id: m for m in modules}
+    count = 0
+    for identity in plan.ordered_module_request_ids:
+        outcome = invoke_module(by_id[identity], workspace, runtime)
+        count += int(outcome.started)
+        if outcome.diagnostic is not None:
+            return count, GenerationDiagnostic(outcome.diagnostic)
+    return count, None
+
+
 def generate_backend(request, **current_authority):
     """Execute only complete certified scope; generated files are temporary evidence."""
     request = validate_arcacore_generation_request(request, **current_authority)
@@ -448,11 +462,9 @@ def generate_backend(request, **current_authority):
             workspace, runtime = outer / "workspace", outer / "runtime"
             workspace.mkdir(); runtime.mkdir()
             _prepare(workspace, bundle)
-            for module in request.module_requests:
-                outcome = invoke_module(module, workspace, runtime)
-                count += int(outcome.started)
-                if outcome.diagnostic is not None:
-                    diagnostics = (GenerationDiagnostic(outcome.diagnostic),); break
+            count, diagnostic = _invoke_dependency_plan(request.module_requests, workspace, runtime)
+            if diagnostic is not None:
+                diagnostics = (diagnostic,)
             else:
                 disposition = GenerationDisposition.FAILED_VALIDATION
                 try:

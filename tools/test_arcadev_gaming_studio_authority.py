@@ -164,7 +164,7 @@ class GamingStudioAuthorityTest(unittest.TestCase):
                 imports.update(alias.name for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
                 imports.add(node.module)
-        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_transition"})
+        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_transition", "gaming_studio_plan"})
 
     def test_no_execution_network_generation_project_or_writes(self):
         before = {p.name: p.read_bytes() for p in self.directory.iterdir()}

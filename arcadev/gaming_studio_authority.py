@@ -54,7 +54,7 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
         raise ValueError("Production authority directory does not exist.")
     names = set()
     for path in directory.iterdir():
-        if path.name == "idea_resolution" and not path.is_symlink() and not path.is_junction() and path.is_dir():
+        if path.name in {"idea_resolution", "production_plan"} and not path.is_symlink() and not path.is_junction() and path.is_dir():
             continue
         if path.name not in PACKAGE_FILES or path.is_symlink() or path.is_junction() or not path.is_file():
             raise ValueError("Unknown authority file or non-regular package entry.")
@@ -93,6 +93,9 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
         current = validate_transition_package(resolution, source)
         result.update(seed_checkpoint=expected_checkpoint, checkpoint=current,
                       checkpoint_digest=digest_bytes(canonical_bytes(current)))
+    if (directory / "production_plan").exists() and not seed_only:
+        from .gaming_studio_plan import validate_production_plan_package
+        validate_production_plan_package(directory)
     return result
 
 

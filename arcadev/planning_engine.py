@@ -40,6 +40,33 @@ def _unique_items(items):
     return tuple(result.values())
 
 
+def _merge_question_sources(questions, handoff):
+    grouped = {}
+    for question in questions:
+        key = question.question.casefold()
+        previous = grouped.get(key)
+        grouped[key] = PlanningQuestion.create(
+            question.question, question.blocking or bool(previous and previous.blocking),
+            set(question.source_requirements) | (set(previous.source_requirements) if previous else set()),
+            handoff=handoff,
+        )
+    return tuple(grouped.values())
+
+
+def _merge_risk_sources(risks, handoff):
+    grouped = {}
+    for risk in risks:
+        key = risk.risk.value.casefold()
+        previous = grouped.get(key)
+        if previous:
+            risk = PlanRisk(
+                _derived(handoff, risk.risk.value, *set((*previous.risk.source_requirements, *risk.risk.source_requirements))),
+                _derived(handoff, risk.mitigation.value, *set((*previous.mitigation.source_requirements, *risk.mitigation.source_requirements))),
+            )
+        grouped[key] = risk
+    return tuple(grouped.values())
+
+
 def generate_baseline_plan(handoff: IdeaPlanHandoff) -> SoftwarePlan:
     """Create a conservative plan using only the frozen approved IDEA."""
 
@@ -144,8 +171,8 @@ def generate_baseline_plan(handoff: IdeaPlanHandoff) -> SoftwarePlan:
         dependencies=dependencies,
         integrations=[_direct(handoff, value) for value in integrations],
         assumptions=(),
-        risks=risks,
-        open_planning_questions=questions,
+        risks=_merge_risk_sources(risks, handoff),
+        open_planning_questions=_merge_question_sources(questions, handoff),
         acceptance_criteria=acceptance,
         planning_constraints=_unique_items(constraints),
     )

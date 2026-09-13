@@ -1,5 +1,10 @@
 # ArcaDev
 
+Gaming Studio's first production authority is documented in
+[Gaming Studio production authority](GAMING_STUDIO_PRODUCTION_AUTHORITY.md).
+It stops at IDEA pending explicit clarifications. Gaming Studio lifecycle
+certification examples remain TEST FIXTURE ONLY.
+
 ArcaDev is the deterministic development-orchestration layer between product intent and ArcaCore. The platform relationship is:
 
 ```text

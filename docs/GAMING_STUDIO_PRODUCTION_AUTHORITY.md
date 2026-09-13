@@ -182,3 +182,89 @@ A build, integration or publishing capability must remain blocked when ArcaCore 
 
 Initial Gaming Studio scope does not automatically include unrelated features such as multiplayer services, social networks, marketplace/e-commerce, subscriptions, achievements, analytics, AI NPC systems or other product capabilities unless they are explicitly added and approved later.
 ```
+
+## Production checkpoint validation
+
+`arcadev.gaming_studio_authority.validate_production_authority` is a read-only
+production validator. From the repository root, run:
+
+```powershell
+& 'C:\ac259\Scripts\python.exe' -B -m arcadev.gaming_studio_authority
+```
+
+An optional directory argument validates a copied package using the same pinned
+production root. The CLI returns zero only for a valid package and prints the
+canonical checkpoint, its SHA-256 digest and the fixture-independence result.
+Invalid packages produce a nonzero exit; they never grant partial authority.
+
+The validator accepts exactly four regular files: `production_intent.json`,
+`idea_intake.json`, `clarification_review.json`, and `checkpoint.json`. It rejects
+unknown files, extra directories, links, junctions and incomplete packages.
+UNC/device paths are rejected before filesystem access; parent links are
+checked from root to leaf before reading children, preserving the local-I/O boundary.
+Each read is bounded. All JSON must use canonical UTF-8 serialization with LF
+envelope termination; `authority/.gitattributes` preserves this across checkouts.
+
+The approved intent and exact approval statement are validated first. The
+certified public IDEA contract reconstructs the intake and readiness; the
+production mapping then checks every value and clarification against the
+audited source. The complete review and checkpoint must match reconstruction
+byte for byte. Editing an intake and recomputing its digest cannot supply new
+authority. Neither a forged readiness flag nor a fake project or later-stage
+file can advance this package. Static imports across the ArcaDev source layer,
+including its package initializer, are checked for test/fixture dependencies.
+This check assumes trusted repository code and is not a sandbox for arbitrary
+modified Python.
+
+Checkpoint schema: `arcadev.gaming_studio.production_checkpoint`, version 1.
+Its identity is the SHA-256 of the complete canonical `checkpoint.json` bytes;
+there is no self-referential digest field or timestamp. It binds the exact
+approved-intent digest and the SHA-256 of canonical IDEA bytes, the product key,
+stage, computed readiness, blocking keys and next action. `project_id` is null.
+The current stage remains **IDEA**, status
+**BLOCKED_PENDING_IDEA_CLARIFICATION**, and the only next authorized action is
+**COLLECT_EXPLICIT_IDEA_CLARIFICATIONS**.
+
+### Later explicit clarification
+
+The original intent root and seed IDEA remain immutable historical authority.
+A later authorized increment can start `IdeaFinalization` from this exact seed,
+record the user's actual words in `ClarificationAnswer` records bound to the
+current `idea_intake_id`, and use `resolve_clarification` to replay accepted
+answers and conflict history. Existing authentication, credential, isolation,
+capability and scope boundaries must remain intact. Replacing an already
+explicit value requires the certified replacement action and the user's
+authorization; a question does not authorize that replacement by itself.
+
+Version 1 deliberately accepts no answer, finalization or project files. A
+later package revision must explicitly support and validate that additional
+lineage rather than overwrite the seed or bypass this validator. Readiness,
+blocking requirements, assumptions and conflicts must be reevaluated after
+actual answers. Project construction also requires an authorized canonical
+metadata source. Only after those conditions are satisfied may a separately
+authorized action use the certified IDEA-to-PLAN consistency and transition
+gate. No answers, metadata or downstream approvals are manufactured here.
+
+### Validation scope
+
+The dedicated suites cover the immutable root, exact quotes and exclusions,
+five blocking choices, canonical intake/review/checkpoint reconstruction,
+readiness forgery, substituted source and hashes, fake projects and downstream
+files, malformed JSON, unknown fields, fixture dependencies, and execution,
+network and write prohibitions. A ready-project positive test uses an unrelated,
+explicitly labeled TEST FIXTURE ONLY intent; it never supplies Gaming Studio
+production authority.
+
+Each increment runs dedicated tests, complete ArcaDev tests, complete repository
+discovery, PostgreSQL-backed suites, diff/status inspection and protected-file
+integrity checks. Workers execute unchanged unittest cases and record discovery
+coverage. The repository runner `tools/run_model_refinement_gates.py` supports
+complete module-preserving discovery and runs timing-sensitive runtime-harness
+tests without competing replay workers. Reports and test workspaces stay outside
+the repository. The sole permitted skip is the existing opt-in Docker Compose
+contract. Existing regression tests exercise their fixture generators in
+temporary workspaces; no Gaming Studio production generator is invoked.
+
+No PLAN, ARCHITECTURE, MODELS, BACKEND or FRONTEND work, ArcaCore production
+generation, deployment or Sprint 32 work is authorized or performed. The batch
+creates three local commits, without a push or pull request.

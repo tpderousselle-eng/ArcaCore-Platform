@@ -53,10 +53,22 @@ def parse_authority(data: bytes) -> dict:
     return value
 
 
+def local_authority_path(path: Path) -> Path:
+    """Reject UNC/device paths before I/O, then links from root to leaf."""
+    path = Path(path).absolute()
+    if path.drive.startswith("\\\\") or str(path).startswith("//"):
+        raise ValueError("Authority paths must be local, not network or device paths.")
+    # Checking a child before its parent could traverse a link to a network share.
+    for component in reversed((path, *path.parents)):
+        if component.is_symlink() or component.is_junction():
+            raise ValueError("Authority paths cannot traverse links or junctions.")
+    return path
+
+
 def read_authority(path: Path) -> bytes:
-    """Read at most limit + 1 bytes; reject links and non-regular files."""
-    path = Path(path)
-    if path.is_symlink() or path.is_junction() or not path.is_file():
+    """Read at most limit + 1 bytes from a regular file on a local path."""
+    path = local_authority_path(path)
+    if not path.is_file():
         raise ValueError("Authority must be a regular file, not a link.")
     with path.open("rb") as stream:
         data = stream.read(MAX_AUTHORITY_BYTES + 1)

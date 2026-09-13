@@ -1,5 +1,10 @@
 # Model authority refinement
 
+For the first genuine Gaming Studio intent and IDEA checkpoint, see
+[Gaming Studio production authority](GAMING_STUDIO_PRODUCTION_AUTHORITY.md).
+The refinement histories below use TEST FIXTURE ONLY Gaming Studio authority;
+they do not supply a production model parent. Production still has no model authority.
+
 ## Refinement 1: amendment foundation
 
 `arcadev.model_amendment_request`, version 1, freezes the complete certified

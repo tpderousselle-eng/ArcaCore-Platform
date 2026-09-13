@@ -63,3 +63,56 @@ snapshot. Both affected areas passed a 20-test recheck with unchanged assertions
 No historical implementation was changed. Later gates run the runtime harness
 serially and keep source files fixed throughout the run. PostgreSQL runtime,
 migration, and migration-execution suites passed. Docker is unavailable here.
+
+## Refinement 2: explicit field and identity resolution
+
+`arcadev.model_amendment_answer` and `arcadev.model_amendment_finalization` are
+version 1 contracts. An answer requires an explicit `accept` action, unchanged
+user text, a verbatim complete JSON declaration quoted in that text, and the
+deterministically normalized field declaration. Every declaration attribute,
+including null domain/default semantics and exact source decision/claim, must
+match the quote. The answer binds request, parent approval, current finalization,
+question and entity. Trusted caller authentication is external; these inert
+records preserve explicit-user provenance but are not digital signatures.
+
+Accepted declarations create ordinary logical ModelField records with
+revision-only ModelAmendmentFieldEvidence. That evidence preserves the quoted
+declaration, architecture sources, exact accepted source choice, amendment
+decision ID and question ID. Old ModelFact loaders deliberately reject this new
+evidence shape; it cannot masquerade as historical architecture approval.
+Field IDs reuse `model_element_id` with explicit name, frozen sources and entity
+scope. Entity IDs and ownership never change.
+
+Identity fields must have the accepted type and be required, scalar, immutable
+and unique. Lifecycle ENUM declarations atomically create an explicitly named
+ModelValueDomain with exactly the accepted values. Principal references remain
+scalar EXTERNAL_IDENTIFIER fields; external and outcome reference types must
+match accepted claim semantics. None of these operations adds persistence
+entities, credentials, defaults, relationships or physical mappings.
+
+Invalid attempts raise ValueError atomically. Duplicate normalized field names,
+field IDs, domain names/IDs, wrong scope, contradictory types/classifications,
+changed lifecycle values and stale parent/request/finalization targets fail.
+Version 1 supports no REPLACE action. Every accepted answer remains in append-only
+history, and loaders replay all history before trusting fields or readiness.
+Readiness means every blocking amendment question is resolved with no conflicts;
+it does not approve a revised model or change downstream authority.
+
+The fixture uses 14 explicitly marked TEST FIXTURE ONLY answers: five identities,
+five principal references, two lifecycle fields/domains, one external reference
+and one outcome reference on the existing build entity. Fixture answers are
+defined only in test helpers. Production code never imports those helpers.
+The read-only review continues to show the unresolved request independently of
+fixture finalization. Production remains BLOCKED_PENDING_PRODUCTION_PARENT_AUTHORITY;
+there is no production request or authoritative production review packet.
+
+Credential-bearing names, including bare or provider-specific token/secret
+names, are rejected. A pre-existing bound lifecycle domain does not suppress
+the amendment question when its named field is still missing. Domain reuse or
+replacement is not inferred; each proposed domain declaration remains explicit
+and duplicate domain identities/names are rejected.
+
+The refinement 2 full gate passed all 1,228 discovered tests with zero failures
+or errors and the one existing opt-in Docker skip. The final dedicated suites
+also cover the bounded name and missing-lifecycle-field corrections.
+The final dedicated run passed 26 tests: 10 foundation and 16 resolution tests.

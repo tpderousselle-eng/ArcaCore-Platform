@@ -392,3 +392,20 @@ __all__ += [
     "ModelAmendmentFieldProposal", "ModelAmendmentCandidate", "ModelAmendmentCandidateAdapter",
     "ModelAmendmentRequest", "suggest_model_amendment", "model_amendment_review",
 ]
+
+from .model_amendment_answer import (
+    ARCADEV_MODEL_AMENDMENT_ANSWER_SCHEMA, ARCADEV_MODEL_AMENDMENT_ANSWER_SCHEMA_VERSION,
+    ModelAmendmentAnswer, ModelAmendmentResolutionAction,
+)
+from .model_amendment_finalization import (
+    ARCADEV_MODEL_AMENDMENT_FINALIZATION_SCHEMA, ARCADEV_MODEL_AMENDMENT_FINALIZATION_SCHEMA_VERSION,
+    ModelAmendmentFieldEvidence, ModelAmendmentDecision, ModelAmendmentHistoryEntry,
+    ModelAmendmentFinalization,
+)
+__all__ += [
+    "ARCADEV_MODEL_AMENDMENT_ANSWER_SCHEMA", "ARCADEV_MODEL_AMENDMENT_ANSWER_SCHEMA_VERSION",
+    "ModelAmendmentAnswer", "ModelAmendmentResolutionAction",
+    "ARCADEV_MODEL_AMENDMENT_FINALIZATION_SCHEMA", "ARCADEV_MODEL_AMENDMENT_FINALIZATION_SCHEMA_VERSION",
+    "ModelAmendmentFieldEvidence", "ModelAmendmentDecision", "ModelAmendmentHistoryEntry",
+    "ModelAmendmentFinalization",
+]

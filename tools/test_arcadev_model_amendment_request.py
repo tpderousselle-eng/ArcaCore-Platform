@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 from arcadev.model_amendment_request import (
     ModelAmendmentRequest, ModelAmendmentFieldProposal, ModelAmendmentArea,
-    suggest_model_amendment, model_amendment_review, validate_proposal,
+    suggest_model_amendment, model_amendment_review, validate_proposal, _questions,
 )
 from tools.test_arcadev_model_approval import approved_model
 
@@ -29,7 +29,7 @@ def fixture_field(question, **changes):
     raw = dict(entity_id=question.target.entity_id, name=names[claim.slot], logical_type=kind,
         required=True, collection=False, mutable=not identity, unique=identity,
         classification="internal" if identity or lifecycle else "external_identifier",
-        value_domain_name="lifecycle_states" if lifecycle else None,
+        value_domain_name="lifecycle_states_" + question.target.entity_id[-8:] if lifecycle else None,
         value_domain_values=sorted(claim.values) if lifecycle else [], default_json=None,
         source_decision_id=question.target.source_choice.decision_id, source_claim=claim.canonical_dict())
     raw.update(changes)
@@ -58,6 +58,18 @@ class ModelAmendmentRequestTest(unittest.TestCase):
         self.assertEqual({a for q in r.questions for a in q.target.materialization_areas}, set(ModelAmendmentArea))
         self.assertTrue(all(not e.approved_fields and not e.identity_field_ids for e in r.parent.package.resolved_model.entities))
         self.assertFalse(r.candidates)
+
+    def test_bound_domain_without_named_field_still_requires_materialization(self):
+        # Exercise the pure question detector with a synthetic resolved view;
+        # the public authority boundary must still reject this forged package.
+        q = next(q for q in self.request.questions if q.target.area is ModelAmendmentArea.LIFECYCLE_FIELD)
+        parent = self.request.parent
+        model = parent.package.resolved_model
+        entities = tuple(replace(e, lifecycle_domain_ids=("existing_domain",)) if e.entity_id == q.target.entity_id else e for e in model.entities)
+        synthetic = replace(parent, package=replace(parent.package, resolved_model=replace(model, entities=entities)))
+        self.assertIn(q.question_id, {item.question_id for item in _questions(synthetic)})
+        with self.assertRaises(ValueError):
+            ModelAmendmentRequest.create(synthetic)
 
     def test_candidate_boundary(self):
         q = self.request.questions[0]
@@ -106,7 +118,8 @@ class ModelAmendmentRequestTest(unittest.TestCase):
     def test_untrusted_input_rejections(self):
         q = self.request.questions[0]
         for value in ("ghp_abcdefghijklmnopqrstuvwxyz", "password=literal", "C:\\tmp\\file", "/tmp/file", "../file",
-                "CREATE TABLE state", "exec(payload)", "$(whoami)", "`whoami`", "access_token", "password", "api_key"):
+                "CREATE TABLE state", "exec(payload)", "$(whoami)", "`whoami`", "access_token", "password", "api_key",
+                "github_token", "token", "secret", "credentials"):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 ModelAmendmentFieldProposal.from_dict(fixture_field(q, name=value))
         for key in ("provider", "automatic_approval", "sql_type", "table_name", "service_code"):

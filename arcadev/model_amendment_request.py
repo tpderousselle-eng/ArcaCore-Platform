@@ -135,7 +135,7 @@ class ModelAmendmentFieldProposal(Record):
                     raise ValueError("Explicit logical names must be bounded identifiers.")
         if args["name"] is None:
             raise ValueError("A field name is required.")
-        if re.search(r"(?i)password|passwd|(?:access|refresh|oauth)[_ -]?token|(?:client|oauth)[_ -]?secret|private[_ -]?key|api[_ -]?key", args["name"]):
+        if re.search(r"(?i)password|passwd|credential|token|secret|private[_ -]?key|api[_ -]?key", args["name"]):
             raise ValueError("Credential storage remains outside logical amendment authority.")
         args["logical_type"] = LogicalType(args["logical_type"])
         args["classification"] = DataClassification(args["classification"])
@@ -185,7 +185,9 @@ def _questions(parent):
                 continue
             if area is ModelAmendmentArea.IDENTITY_BINDING and entity.identity_field_ids:
                 continue
-            if area is ModelAmendmentArea.LIFECYCLE_FIELD and entity.lifecycle_domain_ids:
+            if area is ModelAmendmentArea.LIFECYCLE_FIELD and any(
+                f.value_domain_id in entity.lifecycle_domain_ids for f in entity.approved_fields
+            ):
                 continue
             decision = decisions[choice.decision_id]
             # Existing explicit fields are already materialized if their exact

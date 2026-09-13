@@ -1,0 +1,2 @@
+# Canonical JSON envelopes always end in LF; embedded intent bytes are escaped.
+gaming_studio/*.json text eol=lf

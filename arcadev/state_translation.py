@@ -22,10 +22,18 @@ def validate_field_declaration(value):
     parts = _split_field_definition(value)
     if len(parts) < 2 or not valid_public_identifier(parts[0]):
         raise ValueError("Uncertified module declaration.")
-    if parts[1] not in SCALAR_TYPES.values() and not re.fullmatch(r"choice\([^()]+\)", parts[1]):
+    if parts[1] not in SCALAR_TYPES.values() and not re.fullmatch(r"(?:choice|many_to_many)\([^()]+\)", parts[1]):
         raise ValueError("Uncertified field type.")
     for modifier in parts[2:]:
         if modifier in {"pk", "nullable", "unique"}:
+            continue
+        # Audited public relationship declarations are accepted for dependency
+        # inspection. Only frozen-authority reconstruction can grant support.
+        if modifier in {"one_to_one", "one_to_many", "self_relationship", "cascade_delete", "passive_deletes", "global_target"}:
+            continue
+        if re.fullmatch(r"fk=[A-Za-z][A-Za-z0-9_]*\.[A-Za-z][A-Za-z0-9_]*", modifier) or re.fullmatch(
+            r"(?:one_to_many|self_relationship)\([A-Za-z][A-Za-z0-9_]*(?:,[A-Za-z][A-Za-z0-9_]*)?\)", modifier
+        ):
             continue
         if modifier.startswith("default="):
             try:
@@ -49,6 +57,8 @@ def field_declaration(field, physical, *, primary=False, domains=()):
         raise ValueError("Only immutable identities and mutable non-identity fields are certified.")
     if field.unique is None:
         raise ValueError("Field uniqueness must be explicit.")
+    if field.unique and (not field.required or kind == "json"):
+        raise ValueError("Uniqueness requires certified non-null database equality semantics.")
     if primary and (not field.required or kind not in {"string", "integer", "uuid"}):
         raise ValueError("Identity must be a required scalar with a certified key type.")
     if primary and kind == "uuid":

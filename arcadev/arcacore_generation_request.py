@@ -11,6 +11,7 @@ from enum import Enum
 import re
 
 from tools.core.field_parser import parse_fields
+from tools.core.constraint_parser import parse_constraints
 from tools.core.module_definition import ModuleDefinition, valid_public_identifier, validate_module_definition
 
 from .architecture_specification import Record, _exact, _identity, _json, _parse, plan_source_id
@@ -18,6 +19,8 @@ from .backend_approval import ApprovedBackend, validate_approved_backend
 from .backend_specification import BackendRole, backend_architecture
 from .domain_model_specification import _model_safe as _safe
 from .state_translation import field_declaration, validate_field_declaration
+from .state_constraints import constraint_declarations, certify_access, relationship_blocker
+from .generation_dependencies import generation_dependency_plan
 
 ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA = "arcadev.arcacore_generation_request"
 ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA_VERSION = 1
@@ -30,6 +33,20 @@ STANDARD_TIMESTAMP_AUTHORITY = (
     "ArcaCore manages created_at and updated_at as nullable timezone-aware timestamps "
     "with server time defaults and an update-time hook."
 )
+
+
+def standard_module_capability(scope):
+    """Explicitly scoped standard CRUD authority; a label alone grants nothing."""
+    if type(scope) is not str or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", scope) or not valid_public_identifier(scope):
+        raise ValueError("Standard module scope must be a bounded public identifier.")
+    return STANDARD_MODULE_CAPABILITY + " (" + scope + ")"
+
+
+def _standard_capability(value):
+    if value == STANDARD_MODULE_CAPABILITY:
+        return True
+    match = re.fullmatch(re.escape(STANDARD_MODULE_CAPABILITY) + r" \(([a-z][a-z0-9_]{0,63})\)", value)
+    return bool(match and valid_public_identifier(match[1]))
 
 
 class ArcaCoreCapabilityStatus(str, Enum):
@@ -79,6 +96,9 @@ class ModuleGenerationRequest(Record):
     source_field_ids: tuple[str, ...]
     source_decision_ids: tuple[str, ...]
     naming_decision_id: str
+    constraint_declarations: tuple[str, ...] = ()
+    source_constraint_ids: tuple[str, ...] = ()
+    source_access_ids: tuple[str, ...] = ()
 
 
 def module_definition(request):
@@ -91,6 +111,11 @@ def module_definition(request):
         validate_field_declaration(value)
     name = request.module_name
     result = ModuleDefinition(name, name.capitalize(), name.lower(), name.lower() + "s", parse_fields(name, list(request.field_declarations)))
+    if type(request.constraint_declarations) is not tuple or len(request.constraint_declarations) > 128 or any(
+        type(d) is not str or len(d) > 4096 for d in request.constraint_declarations
+    ):
+        raise ValueError("Constraint declarations must be bounded.")
+    result.unique_constraints, result.check_constraints = parse_constraints(result.table_name, list(request.constraint_declarations), result.fields)
     validate_module_definition(result)
     return result
 
@@ -111,7 +136,7 @@ def _scope(approved):
     package = backend_architecture(approved.package.models_backend_handoff)
     plan = package.plan_handoff.frozen_approved_plan.package.plan_finalization.original_plan
     capabilities = {plan_source_id(item): item for item in plan.in_scope_capabilities}
-    standard = {key for key, item in capabilities.items() if item.value == STANDARD_MODULE_CAPABILITY}
+    standard = {key for key, item in capabilities.items() if _standard_capability(item.value)}
     timestamps = any(item.value == STANDARD_TIMESTAMP_AUTHORITY for item in plan.planning_constraints)
     storage = [a for a in package.original_architecture.aspects if a.area.value == "storage"]
     postgres = bool(storage) and all(a.technology is not None and a.technology.value == "PostgreSQL" for a in storage)
@@ -145,9 +170,9 @@ def _translate_entity(approved, entity, timestamps):
             or "external_principal_id" not in fixed or fixed["external_principal_id"].logical_type.value != "string"
             or fixed["external_principal_id"].classification.value != "external_identifier")) for c in entity.choices):
         return None, "Accepted logical choices need certified physical representation; no fields may be invented."
-    if (any(entity.entity_id in (r.source_entity_id, r.target_entity_id) for r in model.relationships)
-        or any(c.entity_id == entity.entity_id for c in (*model.constraints, *model.access_requirements))):
-        return None, "Approved relationship, constraint or access translation requires certification."
+    relationships = [r for r in model.relationships if entity.entity_id in (r.source_entity_id, r.target_entity_id)]
+    if relationships:
+        return None, relationship_blocker(relationships[0])
     if not set(entity.lifecycle_domain_ids) <= {f.value_domain_id for f in entity.approved_fields}:
         return None, "Lifecycle values lack an approved field binding; certification cannot invent a lifecycle field."
     if not timestamps or not {"created_at", "updated_at"} <= fixed.keys():
@@ -173,11 +198,21 @@ def _translate_entity(approved, entity, timestamps):
         declarations.append(declaration)
     if len({d.split(":")[0] for d in declarations}) != len(declarations):
         raise ValueError("Physical field names collide.")
+    constraints = tuple(c for c in model.constraints if c.entity_id == entity.entity_id)
+    accesses = tuple(a for a in model.access_requirements if a.entity_id == entity.entity_id)
+    try:
+        physical_constraints = constraint_declarations(entity, constraints,
+            {f.field_id: _physical_name(f.name) for f in entity.approved_fields}, parse_fields(name, declarations))
+        certify_access(entity, accesses)
+    except ValueError as error:
+        return None, str(error)
     result = ModuleGenerationRequest("", entity.entity_id, name, tuple(sorted(declarations)), tuple(sorted(managed)),
         tuple(sorted(f.field_id for f in entity.approved_fields)), tuple(sorted({c.decision_id for c in entity.choices}
             | {sid for f in entity.approved_fields for sid in f.evidence.source_requirements}
             | {sid for d in model.value_domains if d.domain_id in {f.value_domain_id for f in entity.approved_fields}
-                for sid in d.evidence.source_requirements})), naming[0].decision_id)
+                for sid in d.evidence.source_requirements}
+            | {sid for c in (*constraints, *accesses) for sid in c.evidence.source_requirements})), naming[0].decision_id,
+        physical_constraints, tuple(sorted(c.constraint_id for c in constraints)), tuple(sorted(a.access_id for a in accesses)))
     module_definition(result)
     body = result.canonical_dict(); body.pop("module_request_id")
     return replace(result, module_request_id=_identity("module_generation_request", body)), "All approved fields and bounded choices have certified representation."
@@ -202,6 +237,10 @@ class ArcaCoreGenerationRequest(Record):
     application_manifest_plan: ApplicationManifestPlan
     schema: str = ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA
     schema_version: int = ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA_VERSION
+
+    @property
+    def dependency_plan(self):
+        return generation_dependency_plan(self.module_requests)
 
     @property
     def supported_mappings(self):
@@ -236,7 +275,8 @@ class ArcaCoreGenerationRequest(Record):
             if module:
                 modules.append(module)
             mapping(entity.entity_id, C.LOGICAL_STATE, S if module else R, reason,
-                ("tools.core.field_parser.parse_fields", "tools.core.module_definition.validate_module_definition"),
+                ("tools.core.field_parser.parse_fields", "tools.core.constraint_parser.parse_constraints",
+                 "tools.core.module_definition.validate_module_definition", "tools.templates.crud.j2"),
                 (module.module_request_id,) if module else ())
         by_entity = {m.entity_id: m.module_request_id for m in modules}
         if len({m.module_name for m in modules}) != len(modules):
@@ -324,7 +364,9 @@ class ArcaCoreGenerationRequest(Record):
         if len({m.responsibility_id for m in mappings}) != len(mappings):
             raise ValueError("Duplicate responsibility mappings.")
         blockers = tuple(ArcaCoreCompatibilityFinding(m.responsibility_id, m.capability, m.status, m.reason) for m in mappings if m.status is not S)
-        modules = tuple(sorted(modules, key=lambda m: m.entity_id))
+        plan_order = generation_dependency_plan(tuple(modules)).ordered_module_request_ids
+        by_request = {m.module_request_id: m for m in modules}
+        modules = tuple(by_request[identity] for identity in plan_order)
         plan = ApplicationManifestPlan(tuple(m.module_request_id for m in modules),
             ("fastapi", "postgresql", "pydantic", "python>=3.11", "sqlalchemy", "trusted_principal_scope_middleware"), (),
             ("observed_generation_manifest", "accepted_schema_revision", "application_manifest", "runtime_validation"))

@@ -29,11 +29,11 @@ class StateFieldsTest(unittest.TestCase):
 
     def test_required_nullable_unique(self):
         for required in (True, False):
-            declaration = field_declaration(field(required=required, unique=True), "value")
+            declaration = field_declaration(field(required=required, unique=required), "value")
             parsed = parse_fields("record", [declaration])[0]
             self.assertEqual(parsed.nullable, not required)
             self.assertIn("nullable=" + str(not required), SQLAlchemyRenderer.render(parsed))
-            self.assertIn("unique=True", SQLAlchemyRenderer.render(parsed))
+            self.assertEqual("unique=True" in SQLAlchemyRenderer.render(parsed), required)
 
     def test_required_database_column_rejects_null_without_schema(self):
         from sqlalchemy import create_engine, text

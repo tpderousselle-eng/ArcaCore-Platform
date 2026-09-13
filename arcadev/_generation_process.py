@@ -183,4 +183,4 @@ def _run_process(command, workspace, runtime):
 
 def invoke_module(module, workspace, runtime):
     return _run_process([sys.executable, "-B", "-m", "tools.generate", module.module_name,
-        *module.field_declarations], workspace, runtime)
+        *module.field_declarations, *module.constraint_declarations], workspace, runtime)

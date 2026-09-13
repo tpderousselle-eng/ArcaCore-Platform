@@ -365,8 +365,12 @@ def _validate_registry(content, request):
     for name, definition in definitions.items():
         row = registry[name]
         _exact(row, ("table", "fields", "soft_delete", "indexes", "unique_constraints", "check_constraints"))
-        if row["table"] != definition.table_name or row["soft_delete"] is not False or any(row[k] != [] for k in ("indexes", "unique_constraints", "check_constraints")):
+        if row["table"] != definition.table_name or row["soft_delete"] is not False or row["indexes"] != []:
             raise ValueError("Registry module metadata differs from approved declarations.")
+        if row["unique_constraints"] != [{"name": c.name, "columns": c.columns} for c in definition.unique_constraints] or row["check_constraints"] != [
+            {"name": c.name, "expression": c.expression} for c in definition.check_constraints
+        ]:
+            raise ValueError("Registry constraints differ from approved declarations.")
         if type(row["fields"]) is not list or len(row["fields"]) != len(definition.fields):
             raise ValueError("Registry field inventory differs from declarations.")
         for actual, field in zip(row["fields"], definition.fields):

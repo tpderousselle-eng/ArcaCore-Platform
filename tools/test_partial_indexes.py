@@ -157,9 +157,9 @@ class PartialIndexSmokeTest(unittest.TestCase):
                 self.assertIn("O''Reilly,:token", ddl)
                 self.assertNotIn("NULL", ddl)
         with Session(engine) as session:
-            session.add(model(code="a", status=literal))
+            session.add(model(code="a", status=literal, amount=0))
             session.commit()
-            session.add(model(code="a", status=literal))
+            session.add(model(code="a", status=literal, amount=0))
             with self.assertRaises(IntegrityError):
                 session.commit()
             session.rollback()

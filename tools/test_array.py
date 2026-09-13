@@ -44,7 +44,7 @@ class ArraySmokeTest(unittest.TestCase):
     def test_string_array(self):
         field = parse_fields("Sample", ["tags:array(str)"])[0]
         self.assertEqual(field.type_arguments, ["str"])
-        self.assertEqual(SQLAlchemyRenderer.render(field), ["ARRAY(String)"])
+        self.assertEqual(SQLAlchemyRenderer.render(field), ["ARRAY(String)", "nullable=False"])
         source, model, ddl = render_model(["tags:array(str)"])
         self.assertIn("    ARRAY,", source)
         self.assertIn("    String,", source)
@@ -65,7 +65,7 @@ class ArraySmokeTest(unittest.TestCase):
                 self.assertTrue(model.items.nullable)
                 self.assertTrue(model.items.index)
         field = parse_fields("Sample", ["tags:array( str ):default=list"])[0]
-        self.assertEqual(SQLAlchemyRenderer.render(field), ["ARRAY(String)", "default=list"])
+        self.assertEqual(SQLAlchemyRenderer.render(field), ["ARRAY(String)", "nullable=False", "default=list"])
 
     def test_invalid_arrays(self):
         for raw_type in (

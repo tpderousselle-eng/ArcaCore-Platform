@@ -17,6 +17,7 @@ from .architecture_specification import Record, _exact, _identity, _json, _parse
 from .backend_approval import ApprovedBackend, validate_approved_backend
 from .backend_specification import BackendRole, backend_architecture
 from .domain_model_specification import _model_safe as _safe
+from .state_translation import field_declaration, validate_field_declaration
 
 ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA = "arcadev.arcacore_generation_request"
 ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA_VERSION = 1
@@ -86,11 +87,8 @@ def module_definition(request):
         raise ValueError("Unsupported public module identifier.")
     if type(request.field_declarations) is not tuple or not 1 <= len(request.field_declarations) <= 128:
         raise ValueError("Module declarations must be bounded.")
-    # v1 emits only scalar, nullable, primary-key and uniqueness declarations.
-    # Never accept executable expressions, paths, defaults, or arbitrary grammar.
     for value in request.field_declarations:
-        if type(value) is not str or not re.fullmatch(r"[a-z][a-z0-9_]{0,127}:(?:str|text|int|bool|date|datetime|uuid|json)(?::(?:pk|nullable|unique))*", value):
-            raise ValueError("Uncertified module declaration.")
+        validate_field_declaration(value)
     name = request.module_name
     result = ModuleDefinition(name, name.capitalize(), name.lower(), name.lower() + "s", parse_fields(name, list(request.field_declarations)))
     validate_module_definition(result)
@@ -132,7 +130,14 @@ def _translate_entity(approved, entity, timestamps):
     name = _physical_name(entity.name)
     model = approved.package.original_backend.resolved_model
     fixed = {f.name: f for f in entity.approved_fields}
-    if any(c.claim.slot not in {"uniqueness", "lookup", "relationship", "principal_reference"}
+    if not entity.approved_fields or not entity.identity_field_ids:
+        return None, "Approved logical choices have no named approved fields or bound identity; physical fields and defaults cannot be invented."
+    bound_domains = {f.value_domain_id for e in model.entities for f in e.approved_fields}
+    if any(d.domain_id not in bound_domains for d in model.value_domains):
+        return None, "An approved value domain lacks a field binding; complete state representation requires certification."
+    if any(c.claim.slot not in {"uniqueness", "lookup", "relationship", "principal_reference", "lifecycle"}
+        or (c.claim.slot == "lifecycle" and not any(set(d.values) == set(c.claim.values)
+            for d in model.value_domains if d.domain_id in entity.lifecycle_domain_ids))
         or (c.claim.slot == "uniqueness" and c.claim.values != ("identity_only",))
         or (c.claim.slot == "lookup" and c.claim.values != ("identity",))
         or (c.claim.slot == "relationship" and c.claim.values != ("independent",))
@@ -140,42 +145,39 @@ def _translate_entity(approved, entity, timestamps):
             or "external_principal_id" not in fixed or fixed["external_principal_id"].logical_type.value != "string"
             or fixed["external_principal_id"].classification.value != "external_identifier")) for c in entity.choices):
         return None, "Accepted logical choices need certified physical representation; no fields may be invented."
-    if (model.relationships or model.constraints or model.access_requirements or model.value_domains or entity.lifecycle_domain_ids):
-        return None, "Approved relationship, constraint, access or value-domain translation requires certification."
+    if (any(entity.entity_id in (r.source_entity_id, r.target_entity_id) for r in model.relationships)
+        or any(c.entity_id == entity.entity_id for c in (*model.constraints, *model.access_requirements))):
+        return None, "Approved relationship, constraint or access translation requires certification."
+    if not set(entity.lifecycle_domain_ids) <= {f.value_domain_id for f in entity.approved_fields}:
+        return None, "Lifecycle values lack an approved field binding; certification cannot invent a lifecycle field."
     if not timestamps or not {"created_at", "updated_at"} <= fixed.keys():
         return None, "The public generator adds timestamps; their fields and implementation semantics require explicit authority."
     if len(entity.identity_field_ids) != 1 or not entity.approved_fields:
         return None, "An explicitly named, typed single identity field is required."
     managed = []
     declarations = []
-    types = {"string": "str", "text": "text", "integer": "int", "boolean": "bool", "date": "date", "datetime": "datetime", "uuid": "uuid", "json": "json"}
     for f in entity.approved_fields:
         physical = _physical_name(f.name)
-        if f.collection or f.value_domain_id is not None or f.default_json is not None or f.logical_type.value not in types:
-            return None, "This approved field needs a certified collection, domain, default or type translator."
+        if physical in {"metadata", "registry"} or (physical in {"created_at", "updated_at"} and physical != f.name):
+            return None, "Approved field name conflicts with a generator-managed attribute."
         if f.name in {"created_at", "updated_at"}:
-            if f.logical_type.value != "datetime" or f.required or f.unique or f.mutable is not (f.name == "updated_at"):
+            if f.logical_type.value != "datetime" or f.required or f.unique is not False or f.mutable is not (f.name == "updated_at") or f.collection or f.value_domain_id is not None or f.default_json is not None:
                 return None, "Timestamp authority differs from the public generator-managed field contract."
             managed.append(f.field_id)
             continue
         primary = f.field_id in entity.identity_field_ids
-        if primary and f.logical_type.value in {"uuid", "integer"}:
-            return None, "Generator-managed primary-key defaults require additional explicit default certification."
-        if not primary and f.mutable is not True:
-            return None, "Non-identity field mutability is not representable by standard CRUD."
-        declaration = physical + ":" + types[f.logical_type.value]
-        if primary:
-            declaration += ":pk"
-        elif not f.required:
-            declaration += ":nullable"
-        if f.unique and not primary:
-            declaration += ":unique"
+        try:
+            declaration = field_declaration(f, physical, primary=primary, domains=model.value_domains)
+        except ValueError as error:
+            return None, f.name + ": " + str(error)
         declarations.append(declaration)
     if len({d.split(":")[0] for d in declarations}) != len(declarations):
         raise ValueError("Physical field names collide.")
     result = ModuleGenerationRequest("", entity.entity_id, name, tuple(sorted(declarations)), tuple(sorted(managed)),
         tuple(sorted(f.field_id for f in entity.approved_fields)), tuple(sorted({c.decision_id for c in entity.choices}
-            | {sid for f in entity.approved_fields for sid in f.evidence.source_requirements})), naming[0].decision_id)
+            | {sid for f in entity.approved_fields for sid in f.evidence.source_requirements}
+            | {sid for d in model.value_domains if d.domain_id in {f.value_domain_id for f in entity.approved_fields}
+                for sid in d.evidence.source_requirements})), naming[0].decision_id)
     module_definition(result)
     body = result.canonical_dict(); body.pop("module_request_id")
     return replace(result, module_request_id=_identity("module_generation_request", body)), "All approved fields and bounded choices have certified representation."

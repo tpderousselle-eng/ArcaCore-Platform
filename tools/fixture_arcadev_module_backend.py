@@ -21,7 +21,7 @@ from tools.test_arcadev_backend_clarification import answer_for as backend_answe
 
 
 @lru_cache(maxsize=3)
-def minimal_approved_backend(authentication=STANDARD_AUTHORITY, *, planning_decision=False):
+def minimal_approved_backend(authentication=STANDARD_AUTHORITY, *, planning_decision=False, literal_default=False):
     values = ("Module Certification", "api_service", "A standard record module", "test operators",
         "Manage records", STANDARD_MODULE_CAPABILITY, "Local API", authentication,
         "No integrations", "Local", "PostgreSQL", STANDARD_TIMESTAMP_AUTHORITY)
@@ -65,6 +65,8 @@ def minimal_approved_backend(authentication=STANDARD_AUTHORITY, *, planning_deci
     ):
         payloads.append(dict(name=name, logical_type=kind, required=required, collection=False,
             mutable=mutable, unique=unique, classification="external_identifier" if name == "external_principal_id" else "internal", value_domain_id=None, default_json=None))
+    if literal_default:
+        payloads[1]["default_json"] = _json("Untitled: record").strip()
     questions = tuple(ArchitectureQuestion.create("TEST FIXTURE ONLY: approve exact " + p["name"] + " field authority?",
         False, owner.owned_capabilities, area, handoff=ah)
         for p, area in zip(payloads, ("context", "style", "component", "interface", "security")))

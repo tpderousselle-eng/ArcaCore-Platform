@@ -59,9 +59,7 @@ class SQLAlchemyRenderer:
             arguments.append("primary_key=True")
         if field.nullable:
             arguments.append("nullable=True")
-        elif field.computed_expression is not None or (
-            field.relationship_type in {"many_to_one", "self_many_to_one"} and field.backref
-        ):
+        else:
             arguments.append("nullable=False")
         if field.unique:
             arguments.append("unique=True")

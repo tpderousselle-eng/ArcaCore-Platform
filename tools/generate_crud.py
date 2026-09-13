@@ -16,5 +16,6 @@ def generate_crud(module: ModuleDefinition):
         soft_delete=module.soft_delete,
         audit_fields=module.audit_fields is not None,
         primary_key_name=module.primary_key_name,
+        immutable_primary_keys=tuple(field.name for field in module.fields if field.primary_key) or ("id",),
         tenant_contract=module.tenant_contract,
     )

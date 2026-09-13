@@ -89,6 +89,13 @@ class {{ class_name }}Update({{ class_name }}{% if has_computed or audit_fields 
     pass
 {% endfor %}
 
+    @_pydantic.model_validator(mode="before")
+    @classmethod
+    def _reject_primary_key_update(cls, data):
+        if isinstance(data, _typing.Mapping) and any(name in data for name in {{ immutable_primary_keys|tojson }}):
+            raise ValueError("Primary key cannot be changed.")
+        return data
+
 
 class {{ class_name }}Response({{ class_name }}Base):
 {% if tenant_contract %}

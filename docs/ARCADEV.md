@@ -798,3 +798,76 @@ reconstructs consistency and resolved authority instead of trusting asserted IDs
 Neither approval nor rejection transitions to FRONTEND or invokes a generator.
 The dedicated Gaming Studio fixture explicitly resolves all ten 5.3 blockers and
 approves the backend. Those decisions are test data, never universal defaults.
+
+## ArcaDev 5.5: certified, non-executing generation request
+
+`ArcaCoreGenerationRequest` (`arcadev.arcacore_generation_request`, version 1)
+consumes only an explicitly approved `ApprovedBackend`. It retains that complete
+canonical binding, including project, handoff, backend/finalization, approved model
+and architecture identities. Optional current references must match full content.
+Loading a request reconstructs all translations, mappings, findings and eligibility;
+caller-supplied SUPPORTED flags, omitted responsibilities and partial scope fail.
+
+Every entity, data binding, component, logical operation, backend policy, accepted
+backend decision, frozen architecture implementation decision and PLAN constraint
+has a deterministic mapping. SUPPORTED means a reviewed public generation contract
+represents that scope. UNSUPPORTED identifies absent application generators.
+REQUIRES_CERTIFICATION means a primitive or logical choice exists but its complete
+translation has not been certified. Eligibility requires every mapping to be
+SUPPORTED and at least one complete module. Supported subsets never authorize
+partial generation of an ineligible backend.
+
+The reviewed public contracts are `tools.generate.generate_module` and its public
+`python -m tools.generate` entrypoint, `tools.core.module_definition` (including
+`module_output_path`), `tools.core.field_parser`, `tools.application_manifest`,
+`tools.minimal_regeneration`, `tools.schema_lifecycle`, `tools.runtime_harness`,
+`tools.build_orchestrator`, `tools.authorization`, `tools.jobs`, `tools.sdk`, and
+the public standard-layer generators and their generated router/model contracts.
+The standard generator produces model, schema, CRUD, service, router and registry
+surfaces. PolicyContract, JobExecutor and SDK operations are not proof that custom
+authentication providers, GitHub/publishing handlers or isolated build workers
+can be generated. BuildOrchestrator validates existing authority and runtime
+evidence; it is not a universal application generator.
+
+The initial certified translator is deliberately bounded: an explicit standard
+ArcaCore CRUD capability, PostgreSQL persistence, and generated principal/read-write
+scope checks against an existing trusted middleware contract. It does not generate
+that middleware or an authentication provider. Its fixture approves named scalar
+fields, a caller-supplied string identity, an external principal reference, and
+the generator-managed `created_at`/`updated_at` fields and their time behavior.
+This avoids silently adding CRUD, authorization, physical fields or identity
+defaults. UUID/integer generated identity defaults, other logical choice profiles,
+relationships, value domains, constraints and access translations require further
+certification when not represented by this bounded translator.
+
+Physical naming uses only the accepted 5.3 `snake_case_unfixed_names` decision.
+Module requests preserve exact entity/field/decision provenance and pass the public
+declaration parser and module validator without invocation. Paths, commands and
+unsupported identifiers cannot become physical names. The request exposes no
+output path, executable or arbitrary environment fields. Secret values, unknown
+fields/capabilities, duplicate JSON keys, unsupported versions and excessive size
+are rejected. Environment requirement names remain empty unless a certified
+translation provides their authority; credentials are never inferred or embedded.
+
+ApplicationManifest planning lists intended modules/runtime and explicitly pending
+observed generation provenance, accepted schema revisions and runtime validation.
+It does not fabricate GenerationManifest or ApplicationManifest digests.
+
+Gaming Studio's approved backend remains valid but **ineligible for generation**.
+Its GitHub adapter, publishing handler and isolated worker have no certified public
+application generator. Persisted job behavior, storage, authorization and logical
+state/implementation mappings also retain explicit compatibility blockers. The
+independent minimal module fixture is eligible; Gaming Studio authority is not
+weakened to obtain that result. 5.5 invokes no generator, creates no application
+artifacts and keeps the project IN_PROGRESS/BACKEND.
+
+One necessary public ArcaCore contract correction accompanies 5.5: standard
+generated update schemas and CRUD methods now reject every primary-key field,
+including implicit IDs and composite keys. Previously those surfaces permitted
+identity mutation, contradicting every approved ArcaDev model's immutable logical
+identity. The change is in the trusted generator inputs (`generate_schema.py`,
+`generate_crud.py` and their templates), never a patch to generated application
+source. Five separate public-generator tests generate only temporary evidence and
+verify rejection before database access, normal updates, and unchanged creation.
+This is the batch's explicit, necessary exception to preserving production
+`tools/` byte-for-byte. ArcaDev's 5.5 request creation remains non-executing.

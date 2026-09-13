@@ -35,6 +35,8 @@ class {{ class_name }}CRUD:
         return item
 
     def update(self, item_id, values: dict{% if audit_fields %}, actor_id{% endif %}{% if tenant_contract %}, tenant_id{% endif %}):
+        if any(name in values for name in {{ immutable_primary_keys|tojson }}):
+            raise ValueError("Primary key cannot be changed.")
 {% if tenant_contract %}
         if tenant_id is None:
             raise PermissionError("Trusted tenant context is required.")

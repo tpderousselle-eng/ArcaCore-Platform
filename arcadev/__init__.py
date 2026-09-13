@@ -207,7 +207,18 @@ from .backend_approval import (
     evaluate_backend_consistency, validate_approved_backend,
 )
 
+from .arcacore_generation_request import (
+    ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA, ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA_VERSION,
+    ArcaCoreGenerationRequest, ModuleGenerationRequest, ArcaCoreCapability,
+    ArcaCoreCapabilityStatus, ArcaCoreCapabilityMapping, ArcaCoreCompatibilityFinding,
+    ApplicationManifestPlan, validate_arcacore_generation_request,
+)
+
 __all__ = [
+    "ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA", "ARCADEV_ARCACORE_GENERATION_REQUEST_SCHEMA_VERSION",
+    "ArcaCoreGenerationRequest", "ModuleGenerationRequest", "ArcaCoreCapability",
+    "ArcaCoreCapabilityStatus", "ArcaCoreCapabilityMapping", "ArcaCoreCompatibilityFinding",
+    "ApplicationManifestPlan", "validate_arcacore_generation_request",
     "ARCADEV_APPROVED_BACKEND_SCHEMA", "ARCADEV_APPROVED_BACKEND_SCHEMA_VERSION",
     "ApprovedBackend", "FrozenApprovedBackendPackage", "ResolvedBackendAuthority",
     "ResolvedBackendChoice", "BackendConsistencyEvaluation", "BackendConsistencyFinding",

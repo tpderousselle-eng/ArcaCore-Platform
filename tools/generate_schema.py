@@ -136,6 +136,7 @@ def generate_schema(module: ModuleDefinition):
         has_url=any(field.format == "url" for field in module.fields),
         custom_imports=custom_imports, custom_fields=custom_fields,
         implicit_id=not module.has_primary_key,
+        immutable_primary_keys=tuple(field.name for field in module.fields if field.primary_key) or ("id",),
         nonnullable=repr(tuple(field["name"] for field in fields if not field["nullable"])),
         audit_fields=module.audit_fields,
         version_column=module.version_column,

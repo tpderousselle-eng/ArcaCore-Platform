@@ -1,4 +1,4 @@
-"""Read-only validator for the first Gaming Studio production authority package.
+"""Read-only validator for Gaming Studio seed and current resolution authority.
 
 Run: python -m arcadev.gaming_studio_authority [authority-directory]
 No supplied file can introduce new decisions or downstream lifecycle authority.
@@ -16,7 +16,7 @@ from .gaming_studio_idea import (
     checkpoint_manifest, clarification_review, validate_production_idea,
 )
 from .idea_intake import IdeaIntake
-from .gaming_studio_project import validate_project_package
+from .gaming_studio_transition import validate_transition_package
 
 
 PACKAGE_FILES = frozenset({
@@ -45,9 +45,11 @@ def validate_fixture_independence() -> None:
                     raise ValueError("Production ArcaDev layer imports test/fixture authority.")
 
 
-def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False) -> dict:
+def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False, require_current=False) -> dict:
     """Reconstruct and compare every canonical artifact against the pinned root."""
     directory = local_authority_path(directory)
+    if seed_only and require_current:
+        raise ValueError("Seed-only validation cannot require current resolution authority.")
     if not directory.is_dir():
         raise ValueError("Production authority directory does not exist.")
     names = set()
@@ -85,8 +87,10 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
         "valid": True,
     }
     resolution = directory / "idea_resolution"
+    if require_current and not resolution.exists():
+        raise ValueError("Current production resolution authority is required.")
     if resolution.exists() and not seed_only:
-        current = validate_project_package(resolution, source)
+        current = validate_transition_package(resolution, source)
         result.update(seed_checkpoint=expected_checkpoint, checkpoint=current,
                       checkpoint_digest=digest_bytes(canonical_bytes(current)))
     return result
@@ -96,9 +100,10 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", nargs="?", type=Path, default=AUTHORITY_DIRECTORY)
     parser.add_argument("--seed-only", action="store_true", help="Verify the original historical seed package only.")
+    parser.add_argument("--require-current", action="store_true", help="Reject a seed-only package or a missing resolution area.")
     args = parser.parse_args(argv)
     try:
-        result = validate_production_authority(args.directory, seed_only=args.seed_only)
+        result = validate_production_authority(args.directory, seed_only=args.seed_only, require_current=args.require_current)
     except (OSError, ValueError, SyntaxError) as error:
         parser.exit(1, f"Production authority validation failed: {error}\n")
     print(canonical_bytes(result).decode("utf-8"), end="")

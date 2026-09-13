@@ -99,3 +99,56 @@ the resolution area exists; `--seed-only` retains verification of the original
 historical seed. Every persisted resolution file must match reconstruction,
 including the original five-approval envelope. Dedicated tests:
 `tools.test_arcadev_gaming_studio_resolution_2`.
+
+## Resolution 3
+
+`arcadev/gaming_studio_transition.py` validates the complete source project
+against production finalization and verified metadata, then calls the existing
+`IdeaPlanHandoff.create` and roundtrips its result through `IdeaPlanHandoff`.
+It implements no transition algorithm or planning engine. The actual result is
+eligible and `transitioned`, with consistent IDEA authority, no blocking
+findings and no warnings. The new `project.json` is IN_PROGRESS/PLAN; the source
+project remains READY/IDEA, with identical project ID, metadata and specification.
+
+`idea_plan_handoff.json` uses the public `arcadev.idea_plan_handoff` version 1
+schema. It freezes the exact source project, five-entry finalization and
+consistency evaluation. The PLAN project is read from that certified handoff:
+the existing standalone `ArcaDevProject` loader intentionally accepts only
+initial IDEA projects, so its semantics are unchanged. The persisted resulting
+project must match the handoff's canonical result byte for byte.
+
+The new `idea_resolution/checkpoint.json` records package version 2, resolution
+3, stage PLAN, project status IN_PROGRESS, status `PLAN_READY_FOR_GENERATION`,
+and next action `GENERATE_PRODUCTION_SOFTWARE_PLAN`. That next action describes
+the future boundary; this batch does not execute it. A blocked public gate is
+projected as `BLOCKED_IDEA_PLAN_HANDOFF` with its actual consistency findings;
+the gate result is never overridden. The Resolution 2 `idea_checkpoint.json`
+and all earlier files remain unchanged.
+
+The current checkpoint includes canonical SHA-256 digests for all four seed
+files and all eight preceding resolution files. The validator independently
+reconstructs every artifact from the pinned production intent, fixed five
+proposal/response bindings, public sequential answer replay, verified Git
+metadata proof, public project materialization and certified handoff. Rebinding
+hashes on forged documents cannot replace those sources. Unknown, missing or
+non-regular entries and downstream authority files fail closed.
+
+Validate current production authority with:
+
+```powershell
+C:\ac259\Scripts\python.exe -B -m arcadev.gaming_studio_authority --require-current
+```
+
+Use `--seed-only` for historical seed verification. Without `--require-current`,
+an original four-file seed package remains verifiable as history; it cannot be
+mistaken for the required current package when the strict flag is supplied.
+The current validator rejects stripping the resolution area under that flag.
+
+Dedicated tests: `tools.test_arcadev_gaming_studio_resolution_3`. They exercise
+actual eligibility, immutable source state, complete lineage, coherent forged
+replay with recomputed identities, stale project metadata with the same project
+ID, altered answers/referents/history, forged handoffs/checkpoints, strict JSON,
+missing authority and the no-generation boundary. Full regression discovery
+includes fixture generation in temporary test workspaces only. No production
+SoftwarePlan, architecture, model, backend, frontend or ArcaCore generation
+artifact is produced. Sprint 32 is outside this batch.

@@ -65,6 +65,7 @@ _FIELD_MAXIMUMS = {
 
 class ResolutionAction(str, Enum):
     ANSWER = "answer"
+    REFINE_EXPLICIT = "refine_explicit"
     CONFIRM_ASSUMPTION = "confirm_assumption"
     REJECT_ASSUMPTION = "reject_assumption"
     REPLACE_ASSUMPTION = "replace_assumption"
@@ -234,11 +235,16 @@ class ClarificationAnswer:
                 raise ValueError("Rejecting an assumption cannot accept normalized values.")
         elif not values:
             raise ValueError("This clarification action requires normalized values.")
-        if resolution_action is ResolutionAction.REPLACE_EXPLICIT:
+        if resolution_action in {ResolutionAction.REPLACE_EXPLICIT, ResolutionAction.REFINE_EXPLICIT}:
             if not previous:
-                raise ValueError("Explicit replacement requires expected previous values.")
+                raise ValueError("Explicit replacement/refinement requires expected previous values.")
         elif previous:
             raise ValueError("Expected previous values are only valid for explicit replacement.")
+        if resolution_action is ResolutionAction.REFINE_EXPLICIT:
+            if key not in {"target_users", "authentication_requirements"}:
+                raise ValueError("Explicit refinement is limited to audience and authentication clarification.")
+            if values == previous:
+                raise ValueError("Explicit refinement must supply a more specific decision.")
         return cls(
             target_intake_id=target_intake_id,
             requirement=key,
@@ -692,6 +698,27 @@ class IdeaFinalization:
             return IdeaFinalization(
                 self.initial_intake, after, tuple(conflicts), self.history + (record,)
             )
+
+        if answer.action is ResolutionAction.REFINE_EXPLICIT:
+            # This is an explicit caller-authorized action, never inferred from
+            # 'Yes' or from a pending question. Production callers additionally
+            # verify the exact proposal/response envelope before entering here.
+            if not active_clarification or active_conflicts or before.assumptions:
+                raise ValueError("Explicit refinement requires an unresolved question without conflicts or assumptions.")
+            if not existing_items or any(item.provenance is not IntentProvenance.EXPLICIT for item in existing_items):
+                raise ValueError("Explicit refinement requires existing explicit values.")
+            if answer.expected_previous_values != tuple(sorted(existing_values, key=lambda item: (item.casefold(), item))):
+                raise ValueError("Explicit refinement does not match the existing values.")
+            normalized = _explicit_intent_values(answer, source_transcript=transcript)
+            _set_requirement(arguments, requirement, normalized)
+            arguments["unresolved_requirements"] = _without_requirement(before.unresolved_requirements, requirement)
+            after = IdeaIntake.create(**arguments)
+            record = _history_entry(
+                before=before, after=after, answer=answer,
+                outcome=ResolutionOutcome.ACCEPTED, previous_values=existing_values,
+                accepted_values=answer.normalized_values, rejected_values=(),
+            )
+            return IdeaFinalization(self.initial_intake, after, self.conflicts, self.history + (record,))
 
         if answer.action is ResolutionAction.REPLACE_EXPLICIT:
             if not active_clarification or len(active_conflicts) != 1:

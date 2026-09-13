@@ -16,6 +16,7 @@ from .gaming_studio_idea import (
     checkpoint_manifest, clarification_review, validate_production_idea,
 )
 from .idea_intake import IdeaIntake
+from .gaming_studio_resolution import validate_authorization
 
 
 PACKAGE_FILES = frozenset({
@@ -51,6 +52,8 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY) -> dict
         raise ValueError("Production authority directory does not exist.")
     names = set()
     for path in directory.iterdir():
+        if path.name == "idea_resolution" and not path.is_symlink() and not path.is_junction() and path.is_dir():
+            continue
         if path.name not in PACKAGE_FILES or path.is_symlink() or path.is_junction() or not path.is_file():
             raise ValueError("Unknown authority file or non-regular package entry.")
         names.add(path.name)
@@ -59,6 +62,12 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY) -> dict
 
     validate_fixture_independence()
     source = ProductionIntent.from_bytes(read_authority(directory / "production_intent.json"))
+    resolution = directory / "idea_resolution"
+    if resolution.exists():
+        entries = list(resolution.iterdir())
+        if {p.name for p in entries} != {"clarification_authorization.json"}:
+            raise ValueError("Resolution authority package has unknown or missing files.")
+        validate_authorization(read_authority(resolution / "clarification_authorization.json"), source)
     raw_intake = read_authority(directory / "idea_intake.json")
     intake = IdeaIntake.from_dict(parse_authority(raw_intake))
     if intake.canonical_json().encode("utf-8") != raw_intake:

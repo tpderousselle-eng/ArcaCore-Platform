@@ -1,4 +1,4 @@
-"""Read-only validator for Gaming Studio seed and current resolution authority.
+"""Read-only validator for Gaming Studio seed, IDEA resolution and unapproved PLAN.
 
 Run: python -m arcadev.gaming_studio_authority [authority-directory]
 No supplied file can introduce new decisions or downstream lifecycle authority.
@@ -45,11 +45,11 @@ def validate_fixture_independence() -> None:
                     raise ValueError("Production ArcaDev layer imports test/fixture authority.")
 
 
-def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False, require_current=False) -> dict:
+def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False, require_current=False, require_plan=False) -> dict:
     """Reconstruct and compare every canonical artifact against the pinned root."""
     directory = local_authority_path(directory)
-    if seed_only and require_current:
-        raise ValueError("Seed-only validation cannot require current resolution authority.")
+    if seed_only and (require_current or require_plan):
+        raise ValueError("Seed-only validation cannot require current resolution or PLAN authority.")
     if not directory.is_dir():
         raise ValueError("Production authority directory does not exist.")
     names = set()
@@ -87,15 +87,20 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
         "valid": True,
     }
     resolution = directory / "idea_resolution"
-    if require_current and not resolution.exists():
+    if (require_current or require_plan) and not resolution.exists():
         raise ValueError("Current production resolution authority is required.")
     if resolution.exists() and not seed_only:
         current = validate_transition_package(resolution, source)
         result.update(seed_checkpoint=expected_checkpoint, checkpoint=current,
                       checkpoint_digest=digest_bytes(canonical_bytes(current)))
-    if (directory / "production_plan").exists() and not seed_only:
+    plan_area = directory / "production_plan"
+    if require_plan and not plan_area.exists():
+        raise ValueError("Current production PLAN authority is required.")
+    if plan_area.exists() and not seed_only:
         from .gaming_studio_plan import validate_production_plan_package
-        validate_production_plan_package(directory)
+        plan_checkpoint = validate_production_plan_package(directory)
+        result.update(idea_checkpoint=result["checkpoint"], checkpoint=plan_checkpoint,
+                      checkpoint_digest=digest_bytes(canonical_bytes(plan_checkpoint)))
     return result
 
 
@@ -104,9 +109,11 @@ def main(argv=None) -> int:
     parser.add_argument("directory", nargs="?", type=Path, default=AUTHORITY_DIRECTORY)
     parser.add_argument("--seed-only", action="store_true", help="Verify the original historical seed package only.")
     parser.add_argument("--require-current", action="store_true", help="Reject a seed-only package or a missing resolution area.")
+    parser.add_argument("--require-plan", action="store_true", help="Require the complete unapproved production PLAN package.")
     args = parser.parse_args(argv)
     try:
-        result = validate_production_authority(args.directory, seed_only=args.seed_only, require_current=args.require_current)
+        result = validate_production_authority(args.directory, seed_only=args.seed_only,
+                                               require_current=args.require_current, require_plan=args.require_plan)
     except (OSError, ValueError, SyntaxError) as error:
         parser.exit(1, f"Production authority validation failed: {error}\n")
     print(canonical_bytes(result).decode("utf-8"), end="")

@@ -1,19 +1,23 @@
 """First production SoftwarePlan, reconstructed exclusively from certified IDEA."""
 
 from .gaming_studio_intent import (
-    AUTHORITY_DIRECTORY, canonical_bytes, load_production_intent, local_authority_path,
+    APPROVED_INTENT_DIGEST, AUTHORITY_DIRECTORY, canonical_bytes, digest_bytes,
+    load_production_intent, local_authority_path,
     parse_authority, read_authority,
 )
-from .gaming_studio_transition import validate_transition_package
+from .gaming_studio_transition import CURRENT_PACKAGE_FILES, validate_transition_package
 from .idea_plan_handoff import IdeaPlanHandoff
 from .planning_engine import generate_baseline_plan, validate_plan_candidate
 from .plan_clarification import planning_question_id
 from .software_plan import SoftwarePlan
 
 
-PLAN_PACKAGE_FILES = frozenset({"software_plan.json", "planning_review.json"})
+PLAN_PACKAGE_FILES = frozenset({"software_plan.json", "planning_review.json", "checkpoint.json"})
 PLANNING_REVIEW_SCHEMA = "arcadev.gaming_studio.planning_review"
 PLANNING_REVIEW_SCHEMA_VERSION = 1
+PLAN_CHECKPOINT_SCHEMA = "arcadev.gaming_studio.production_plan_checkpoint"
+PLAN_CHECKPOINT_SCHEMA_VERSION = 1
+PLAN_PACKAGE_VERSION = 3
 
 
 def production_plan_inputs(directory=AUTHORITY_DIRECTORY):
@@ -29,11 +33,14 @@ def production_plan_inputs(directory=AUTHORITY_DIRECTORY):
     return handoff
 
 
-def production_software_plan(directory=AUTHORITY_DIRECTORY):
-    handoff = production_plan_inputs(directory)
+def _baseline_software_plan(handoff):
     plan = generate_baseline_plan(handoff)
     plan = SoftwarePlan.from_json(plan.canonical_json(), handoff=handoff)
     return validate_plan_candidate(handoff, plan)
+
+
+def production_software_plan(directory=AUTHORITY_DIRECTORY):
+    return _baseline_software_plan(production_plan_inputs(directory))
 
 
 def production_planning_review(plan, *, handoff):
@@ -66,19 +73,54 @@ def production_planning_review(plan, *, handoff):
     }
 
 
+def production_plan_package(directory=AUTHORITY_DIRECTORY):
+    """Reconstruct all PLAN artifacts from the complete immutable upstream chain.
+
+    Supplied plan/review/checkpoint bytes never supply decisions to reconstruction.
+    This function returns inert canonical bytes and performs no writes.
+    """
+    from .gaming_studio_authority import PACKAGE_FILES
+
+    directory = local_authority_path(directory)
+    handoff = production_plan_inputs(directory)
+    plan = _baseline_software_plan(handoff)
+    review = production_planning_review(plan, handoff=handoff)
+    package = {
+        "software_plan.json": plan.canonical_json().encode("utf-8"),
+        "planning_review.json": canonical_bytes(review),
+    }
+    upstream_names = sorted(PACKAGE_FILES | {
+        f"idea_resolution/{name}" for name in CURRENT_PACKAGE_FILES
+    })
+    checkpoint = {
+        "schema": PLAN_CHECKPOINT_SCHEMA, "schema_version": PLAN_CHECKPOINT_SCHEMA_VERSION,
+        "package_version": PLAN_PACKAGE_VERSION, "product_key": "gaming_studio",
+        "production_intent_digest": APPROVED_INTENT_DIGEST,
+        **{key: review[key] for key in (
+            "plan_id", "handoff_id", "project_id", "current_stage", "project_status",
+            "ready_for_architecture", "blocking_reasons", "blocking_question_ids",
+            "unresolved_question_count", "assumption_count", "status", "next_authorized_action",
+        )},
+        "software_plan_digest": digest_bytes(package["software_plan.json"]),
+        "planning_review_digest": digest_bytes(package["planning_review.json"]),
+        "authority_digests": {
+            name: digest_bytes(read_authority(directory / name)) for name in upstream_names
+        },
+    }
+    package["checkpoint.json"] = canonical_bytes(checkpoint)
+    return package
+
+
 def validate_production_plan_package(directory=AUTHORITY_DIRECTORY):
+    """Reject any package differing from baseline reconstruction, even rehashed."""
     directory = local_authority_path(directory)
     area = local_authority_path(directory / "production_plan")
     if not area.is_dir() or {p.name for p in area.iterdir()} != PLAN_PACKAGE_FILES:
         raise ValueError("Production PLAN package has unknown or missing authority files.")
-    plan = production_software_plan(directory)
-    actual = read_authority(area / "software_plan.json")
-    parse_authority(actual)
-    if actual != plan.canonical_json().encode("utf-8"):
-        raise ValueError("Production SoftwarePlan differs from exact baseline reconstruction.")
-    review = production_planning_review(plan, handoff=production_plan_inputs(directory))
-    actual_review = read_authority(area / "planning_review.json")
-    parse_authority(actual_review)
-    if actual_review != canonical_bytes(review):
-        raise ValueError("Production planning review differs from exact SoftwarePlan reconstruction.")
-    return plan
+    actual = {name: read_authority(area / name) for name in sorted(PLAN_PACKAGE_FILES)}
+    for data in actual.values():
+        parse_authority(data)
+    expected = production_plan_package(directory)
+    if actual != expected:
+        raise ValueError("Production PLAN package differs from exact baseline reconstruction.")
+    return parse_authority(expected["checkpoint.json"])

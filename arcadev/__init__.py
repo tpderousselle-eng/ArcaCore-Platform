@@ -409,3 +409,22 @@ __all__ += [
     "ModelAmendmentFieldEvidence", "ModelAmendmentDecision", "ModelAmendmentHistoryEntry",
     "ModelAmendmentFinalization",
 ]
+
+from .approved_domain_model_revision import (
+    ARCADEV_APPROVED_DOMAIN_MODEL_REVISION_SCHEMA, ARCADEV_APPROVED_DOMAIN_MODEL_REVISION_SCHEMA_VERSION,
+    RevisedLogicalModel, FrozenModelRevisionPackage, ModelRevisionConsistencyEvaluation,
+    ApprovedDomainModelRevision, approve_domain_model_revision, reject_domain_model_revision,
+    validate_approved_domain_model_revision, evaluate_model_revision_consistency,
+)
+from .downstream_authority_invalidation import (
+    ARCADEV_DOWNSTREAM_AUTHORITY_INVALIDATION_SCHEMA, ARCADEV_DOWNSTREAM_AUTHORITY_INVALIDATION_SCHEMA_VERSION,
+    DownstreamAuthorityInvalidation, invalidate_downstream_authority,
+)
+__all__ += [
+    "ARCADEV_APPROVED_DOMAIN_MODEL_REVISION_SCHEMA", "ARCADEV_APPROVED_DOMAIN_MODEL_REVISION_SCHEMA_VERSION",
+    "RevisedLogicalModel", "FrozenModelRevisionPackage", "ModelRevisionConsistencyEvaluation",
+    "ApprovedDomainModelRevision", "approve_domain_model_revision", "reject_domain_model_revision",
+    "validate_approved_domain_model_revision", "evaluate_model_revision_consistency",
+    "ARCADEV_DOWNSTREAM_AUTHORITY_INVALIDATION_SCHEMA", "ARCADEV_DOWNSTREAM_AUTHORITY_INVALIDATION_SCHEMA_VERSION",
+    "DownstreamAuthorityInvalidation", "invalidate_downstream_authority",
+]

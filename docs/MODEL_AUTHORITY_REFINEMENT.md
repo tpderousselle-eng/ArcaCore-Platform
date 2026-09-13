@@ -116,3 +116,66 @@ The refinement 2 full gate passed all 1,228 discovered tests with zero failures
 or errors and the one existing opt-in Docker skip. The final dedicated suites
 also cover the bounded name and missing-lifecycle-field corrections.
 The final dedicated run passed 26 tests: 10 foundation and 16 resolution tests.
+
+## Refinement 3: revised approval and downstream invalidation
+
+`arcadev.approved_domain_model_revision`, version 1, freezes the complete parent,
+request, replay-validated finalization and history, revised logical model and
+recomputed consistency. Its envelope freezes the explicit APPROVED or REJECTED
+decision and unchanged approval statement with the complete package. Content
+identity includes all of these values. Readiness alone grants no approval;
+incomplete, inconsistent, conflicted or empty materialization cannot be approved.
+An explicit rejection can preserve an incomplete review package.
+
+RevisedLogicalModel keeps parent model/finalization IDs as historical source
+handles and adds a content-derived revised_model_id. It retains every parent
+entity ID, name, classification, ownership, accepted choice, field, relationship,
+constraint and access requirement. Only explicitly accepted amendment fields,
+identity bindings and lifecycle domains are added. Revision-only evidence and
+all amendment decisions accompany the view. Loaders reconstruct the view and
+consistency from replay; serialized derived fields never grant authority.
+
+`arcadev.downstream_authority_invalidation`, version 1, records supersession
+relative to an explicitly approved revision. It accepts exact supplied
+ModelsBackendHandoff, BackendSpecification, BackendFinalization, ApprovedBackend,
+ArcaCoreGenerationRequest and BackendGenerationRun objects. Nested packages
+provide validation context, but only explicitly supplied top-level contracts
+receive their corresponding stale reason codes. A standalone specification or
+finalization requires its frozen handoff context. Mixed chains, unrelated
+parents, forged content and rejected revisions fail closed.
+
+Historical validators continue to recognize old records as valid history.
+They cannot discover revisions that were never supplied to them. Consumers must
+select current lineage externally and consult invalidation before execution;
+`assert_current(kind, authority)` rejects exactly bound stale contracts and
+rejects unevaluated replacements. It never grants new execution authority.
+There is no global registry mutation, destructive invalidation, stage rewind,
+new backend approval, new handoff or automatic generation in this lifecycle.
+
+The historical BACKEND project remains unchanged. The parent architecture
+handoff retains its canonical IN_PROGRESS/MODELS project as source lineage for
+the **next controlled batch: revised MODELS → BACKEND authority rebuild**.
+That rebuild and Sprint 32 are outside this batch.
+
+```mermaid
+flowchart TD
+    P[Immutable parent ApprovedDomainModel] --> Q[Amendment request]
+    Q --> F[Explicit answers and replayed finalization]
+    F --> R[Explicitly approved model revision]
+    P --> H[Historical BACKEND authority]
+    R --> I[Downstream invalidation record]
+    H --> I
+```
+
+Gaming Studio fixture certification can approve the five-entity revision and
+mark the six supplied downstream fixture contracts stale. This is TEST FIXTURE
+ONLY. Production remains **BLOCKED_PENDING_PRODUCTION_PARENT_AUTHORITY**; no
+production amendment, answers, revised approval or authoritative review packet
+exists or is fabricated by this batch.
+
+The refinement 3 dedicated suite passed 21 tests. The final pre-commit run of
+all three dedicated suites passed 47 tests (10 foundation, 16 resolution, 21
+revision/invalidation) against the final implementation. Post-commit certification
+reruns these suites, complete ArcaDev discovery, complete repository discovery,
+and all seven PostgreSQL-backed test classes. The real Docker contract remains
+an explicitly reported opt-in skip when Docker is unavailable.

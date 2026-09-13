@@ -37,7 +37,7 @@ class GamingStudioAuthorityTest(unittest.TestCase):
             validator.validate_production_authority(self.directory)
 
     def test_persisted_package_and_checkpoint_are_deterministic(self):
-        first = validator.validate_production_authority()
+        first = validator.validate_production_authority(seed_only=True)
         self.assertEqual(first, validator.validate_production_authority(self.directory))
         self.assertTrue(first["valid"])
         self.assertTrue(first["fixture_independent"])
@@ -164,7 +164,7 @@ class GamingStudioAuthorityTest(unittest.TestCase):
                 imports.update(alias.name for alias in node.names)
             elif isinstance(node, ast.ImportFrom):
                 imports.add(node.module)
-        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_resolution"})
+        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_project"})
 
     def test_no_execution_network_generation_project_or_writes(self):
         before = {p.name: p.read_bytes() for p in self.directory.iterdir()}

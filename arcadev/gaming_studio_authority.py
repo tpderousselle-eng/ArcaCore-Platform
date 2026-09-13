@@ -16,7 +16,7 @@ from .gaming_studio_idea import (
     checkpoint_manifest, clarification_review, validate_production_idea,
 )
 from .idea_intake import IdeaIntake
-from .gaming_studio_resolution import validate_authorization
+from .gaming_studio_project import validate_project_package
 
 
 PACKAGE_FILES = frozenset({
@@ -45,7 +45,7 @@ def validate_fixture_independence() -> None:
                     raise ValueError("Production ArcaDev layer imports test/fixture authority.")
 
 
-def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY) -> dict:
+def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False) -> dict:
     """Reconstruct and compare every canonical artifact against the pinned root."""
     directory = local_authority_path(directory)
     if not directory.is_dir():
@@ -62,12 +62,6 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY) -> dict
 
     validate_fixture_independence()
     source = ProductionIntent.from_bytes(read_authority(directory / "production_intent.json"))
-    resolution = directory / "idea_resolution"
-    if resolution.exists():
-        entries = list(resolution.iterdir())
-        if {p.name for p in entries} != {"clarification_authorization.json"}:
-            raise ValueError("Resolution authority package has unknown or missing files.")
-        validate_authorization(read_authority(resolution / "clarification_authorization.json"), source)
     raw_intake = read_authority(directory / "idea_intake.json")
     intake = IdeaIntake.from_dict(parse_authority(raw_intake))
     if intake.canonical_json().encode("utf-8") != raw_intake:
@@ -84,20 +78,27 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY) -> dict
         parse_authority(data)
         if data != canonical_bytes(expected):
             raise ValueError(f"Production {filename} differs from canonical reconstruction.")
-    return {
+    result = {
         "checkpoint": expected_checkpoint,
         "checkpoint_digest": digest_bytes(canonical_bytes(expected_checkpoint)),
         "fixture_independent": True,
         "valid": True,
     }
+    resolution = directory / "idea_resolution"
+    if resolution.exists() and not seed_only:
+        current = validate_project_package(resolution, source)
+        result.update(seed_checkpoint=expected_checkpoint, checkpoint=current,
+                      checkpoint_digest=digest_bytes(canonical_bytes(current)))
+    return result
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("directory", nargs="?", type=Path, default=AUTHORITY_DIRECTORY)
+    parser.add_argument("--seed-only", action="store_true", help="Verify the original historical seed package only.")
     args = parser.parse_args(argv)
     try:
-        result = validate_production_authority(args.directory)
+        result = validate_production_authority(args.directory, seed_only=args.seed_only)
     except (OSError, ValueError, SyntaxError) as error:
         parser.exit(1, f"Production authority validation failed: {error}\n")
     print(canonical_bytes(result).decode("utf-8"), end="")

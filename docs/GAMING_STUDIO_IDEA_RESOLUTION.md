@@ -55,3 +55,47 @@ as a lifecycle decision or authentication mechanism.
 Resolution 1 persists only the authorization envelope. Replaying it validates
 the five resolutions but creates no project, transition or downstream artifact.
 Dedicated tests: `tools.test_arcadev_gaming_studio_resolution_1`.
+
+## Resolution 2
+
+The persisted `idea_finalization.json` uses the public `arcadev.idea_finalization`
+version 1 shape. All five entries replay as accepted; there are zero conflicts,
+assumptions and unresolved requirements. The public intake computes readiness as
+true. `current_intake.json` stores its canonical result separately, while the
+initial intake remains byte-identical to the seed. Finalization identity is its
+canonical SHA-256 digest plus the public current intake ID; no new public ID
+scheme is invented.
+
+The repository's metadata convention requires caller-supplied canonical UTC
+timestamps and provides no production-specific timestamp default. This batch
+explicitly permits verified non-product administrative provenance from the
+certified checkpoint commit. `metadata_authority.json` (schema
+`arcadev.gaming_studio.project_metadata_authority`, version 1) retains the actual
+raw Git commit object for `e47123a13f380dd73dd0aa7a36b5036713ef0fd8`.
+The validator computes the Git object hash over `commit <byte-length>\0<bytes>`
+and requires that exact pinned object before extracting its committer epoch.
+That epoch yields `2026-09-13T16:19:57Z` for both timestamps, validated through
+`ProjectMetadata.create`. The proof is self-contained and needs no Git process,
+network, host clock, fixture timestamp or environment variable during replay.
+
+The timestamp denotes administrative inception of certified production
+authority, not the wall-clock creation of these replay artifacts or a build.
+This is a documented administrative source, not a new product decision or a
+relaxation of the metadata contract. An asserted or changed date, different
+commit, changed proof, metadata fields or stale finalization binding is rejected.
+Without a valid proof, materialization refuses to create a project; the bounded
+pending checkpoint reports `IDEA_READY_PENDING_PROJECT_METADATA` with null ID.
+
+`IdeaFinalization.to_project(metadata=...)` creates the production project only
+after exact production replay and metadata validation. `source_project.json`
+roundtrips through `ArcaDevProject` at READY/IDEA. `idea_checkpoint.json` records
+`IDEA_READY_FOR_TRANSITION`, its project ID and the digests of the finalization,
+current intake, metadata authority and source project. This checkpoint uses
+`arcadev.gaming_studio.resolution_checkpoint`, schema version 1, package version
+2, resolution 2. No handoff or PLAN content is created in this increment.
+
+The production validator now reports the resolution checkpoint by default when
+the resolution area exists; `--seed-only` retains verification of the original
+historical seed. Every persisted resolution file must match reconstruction,
+including the original five-approval envelope. Dedicated tests:
+`tools.test_arcadev_gaming_studio_resolution_2`.

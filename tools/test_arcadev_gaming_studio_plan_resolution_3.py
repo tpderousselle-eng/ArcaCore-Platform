@@ -24,7 +24,9 @@ class ProductionPlanResolutionCheckpointTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="gaming-plan-resolution-")
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name) / "authority"
-        shutil.copytree(AUTHORITY_DIRECTORY, self.root)
+        # Preserve this suite's strict historical, unapproved checkpoint scope.
+        # The later approval/transition has its own complete lineage suite.
+        shutil.copytree(AUTHORITY_DIRECTORY, self.root, ignore=shutil.ignore_patterns("plan_approval"))
         self.area = self.root / "production_plan/plan_resolution"
         self.package = {name: (self.area / name).read_bytes() for name in RESOLUTION_PACKAGE_FILES}
 

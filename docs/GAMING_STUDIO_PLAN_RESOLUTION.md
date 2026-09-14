@@ -1,5 +1,11 @@
 # Gaming Studio production PLAN resolution
 
+This is the historical clarification-batch record. The later
+[production PLAN approval](GAMING_STUDIO_PLAN_APPROVAL.md) approves the complete
+plan and validates the certified ARCHITECTURE checkpoint. Use
+`--require-plan-approval` for that current checkpoint; all resolution authority
+described below retains its original bytes and meaning.
+
 This batch records exactly three actual user-approved planning clarifications.
 It does not approve the complete SoftwarePlan or authorize architecture, models,
 backend/frontend implementation, production generation, or Sprint 32.

@@ -35,7 +35,8 @@ class ProductionPlanPackageTest(unittest.TestCase):
         self.root = Path(temporary.name) / "authority"
         # This suite certifies the immutable unanswered PLAN package. Current
         # resolution authority has its own complete-package adversarial suite.
-        shutil.copytree(AUTHORITY_DIRECTORY, self.root, ignore=shutil.ignore_patterns("plan_resolution"))
+        shutil.copytree(AUTHORITY_DIRECTORY, self.root,
+                        ignore=shutil.ignore_patterns("plan_resolution", "plan_approval"))
         self.area = self.root / "production_plan"
 
     def assert_mutation_rejected(self, relative, change):

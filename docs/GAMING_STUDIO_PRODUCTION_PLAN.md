@@ -2,8 +2,10 @@
 
 This document records the historical unanswered PLAN batch. The later
 [production PLAN resolution](GAMING_STUDIO_PLAN_RESOLUTION.md) resolves the three
-questions and records the current, still-unapproved PLAN checkpoint. The
-historical JSON package described here remains unchanged.
+questions and records its historical, still-unapproved PLAN checkpoint. The
+subsequent [production PLAN approval](GAMING_STUDIO_PLAN_APPROVAL.md) records the
+current certified ARCHITECTURE checkpoint without generating architecture.
+The historical JSON package described here remains unchanged.
 
 This is the first genuine Gaming Studio production SoftwarePlan. The public
 `generate_baseline_plan` engine consumes only the frozen approved IDEA from

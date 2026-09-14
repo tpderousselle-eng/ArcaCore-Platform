@@ -66,3 +66,54 @@ Approval 2 gates: all nine dedicated handoff tests, 665 ArcaDev tests and 1,397
 repository discovery tests completed with zero failures/errors. All 36
 PostgreSQL-backed tests passed; the documented Docker opt-in test is the only
 skip. Source and prior approval authority remain byte-for-byte immutable.
+
+## Approved PLAN / ARCHITECTURE checkpoint
+
+The current checkpoint uses `arcadev.gaming_studio.plan_approval_checkpoint`,
+schema version 1 and package version 3. It binds all 24 canonical parent
+artifacts, including every historical checkpoint, the exact approval envelope,
+ApprovedPlan, certified handoff and resulting project. Unknown or missing
+authority files are rejected. Bounded local-file checks reject noncanonical
+JSON, duplicate keys, oversized input, links and junctions. Recomputed hashes
+cannot replace full public-contract reconstruction or exact byte comparison.
+
+The complete lineage is ProductionIntent → seed IDEA → IDEA clarifications →
+IdeaFinalization → ProjectMetadata → source IDEA project → IdeaPlanHandoff →
+PLAN project → SoftwarePlan → unanswered PLAN review/checkpoint → PLAN
+clarification authorization → PlanningDecision history → PlanFinalization →
+ready-for-approval checkpoint → exact approval authorization → ApprovedPlan →
+PlanArchitectureHandoff → resulting ARCHITECTURE project → current checkpoint.
+
+Run the read-only current validation gate:
+
+```powershell
+C:\ac259\Scripts\python.exe -m arcadev.gaming_studio_authority --require-plan-approval
+```
+
+The top-level validator checks every present extension and reports the latest
+checkpoint. `--require-plan-approval` rejects fallback to an older package. The
+historical seed, IDEA resolution, unanswered PLAN and PLAN-resolution validators
+remain available; their authority bytes and original strict tests are preserved.
+The full result retains `ready_for_approval_checkpoint`,
+`unanswered_plan_checkpoint`, `idea_checkpoint` and `seed_checkpoint` as history.
+
+Current state is IN_PROGRESS / ARCHITECTURE with status
+`ARCHITECTURE_READY_FOR_GENERATION`. The checkpoint names
+`GENERATE_PRODUCTION_ARCHITECTURE_SPECIFICATION` as the next lifecycle action.
+`architecture_specification_id=null` and `architecture_generated=false`.
+The exact approval envelope still records `architecture_generation_authorized=false`:
+this batch stops before that next action and grants no later-stage approval.
+No ArchitectureSpecification, architecture candidate, ApprovedArchitecture,
+ARCHITECTURE → MODELS handoff, DomainModel or production application output exists
+in this authority package. Future strategy remains separate and unchanged.
+
+Approval 3 gates cover 12 dedicated checkpoint tests, 677 ArcaDev tests and
+1,409 repository discovery tests, including 36 PostgreSQL-backed tests. The
+initial full run found one stale exact-import allowlist expectation in the
+historical authority test. The expected set now includes the intended read-only
+checkpoint module; the full 19-test authority suite passed in a fresh process.
+No production code or authority changed for this correction. All discovery IDs
+are accounted for, with zero final failures/errors and only the documented
+Docker opt-in skip (1,428 executions including the recheck). Original failure
+evidence and successful recheck results are retained under
+`.env.plan-approval-3/`. The dependency check remains an exact allowlist.

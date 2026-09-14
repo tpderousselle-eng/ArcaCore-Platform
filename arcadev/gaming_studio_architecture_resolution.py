@@ -139,10 +139,17 @@ def architecture_authorization_package(directory=AUTHORITY_DIRECTORY):
     return _authorization(approvals)
 
 
-def validate_architecture_authorization(data, directory=AUTHORITY_DIRECTORY):
+def _validated_authorization(data, directory):
+    """Validate the envelope and expose the same public replay to state projection."""
     value = parse_authority(data)
     if digest_bytes(data) != APPROVED_AUTHORIZATION_DIGEST:
         raise ValueError("Architecture authorization differs from the eight exact user decisions.")
-    if data != canonical_bytes(architecture_authorization_package(directory)):
+    handoff, initial = _production_inputs(directory)
+    current, approvals = _replay_authorized_decisions(handoff, initial)
+    if data != canonical_bytes(_authorization(approvals)):
         raise ValueError("Architecture authorization differs from the eight exact user decisions.")
-    return value
+    return value, current, handoff
+
+
+def validate_architecture_authorization(data, directory=AUTHORITY_DIRECTORY):
+    return _validated_authorization(data, directory)[0]

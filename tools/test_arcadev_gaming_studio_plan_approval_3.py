@@ -25,7 +25,8 @@ class ProductionPlanApprovalCheckpointTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="gaming-architecture-checkpoint-")
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name) / "authority"
-        shutil.copytree(AUTHORITY_DIRECTORY, self.root)
+        # This suite intentionally validates the immutable pre-generation approval package.
+        shutil.copytree(AUTHORITY_DIRECTORY, self.root, ignore=shutil.ignore_patterns("production_architecture"))
         self.area = self.root / APPROVAL_AREA
         self.package = {n: (self.area / n).read_bytes() for n in APPROVAL_PACKAGE_FILES}
 

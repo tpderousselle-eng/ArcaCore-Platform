@@ -1,5 +1,19 @@
 # Gaming Studio production authority
 
+## Current production architecture
+
+Current production authority extends through the first generated ArchitectureSpecification
+and its unresolved ArchitectureFinalization. The project is `IN_PROGRESS / ARCHITECTURE`,
+with status `BLOCKED_PENDING_ARCHITECTURE_CLARIFICATION`. Architecture is not approved and MODELS is not authorized.
+
+Use `python -m arcadev.gaming_studio_authority --require-architecture` to validate the
+complete current package. See [production architecture](GAMING_STUDIO_PRODUCTION_ARCHITECTURE.md)
+for the exact identities, counts, unresolved questions, source lineage and authority boundary.
+
+The certification below records the immutable original seed batch and its historical scope.
+
+## Historical seed certification
+
 This is the first genuine Gaming Studio production authority. Earlier Gaming
 Studio lifecycle objects and approvals in repository tests were **TEST FIXTURE
 ONLY**. They are neither parents nor sources for this package.

@@ -34,11 +34,11 @@ class GamingStudioAuthorityTest(unittest.TestCase):
 
     def reject(self):
         with self.assertRaises(ValueError):
-            validator.validate_production_authority(self.directory)
+            validator.validate_production_authority(self.directory, seed_only=True)
 
     def test_persisted_package_and_checkpoint_are_deterministic(self):
         first = validator.validate_production_authority(seed_only=True)
-        self.assertEqual(first, validator.validate_production_authority(self.directory))
+        self.assertEqual(first, validator.validate_production_authority(self.directory, seed_only=True))
         self.assertTrue(first["valid"])
         self.assertTrue(first["fixture_independent"])
         checkpoint = first["checkpoint"]
@@ -166,7 +166,7 @@ class GamingStudioAuthorityTest(unittest.TestCase):
                 imports.add(node.module)
         # Keep an exact dependency allowlist, now including the read-only
         # approval/checkpoint extension. No generator or executor is added.
-        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_transition", "gaming_studio_plan", "gaming_studio_plan_checkpoint", "gaming_studio_plan_approval_checkpoint"})
+        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_transition", "gaming_studio_plan", "gaming_studio_plan_checkpoint", "gaming_studio_plan_approval_checkpoint", "gaming_studio_architecture_checkpoint"})
 
     def test_no_execution_network_generation_project_or_writes(self):
         before = {p.name: p.read_bytes() for p in self.directory.iterdir()}
@@ -176,17 +176,17 @@ class GamingStudioAuthorityTest(unittest.TestCase):
              patch.object(IdeaIntake, "to_project", side_effect=AssertionError("project")), \
              patch.object(Path, "write_bytes", side_effect=AssertionError("write")), \
              patch.object(Path, "write_text", side_effect=AssertionError("write")):
-            validator.validate_production_authority(self.directory)
+            validator.validate_production_authority(self.directory, seed_only=True)
         self.assertEqual(before, {p.name: p.read_bytes() for p in self.directory.iterdir()})
 
     def test_cli_success_and_rejection_exit(self):
         output = io.StringIO()
         with redirect_stdout(output):
-            self.assertEqual(validator.main([str(self.directory)]), 0)
+            self.assertEqual(validator.main([str(self.directory), "--seed-only"]), 0)
         self.assertTrue(json.loads(output.getvalue())["valid"])
         (self.directory / "project.json").write_bytes(b"{}\n")
         with patch("sys.stderr", new=io.StringIO()), self.assertRaises(SystemExit) as raised:
-            validator.main([str(self.directory)])
+            validator.main([str(self.directory), "--seed-only"])
         self.assertEqual(raised.exception.code, 1)
 
 

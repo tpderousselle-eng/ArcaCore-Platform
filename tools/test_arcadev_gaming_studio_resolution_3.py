@@ -194,7 +194,7 @@ class ProductionTransitionTest(unittest.TestCase):
             root = Path(temporary)
             for name in PACKAGE_FILES:
                 shutil.copyfile(AUTHORITY_DIRECTORY / name, root / name)
-            self.assertTrue(validate_production_authority(root)["valid"])
+            self.assertTrue(validate_production_authority(root, seed_only=True)["valid"])
             with self.assertRaisesRegex(ValueError, "required"):
                 validate_production_authority(root, require_current=True)
         with self.assertRaises(ValueError):

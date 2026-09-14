@@ -26,7 +26,7 @@ class ProductionPlanResolutionCheckpointTest(unittest.TestCase):
         self.root = Path(temporary.name) / "authority"
         # Preserve this suite's strict historical, unapproved checkpoint scope.
         # The later approval/transition has its own complete lineage suite.
-        shutil.copytree(AUTHORITY_DIRECTORY, self.root, ignore=shutil.ignore_patterns("plan_approval"))
+        shutil.copytree(AUTHORITY_DIRECTORY, self.root, ignore=shutil.ignore_patterns("plan_approval", "production_architecture"))
         self.area = self.root / "production_plan/plan_resolution"
         self.package = {name: (self.area / name).read_bytes() for name in RESOLUTION_PACKAGE_FILES}
 

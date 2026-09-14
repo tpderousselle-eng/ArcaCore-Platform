@@ -28,8 +28,8 @@ class ProductionArchitectureAuthorityTest(unittest.TestCase):
         self.assertNotEqual(target, self.root.resolve())
         shutil.rmtree(target)
 
-    def test_ordinary_current_validation_selects_architecture_and_keeps_history(self):
-        result = authority.validate_production_authority(self.root)
+    def test_explicit_historical_validation_selects_architecture_and_keeps_history(self):
+        result = authority.validate_production_authority(self.root, require_architecture=True)
         raw = (self.root / ARCHITECTURE_AREA / "checkpoint.json").read_bytes()
         self.assertTrue(result["valid"])
         self.assertEqual(result["checkpoint"], json.loads(raw))

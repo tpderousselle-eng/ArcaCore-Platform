@@ -48,13 +48,15 @@ def validate_fixture_independence() -> None:
 def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False,
                                   require_current=False, require_plan=False,
                                   require_plan_resolution=False, require_plan_approval=False,
-                                  require_architecture=False) -> dict:
+                                  require_architecture=False, require_architecture_resolution=False) -> dict:
     """Reconstruct and compare every canonical artifact against the pinned root."""
     directory = local_authority_path(directory)
     # Unqualified validation means the current production checkpoint.
     # Explicit historical gates still accept their intentionally older packages.
-    historical_requirement = seed_only or require_current or require_plan or require_plan_resolution or require_plan_approval
-    require_architecture = require_architecture or not historical_requirement
+    historical_requirement = (seed_only or require_current or require_plan or require_plan_resolution
+                              or require_plan_approval or require_architecture)
+    require_architecture_resolution = require_architecture_resolution or not historical_requirement
+    require_architecture = require_architecture or require_architecture_resolution
     require_plan_approval = require_plan_approval or require_architecture
     require_plan_resolution = require_plan_resolution or require_plan_approval
     require_plan = require_plan or require_plan_resolution
@@ -78,6 +80,13 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
     if not seed_only and architecture_area.exists():
         from .gaming_studio_architecture_checkpoint import validate_architecture_package_inventory
         validate_architecture_package_inventory(directory)
+
+    resolved_checkpoint = None
+    if require_architecture_resolution:
+        from .gaming_studio_architecture_resolution_checkpoint import validate_architecture_resolution_checkpoint
+        # Current validation requires the complete resolution package even if
+        # the child directory was removed. Historical selection is explicit.
+        resolved_checkpoint = validate_architecture_resolution_checkpoint(directory)
 
     validate_fixture_independence()
     source = ProductionIntent.from_bytes(read_authority(directory / "production_intent.json"))
@@ -139,6 +148,9 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
         current_checkpoint = validate_production_architecture_checkpoint(directory)
         result.update(pre_architecture_checkpoint=result["checkpoint"], checkpoint=current_checkpoint,
                       checkpoint_digest=digest_bytes(canonical_bytes(current_checkpoint)))
+    if resolved_checkpoint is not None:
+        result.update(unresolved_architecture_checkpoint=result["checkpoint"], checkpoint=resolved_checkpoint,
+                      checkpoint_digest=digest_bytes(canonical_bytes(resolved_checkpoint)))
     return result
 
 
@@ -151,13 +163,16 @@ def main(argv=None) -> int:
     parser.add_argument("--require-plan-resolution", action="store_true", help="Require the resolved, still-unapproved production PLAN checkpoint.")
     parser.add_argument("--require-plan-approval", action="store_true", help="Require complete PLAN approval and its certified ARCHITECTURE handoff.")
     parser.add_argument("--require-architecture", action="store_true", help="Require the complete generated, unapproved production architecture checkpoint.")
+    parser.add_argument("--require-architecture-resolution", action="store_true",
+                        help="Require the complete resolved, unapproved production architecture checkpoint.")
     args = parser.parse_args(argv)
     try:
         result = validate_production_authority(args.directory, seed_only=args.seed_only,
                                                require_current=args.require_current, require_plan=args.require_plan,
                                                require_plan_resolution=args.require_plan_resolution,
                                                require_plan_approval=args.require_plan_approval,
-                                               require_architecture=args.require_architecture)
+                                               require_architecture=args.require_architecture,
+                                               require_architecture_resolution=args.require_architecture_resolution)
     except (OSError, ValueError, SyntaxError) as error:
         parser.exit(1, f"Production authority validation failed: {error}\n")
     print(canonical_bytes(result).decode("utf-8"), end="")

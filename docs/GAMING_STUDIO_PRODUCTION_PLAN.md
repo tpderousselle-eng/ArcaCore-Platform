@@ -1,5 +1,10 @@
 # Gaming Studio production SoftwarePlan
 
+This document records the historical unanswered PLAN batch. The later
+[production PLAN resolution](GAMING_STUDIO_PLAN_RESOLUTION.md) resolves the three
+questions and records the current, still-unapproved PLAN checkpoint. The
+historical JSON package described here remains unchanged.
+
 This is the first genuine Gaming Studio production SoftwarePlan. The public
 `generate_baseline_plan` engine consumes only the frozen approved IDEA from
 `arcadev_handoff_2d8411540b13ce1eecd8c480e0f5a692`, after validating the complete

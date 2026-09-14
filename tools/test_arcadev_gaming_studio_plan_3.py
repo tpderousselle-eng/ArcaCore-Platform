@@ -33,7 +33,9 @@ class ProductionPlanPackageTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory(prefix="gaming-plan-package-")
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name) / "authority"
-        shutil.copytree(AUTHORITY_DIRECTORY, self.root)
+        # This suite certifies the immutable unanswered PLAN package. Current
+        # resolution authority has its own complete-package adversarial suite.
+        shutil.copytree(AUTHORITY_DIRECTORY, self.root, ignore=shutil.ignore_patterns("plan_resolution"))
         self.area = self.root / "production_plan"
 
     def assert_mutation_rejected(self, relative, change):

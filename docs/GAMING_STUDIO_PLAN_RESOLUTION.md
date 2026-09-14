@@ -215,3 +215,104 @@ Normalized accepted values (public canonical order):
 - Store/developer credentials belong to the user's connected developer accounts
 - Unsupported targets or failed validation block direct publishing
 - Users may export approved build artifacts
+
+## PLAN Resolution 3: current checkpoint validation
+
+`arcadev/gaming_studio_plan_checkpoint.py` reconstructs the complete current
+package. Its checkpoint schema is
+`arcadev.gaming_studio.plan_resolution_checkpoint`, schema version 1, package
+version 3. The exact file allowlist is `clarification_authorization.json`,
+`plan_finalization.json`, `resolution_review.json` and `checkpoint.json`.
+
+The complete lineage is ProductionIntent → seed IDEA authority → explicit IDEA
+clarifications → IdeaFinalization → ProjectMetadata authority → source IDEA
+project → IdeaPlanHandoff → PLAN project → original SoftwarePlan → original
+unanswered review and historical checkpoint → three explicit PLAN authorizations
+→ PlanningDecision history → PlanFinalization → current resolution review →
+current checkpoint. The checkpoint binds all 16 historical artifacts and the
+three current parent artifacts by SHA-256. Its own digest is returned separately
+by the validator. It retains the production-intent text digest separately from
+the JSON-file digest.
+
+The validator first rejects unknown/missing/non-regular files, invalid or
+noncanonical JSON, incorrect approval bytes and broken digest bindings. These
+checks are only rejection filters: even a fully rehashed candidate must equal
+trusted reconstruction through the certified public contracts. Supplied
+finalization, review or checkpoint fields never supply decisions to replay.
+A self-consistent public finalization with altered accepted values also fails
+the exact production-authority comparison.
+
+The top-level production validator automatically validates a present resolution
+area and reports its current checkpoint, retaining the original checkpoint as
+`unanswered_plan_checkpoint`. Use the explicit required-resolution gate to
+prevent fallback to a historical package when the resolution area is absent:
+
+```powershell
+C:\ac259\Scripts\python.exe -m arcadev.gaming_studio_authority --require-plan-resolution
+```
+
+This gate stops at `PLAN_READY_FOR_APPROVAL`, `IN_PROGRESS`, `PLAN`, with
+`REQUEST_EXPLICIT_PLAN_APPROVAL`. The user has not approved the complete
+SoftwarePlan; architecture remains unauthorized. Unknown approval, architecture,
+models, backend, generation or future-strategy artifacts are rejected.
+
+The 12 dedicated checkpoint tests cover complete digests and lineage, altered
+historical authority, rehashed historical records, changed responses/referents,
+changed accepted values, stale history, forged readiness/reviews/checkpoints,
+unknown and fake later-stage authority, bounded local-file handling, fixture
+dependencies, CLI downgrade prevention, and no execution/generation/writes.
+Historical checkpoint tests retain their strict unanswered-state assertions by
+copying the historical package explicitly, excluding the later resolution area.
+
+## Final test gates and integrity
+
+All gates used the requested `C:\ac259\Scripts\python.exe`, Python 3.13.15.
+Each complete discovery manifest is accounted for by isolated module results;
+the ArcaDev and PostgreSQL counts below are included in those full gates.
+
+| Increment | Dedicated cases verified | Complete ArcaDev | Repository discovery | PostgreSQL-backed |
+| --- | ---: | ---: | ---: | ---: |
+| PLAN Resolution 1 | 8 | 627 | 1,359 | 36 |
+| PLAN Resolution 2 | 7 | 634 | 1,366 | 36 |
+| PLAN Resolution 3 | 12 | 646 | 1,378 | 36 |
+
+Every increment has exactly one documented real Docker Compose opt-in skip.
+All seven PostgreSQL-backed classes passed in every increment. No failures or
+errors remain unresolved. Full manifests, individual test IDs, logs, original
+results and rechecks are retained in the ignored local evidence directories
+`.env.plan-resolution-1/`, `.env.plan-resolution-2/` and `.env.plan-resolution-3/`.
+
+Increment 1 initially encountered a concurrent-load startup-classification
+timeout in the runtime harness. All 16 unchanged runtime-harness tests passed
+when repeated serially; increments 2 and 3 run that module serially, matching
+the prior certified procedure. No runtime limit or test assertion was weakened.
+Increment 1 therefore has 1,359 distinct tests and 1,375 executions with rechecks.
+
+Increment 3 corrected two file reads in an adversarial test to explicitly use
+UTF-8 instead of Windows' cp1252 default. Its in-flight process had already
+loaded the earlier reader and reported an identity mismatch from incorrectly
+decoded historical text. The exact corrected case passed in a fresh process;
+the other 11 dedicated checkpoint cases passed in the full run. This gives
+1,378 distinct tests and 1,379 executions with the recheck. Production code and
+authority were unchanged by this test-reader correction.
+
+The current checkpoint SHA-256 is
+`8d065da2fdfa2afcbadd83efc4907712b0005cbca1562361d18bfe2d8fe77c76`.
+All 16 historical authority files match certified baseline
+`82523d9031b7633eeda95e0a4a32dbc1c0888baf` byte for byte, including the original
+SoftwarePlan, unanswered review and historical PLAN checkpoint. Backend,
+frontend, shared and the future-strategy register are unchanged. No generated
+production application artifacts were added; repository tests use their own
+temporary fixtures.
+
+The branch is `arcadev-gaming-studio-plan-resolution`. The three commit messages
+are exactly the requested PLAN Resolution 1, 2 and 3 messages. Their identities
+are recorded in the final completion report. The batch stops at the resolved,
+unapproved PLAN. No ApprovedPlan, PLAN-to-ARCHITECTURE handoff,
+ArchitectureSpecification, MODELS or production backend/frontend work was
+created. ArcaCore production generation and Sprint 32 were not started.
+
+Protected local state remains ` D tools.zip` and `?? .codex/`; neither item was
+modified, restored, staged or committed by this batch. Nothing was pushed and
+no PR was created. The next authorized action is to request explicit approval
+of the complete SoftwarePlan, including these three accepted decisions.

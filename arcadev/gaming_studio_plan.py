@@ -119,9 +119,9 @@ def validate_production_plan_package(directory=AUTHORITY_DIRECTORY):
         raise ValueError("Production PLAN package has unknown or missing authority files.")
     names = set()
     for path in area.iterdir():
-        if path.name == "plan_resolution":
+        if path.name in {"plan_resolution", "plan_approval"}:
             if not local_authority_path(path).is_dir():
-                raise ValueError("PLAN resolution must be a local directory.")
+                raise ValueError("PLAN extension must be a local directory.")
             continue
         names.add(path.name)
     if names != PLAN_PACKAGE_FILES:

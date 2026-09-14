@@ -115,7 +115,16 @@ def validate_production_plan_package(directory=AUTHORITY_DIRECTORY):
     """Reject any package differing from baseline reconstruction, even rehashed."""
     directory = local_authority_path(directory)
     area = local_authority_path(directory / "production_plan")
-    if not area.is_dir() or {p.name for p in area.iterdir()} != PLAN_PACKAGE_FILES:
+    if not area.is_dir():
+        raise ValueError("Production PLAN package has unknown or missing authority files.")
+    names = set()
+    for path in area.iterdir():
+        if path.name == "plan_resolution":
+            if not local_authority_path(path).is_dir():
+                raise ValueError("PLAN resolution must be a local directory.")
+            continue
+        names.add(path.name)
+    if names != PLAN_PACKAGE_FILES:
         raise ValueError("Production PLAN package has unknown or missing authority files.")
     actual = {name: read_authority(area / name) for name in sorted(PLAN_PACKAGE_FILES)}
     for data in actual.values():

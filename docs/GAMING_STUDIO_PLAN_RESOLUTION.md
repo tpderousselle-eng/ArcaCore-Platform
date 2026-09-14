@@ -51,3 +51,167 @@ and `tools/test_arcadev_gaming_studio_plan_resolution_1.py`, and extends
 The dedicated tests cover exact authority, scope, tampering, sequential/stale and
 duplicate resolution, and prohibit approval, architecture, generation, network,
 process execution and writes during authority construction/validation.
+
+## PLAN Resolution 2: finalization and current review
+
+All three planning questions are explicitly resolved through the public
+`PlanFinalization` contract (`arcadev.plan_finalization`, version 1). The original
+plan remains `arcadev_plan_9aed1a01dad6e95cb75b6db67730dd5b`; the finalization is
+`arcadev_plan_final_d9698e456e67fae47ef46dbd11880dd2`.
+
+| Answer order | Accepted PlanningDecision ID | Outcome |
+| --- | --- | --- |
+| Storage/retention | `arcadev_decision_141775fe2b2e9d72c94e3606b02fd12f` | accepted |
+| Build isolation | `arcadev_decision_304964ccfcaaa1217a914104d55355ec` | accepted |
+| Publishing/release | `arcadev_decision_70fafefce78c86f108163a806313f81a` | accepted |
+
+Public replay computes three decisions, three history entries, zero unresolved
+questions, zero conflicts and `effective_ready_for_architecture = true`.
+Readiness after each answer is false, false, true. These values are not forced.
+The original SoftwarePlan still reports its historical unanswered readiness as
+false. A conflict stops replay; a blocked or partial public result produces a
+blocked review instead of a ready-for-approval status.
+
+The current review schema is `arcadev.gaming_studio.plan_resolution_review`,
+version 1. Project `arcadev_969321c8959864fe18393b9d2b551063` remains
+`IN_PROGRESS` at `PLAN`, with status `PLAN_READY_FOR_APPROVAL` and next action
+`REQUEST_EXPLICIT_PLAN_APPROVAL`. The user has **not approved the complete
+SoftwarePlan**. `complete_plan_approved` and `architecture_authorized` are false;
+no ApprovedPlan or PLAN-to-ARCHITECTURE handoff exists.
+
+Increment 2 adds `arcadev/gaming_studio_plan_finalization.py`, canonical
+`plan_finalization.json`, `resolution_review.json`, and
+`tools/test_arcadev_gaming_studio_plan_resolution_2.py`, and extends this document.
+The seven dedicated tests cover deterministic public replay and roundtrip,
+history and decision integrity, actual partial/conflicted results, exact bounded
+policy, frozen IDEA platform authority, future-strategy isolation and the
+approval/execution boundary.
+
+## Exact accepted authority
+
+### Answer 1: What asset storage limits and retention rules are required?
+
+Question ID: arcadev_question_64610a51eaf261a7116813cf9cb32d91
+
+Exact response:
+
+> I approve the recommended Gaming Studio asset storage and retention policy.
+
+Approved referent (line wrapping normalized):
+
+Gaming Studio uses configurable storage quotas tied to the user’s ArcaCentum entitlement rather than hard-coding storage into the product.
+
+For initial production:
+
+- provide 50 GB of active project-asset storage per paid Gaming Studio account
+- user-created project assets are retained while the project/account remains active
+- deleted assets/projects remain recoverable for 30 days before permanent deletion
+- temporary build/intermediate files may be automatically purged after 7 days
+- final/exported builds may be retained for 30 days unless the user explicitly keeps/pins them
+- additional storage capacity can be offered later without changing the core storage architecture
+- Marketplace asset retention is outside current initial scope
+
+Proposal SHA-256: 15deebfbfcac41b368c6a93af052b1e822d2a377a4672a8893039a9f99dadaf4
+
+Normalized accepted values (public canonical order):
+
+- 50 GB of active project-asset storage per paid Gaming Studio account
+- Additional storage capacity can be offered later without changing the core storage architecture
+- Configurable storage quotas tied to the user's ArcaCentum entitlement
+- Deleted assets/projects recoverable for 30 days before permanent deletion
+- Final/exported builds may be retained for 30 days unless explicitly kept/pinned by the user
+- Marketplace asset retention is outside current initial scope
+- Temporary build/intermediate files may be automatically purged after 7 days
+- User-created project assets retained while the project/account remains active
+
+### Answer 2: Which build execution environments and isolation rules are required?
+
+Question ID: arcadev_question_06fa970b49a43c4d5442756aa4361ccc
+
+Exact response:
+
+> I approve isolated disposable build environments with strict resource, network, secret, and filesystem boundaries for Gaming Studio.
+
+Approved referent (line wrapping normalized):
+
+All user-generated game code and builds run in isolated, disposable execution environments separate from the ArcaCentum control plane.
+
+Each build gets a clean sandbox with explicit:
+
+- CPU limits
+- memory limits
+- disk limits
+- network limits
+- execution-time limits
+
+Additional approved rules:
+
+- no host filesystem exposure
+- no internal service exposure by default
+- no secret-store exposure by default
+- no access to another customer's data
+- network denied by default and enabled only through approved allowlisted workflows when required
+- build environment destroyed after completion
+- only approved outputs, logs and metadata retained
+- no privileged containers/processes
+- no direct production database access
+- no inherited secrets unless explicitly injected for one approved integration
+- malware/static security checks on outputs before ArcaCentum hosting or publishing
+
+Proposal SHA-256: 8a9606d8f35c70afabcef6bbef57eb1504a25c3bf0fd7dab9a3d5e3df891c79c
+
+Normalized accepted values (public canonical order):
+
+- All user-generated game code and builds run in isolated, disposable execution environments separate from the ArcaCentum control plane
+- Build environment destroyed after completion
+- Each build gets a clean sandbox with explicit CPU, memory, disk, network and execution-time limits
+- Malware/static security checks on outputs before ArcaCentum hosting or publishing
+- Network denied by default; enabled only through approved allowlisted workflows when required
+- No access to another customer's data
+- No direct production database access
+- No host filesystem exposure
+- No inherited secrets unless explicitly injected for one approved integration
+- No internal service exposure by default
+- No privileged containers/processes
+- No secret-store exposure by default
+- Only approved outputs, logs and metadata retained
+
+### Answer 3: Which publishing targets and release controls are required?
+
+Question ID: arcadev_question_3386cafaf9fe1e6672db5b0a9bed716f
+
+Exact response:
+
+> I approve PC, Web, Android, and iOS publishing/export with validation gates, user-controlled releases, and direct store publishing only through explicitly supported integrations.
+
+Approved referent (line wrapping normalized):
+
+- initial publishing/export targets are PC, Web, Android and iOS
+- releases are user-controlled
+- publication/export workflows use validation gates
+- build/test requirements must pass where required
+- required release metadata must be present
+- platform-specific requirements must be satisfied
+- export/download is distinct from direct store submission
+- users may export approved build artifacts
+- direct external-store publishing occurs only through explicitly supported integrations
+- store/developer credentials belong to the user's connected developer accounts
+- unsupported targets or failed validation block direct publishing
+- consoles are outside initial scope
+
+Proposal SHA-256: 06a1aab39fe12638e52d6f21f8a0a0ef8a6dc2edfe5d56ea7fc71ea6061833ec
+
+Normalized accepted values (public canonical order):
+
+- Build/test requirements must pass where required
+- Consoles are outside initial scope
+- Direct external-store publishing only through explicitly supported integrations
+- Export/download is distinct from direct store submission
+- Initial created-game publishing/export targets: PC, Web, Android and iOS
+- Platform-specific requirements must be satisfied
+- Publication/export workflows use validation gates
+- Releases are user-controlled
+- Required release metadata must be present
+- Store/developer credentials belong to the user's connected developer accounts
+- Unsupported targets or failed validation block direct publishing
+- Users may export approved build artifacts

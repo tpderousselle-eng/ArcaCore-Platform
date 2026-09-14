@@ -73,7 +73,17 @@ def validate_architecture_package_inventory(directory=AUTHORITY_DIRECTORY):
     """Reject incomplete or unknown architecture entries before expensive replay."""
     directory = local_authority_path(directory)
     area = local_authority_path(directory / ARCHITECTURE_AREA)
-    if not area.is_dir() or {p.name for p in area.iterdir()} != ARCHITECTURE_PACKAGE_FILES:
+    if not area.is_dir():
+        raise ValueError("Production architecture package has unknown or missing authority files.")
+    names = {p.name for p in area.iterdir()}
+    # The versioned resolution is a separate child package, never a rewrite of
+    # this historical checkpoint. Its own validator owns its contents.
+    if "architecture_resolution" in names:
+        child = local_authority_path(area / "architecture_resolution")
+        if not child.is_dir():
+            raise ValueError("Architecture resolution must be a regular local directory.")
+        names.remove("architecture_resolution")
+    if names != ARCHITECTURE_PACKAGE_FILES:
         raise ValueError("Production architecture package has unknown or missing authority files.")
     return area
 

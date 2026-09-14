@@ -40,3 +40,29 @@ discovery tests passed, including 36 PostgreSQL-backed tests. The only skip is
 the documented real Docker Compose opt-in test. All 20 historical authority
 files retain their certified bytes; backend, frontend, shared, future strategy,
 tools.zip and .codex remain unchanged by this increment.
+
+## Certified PLAN → ARCHITECTURE handoff
+
+Approval 2 loads the validated production ApprovedPlan and reconstructs the
+source PLAN project through the certified IDEA handoff. The generic project
+loader intentionally accepts only IDEA; it is not used to manufacture a PLAN
+project. The stored PLAN source must equal the handoff's source bytes exactly.
+`PlanArchitectureHandoff.create` independently checks the frozen approval and
+source, eligibility, consistency, readiness, questions and conflicts.
+
+Only `plan_architecture_handoff.json` and the resulting `project.json` are added
+to the approval area. The source `idea_resolution/project.json` stays immutable
+at IN_PROGRESS / PLAN. The resulting project is IN_PROGRESS / ARCHITECTURE.
+There is no second transition algorithm and no architecture-engine call.
+ArchitectureSpecification, ApprovedArchitecture and an ARCHITECTURE → MODELS
+handoff remain absent. The batch proceeds only to checkpoint validation.
+
+The certified handoff is `arcadev_arch_handoff_6a1e0fa782722a73b813dd1937066928`,
+with `transition_eligible=true` and `decision=transitioned`. Source and resulting
+project identity are both `arcadev_969321c8959864fe18393b9d2b551063`.
+The frozen ApprovedPlan retains its original ID and exact consistency warning.
+
+Approval 2 gates: all nine dedicated handoff tests, 665 ArcaDev tests and 1,397
+repository discovery tests completed with zero failures/errors. All 36
+PostgreSQL-backed tests passed; the documented Docker opt-in test is the only
+skip. Source and prior approval authority remain byte-for-byte immutable.

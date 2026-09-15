@@ -62,7 +62,7 @@ class ArchitectureModelsHandoff(Record):
         body = result.canonical_dict()
         body.pop("handoff_id")
         result = replace(result, handoff_id=_identity("architecture_models_handoff", body))
-        _safe(result.canonical_dict())
+        _safe(result.canonical_dict(), allow_original_request=True)
         return result
 
     def canonical_dict(self):
@@ -72,7 +72,7 @@ class ArchitectureModelsHandoff(Record):
 
     @classmethod
     def from_dict(cls, value):
-        _safe(value)
+        _safe(value, allow_original_request=True)
         _exact(value, (f.name for f in fields(cls)))
         if value["schema"] != ARCADEV_ARCHITECTURE_MODELS_HANDOFF_SCHEMA or type(value["schema_version"]) is not int or value["schema_version"] != 1:
             raise ValueError("Unsupported architecture models handoff schema/version.")
@@ -84,7 +84,7 @@ class ArchitectureModelsHandoff(Record):
 
     @classmethod
     def from_json(cls, text):
-        return cls.from_dict(_parse(text))
+        return cls.from_dict(_parse(text, allow_original_request=True))
 
 
 def create_architecture_models_handoff(*, source_project, approved_architecture, handoff=None, architecture=None, finalization=None):

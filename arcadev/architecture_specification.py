@@ -44,23 +44,30 @@ def _text(value, label="architecture text", maximum=8000, *, preserve=False):
     return value if preserve else " ".join(value.split())
 
 
-def _safe(value, depth=0):
+def _safe(value, depth=0, *, allow_original_request=False, _field=None):
     """Bound JSON data before recursion, hashing, or domain reconstruction."""
     if depth > 40:
         raise ValueError("Architecture nesting exceeds its safety limit.")
     if type(value) is str:
-        _text(value, maximum=100_000)
+        # Approval/transition envelopes embed certified IDEA/PLAN projects.
+        # Those contracts preserve CR/LF/tab in original_user_request. Check a
+        # same-length view without changing any source or identity bytes; the
+        # enclosing public loader must still replay the inherited parent.
+        checked = value
+        if allow_original_request and _field == "original_user_request":
+            checked = value.translate({ord(c): " " for c in "\r\n\t"})
+        _text(checked, maximum=100_000)
     elif type(value) is dict:
         if len(value) > MAX_ARCHITECTURE_ITEMS:
             raise ValueError("Architecture object exceeds its safety limit.")
         for key, item in value.items():
             _text(key, maximum=240)
-            _safe(item, depth + 1)
+            _safe(item, depth + 1, allow_original_request=allow_original_request, _field=key)
     elif type(value) is list:
         if len(value) > MAX_ARCHITECTURE_ITEMS:
             raise ValueError("Architecture array exceeds its safety limit.")
         for item in value:
-            _safe(item, depth + 1)
+            _safe(item, depth + 1, allow_original_request=allow_original_request)
     elif value is not None and type(value) not in (bool, int):
         raise ValueError("Architecture requires inert JSON values.")
     if depth == 0 and len(_json(value).encode("utf-8")) > MAX_ARCHITECTURE_BYTES:
@@ -76,12 +83,12 @@ def _pairs(pairs):
     return result
 
 
-def _parse(text):
+def _parse(text, *, allow_original_request=False):
     try:
         if type(text) is not str or len(text.encode("utf-8")) > MAX_ARCHITECTURE_BYTES:
             raise ValueError("Architecture JSON exceeds its safety limit.")
         value = json.loads(text, object_pairs_hook=_pairs)
-        _safe(value)
+        _safe(value, allow_original_request=allow_original_request)
         return value
     except (UnicodeError, json.JSONDecodeError, RecursionError) as error:
         raise ValueError("Architecture is not valid JSON.") from error

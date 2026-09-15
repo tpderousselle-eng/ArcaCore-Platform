@@ -83,6 +83,11 @@ def validate_architecture_package_inventory(directory=AUTHORITY_DIRECTORY):
         if not child.is_dir():
             raise ValueError("Architecture resolution must be a regular local directory.")
         names.remove("architecture_resolution")
+    if "architecture_approval" in names:
+        child = local_authority_path(area / "architecture_approval")
+        if not child.is_dir():
+            raise ValueError("Architecture approval must be a regular local directory.")
+        names.remove("architecture_approval")
     if names != ARCHITECTURE_PACKAGE_FILES:
         raise ValueError("Production architecture package has unknown or missing authority files.")
     return area

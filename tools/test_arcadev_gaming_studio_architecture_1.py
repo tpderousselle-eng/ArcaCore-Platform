@@ -123,8 +123,19 @@ class ProductionArchitectureTest(unittest.TestCase):
                 path.write_bytes(before)
 
     def test_no_later_authority(self):
-        names = {p.name for p in (AUTHORITY_DIRECTORY / production.ARCHITECTURE_AREA).rglob("*")}
+        area = AUTHORITY_DIRECTORY / production.ARCHITECTURE_AREA
+        paths = tuple(area.rglob("*"))
+        # The frozen historical package never gains approval. Explicit later
+        # approval/handoff authority belongs only to its versioned child area.
+        names = {p.name for p in paths if "architecture_approval" not in p.relative_to(area).parts}
         self.assertFalse(names & {"approved_architecture.json", "architecture_models_handoff.json", "domain_model.json"})
+        for path in paths:
+            if path.name in {"approved_architecture.json", "architecture_models_handoff.json"}:
+                self.assertEqual(path.parent, area / "architecture_approval")
+        self.assertFalse({p.name for p in paths} & {
+            "domain_model.json", "domain_model_specification.json", "approved_domain_model.json",
+            "models_backend_handoff.json", "backend.json", "frontend.json",
+        })
         self.assertEqual(self.architecture.project_stage.value, "ARCHITECTURE")
 
 

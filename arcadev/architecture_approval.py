@@ -133,7 +133,7 @@ class FrozenApprovedArchitecturePackage(Record):
 
     @classmethod
     def from_dict(cls, value):
-        _safe(value)
+        _safe(value, allow_original_request=True)
         _exact(value, (f.name for f in fields(cls)))
         handoff = PlanArchitectureHandoff.from_dict(value["plan_handoff"])
         architecture = ArchitectureSpecification.from_dict(value["original_architecture"], handoff=handoff)
@@ -192,12 +192,12 @@ class ApprovedArchitecture(Record):
         body = result.canonical_dict()
         body.pop("approval_id")
         result = replace(result, approval_id=_identity("approved_architecture", body))
-        _safe(result.canonical_dict())
+        _safe(result.canonical_dict(), allow_original_request=True)
         return result
 
     @classmethod
     def from_dict(cls, value):
-        _safe(value)
+        _safe(value, allow_original_request=True)
         _exact(value, (f.name for f in fields(cls)))
         if value["schema"] != ARCADEV_APPROVED_ARCHITECTURE_SCHEMA or type(value["schema_version"]) is not int or value["schema_version"] != 1:
             raise ValueError("Unsupported approved architecture schema/version.")
@@ -209,7 +209,7 @@ class ApprovedArchitecture(Record):
 
     @classmethod
     def from_json(cls, text):
-        return cls.from_dict(_parse(text))
+        return cls.from_dict(_parse(text, allow_original_request=True))
 
 
 def validate_approved_architecture(candidate, *, source_project=None, handoff=None, architecture=None, finalization=None):

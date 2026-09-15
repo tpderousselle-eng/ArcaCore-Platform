@@ -1,4 +1,4 @@
-"""Read-only Gaming Studio authority through approved PLAN and ARCHITECTURE.
+"""Read-only Gaming Studio authority through approved architecture and MODELS entry.
 
 Run: python -m arcadev.gaming_studio_authority [authority-directory]
 No supplied file can introduce new decisions or downstream lifecycle authority.
@@ -48,14 +48,16 @@ def validate_fixture_independence() -> None:
 def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed_only=False,
                                   require_current=False, require_plan=False,
                                   require_plan_resolution=False, require_plan_approval=False,
-                                  require_architecture=False, require_architecture_resolution=False) -> dict:
+                                  require_architecture=False, require_architecture_resolution=False,
+                                  require_models_entry=False) -> dict:
     """Reconstruct and compare every canonical artifact against the pinned root."""
     directory = local_authority_path(directory)
     # Unqualified validation means the current production checkpoint.
     # Explicit historical gates still accept their intentionally older packages.
     historical_requirement = (seed_only or require_current or require_plan or require_plan_resolution
-                              or require_plan_approval or require_architecture)
-    require_architecture_resolution = require_architecture_resolution or not historical_requirement
+                              or require_plan_approval or require_architecture or require_architecture_resolution)
+    require_models_entry = require_models_entry or not historical_requirement
+    require_architecture_resolution = require_architecture_resolution or require_models_entry
     require_architecture = require_architecture or require_architecture_resolution
     require_plan_approval = require_plan_approval or require_architecture
     require_plan_resolution = require_plan_resolution or require_plan_approval
@@ -80,6 +82,29 @@ def validate_production_authority(directory: Path = AUTHORITY_DIRECTORY, *, seed
     if not seed_only and architecture_area.exists():
         from .gaming_studio_architecture_checkpoint import validate_architecture_package_inventory
         validate_architecture_package_inventory(directory)
+
+    if require_models_entry:
+        from .gaming_studio_models_entry_checkpoint import validate_models_entry_checkpoint
+        current = validate_models_entry_checkpoint(directory)
+        validate_fixture_independence()
+        # The current validator has already reconstructed and compared the
+        # complete lineage. Project its verified historical checkpoints without
+        # rerunning each ancestor's entire replay a second time.
+        history = {
+            key: parse_authority(read_authority(directory / relative))
+            for key, relative in (
+                ("seed_checkpoint", "checkpoint.json"),
+                ("idea_checkpoint", "idea_resolution/checkpoint.json"),
+                ("unanswered_plan_checkpoint", "production_plan/checkpoint.json"),
+                ("ready_for_approval_checkpoint", "production_plan/plan_resolution/checkpoint.json"),
+                ("pre_architecture_checkpoint", "production_plan/plan_approval/checkpoint.json"),
+                ("unresolved_architecture_checkpoint", "production_architecture/checkpoint.json"),
+                ("ready_for_architecture_approval_checkpoint", "production_architecture/architecture_resolution/checkpoint.json"),
+            )
+        }
+        return {**history, "checkpoint": current,
+                "checkpoint_digest": digest_bytes(canonical_bytes(current)),
+                "fixture_independent": True, "valid": True}
 
     resolved_checkpoint = None
     if require_architecture_resolution:
@@ -165,6 +190,8 @@ def main(argv=None) -> int:
     parser.add_argument("--require-architecture", action="store_true", help="Require the complete generated, unapproved production architecture checkpoint.")
     parser.add_argument("--require-architecture-resolution", action="store_true",
                         help="Require the complete resolved, unapproved production architecture checkpoint.")
+    parser.add_argument("--require-models-entry", action="store_true",
+                        help="Require complete architecture approval and MODELS entry, without model generation.")
     args = parser.parse_args(argv)
     try:
         result = validate_production_authority(args.directory, seed_only=args.seed_only,
@@ -172,7 +199,8 @@ def main(argv=None) -> int:
                                                require_plan_resolution=args.require_plan_resolution,
                                                require_plan_approval=args.require_plan_approval,
                                                require_architecture=args.require_architecture,
-                                               require_architecture_resolution=args.require_architecture_resolution)
+                                               require_architecture_resolution=args.require_architecture_resolution,
+                                               require_models_entry=args.require_models_entry)
     except (OSError, ValueError, SyntaxError) as error:
         parser.exit(1, f"Production authority validation failed: {error}\n")
     print(canonical_bytes(result).decode("utf-8"), end="")

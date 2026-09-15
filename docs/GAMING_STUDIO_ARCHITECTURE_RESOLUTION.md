@@ -1,8 +1,12 @@
-# Gaming Studio architecture resolution
+# Gaming Studio architecture resolution (historical)
+
+The current approved architecture and MODELS-entry checkpoint is documented in
+[architecture approval](GAMING_STUDIO_ARCHITECTURE_APPROVAL.md). The statements
+below describe the immutable, still-unapproved resolution checkpoint.
 
 This versioned package records exactly the eight user-authorized architecture clarifications. The architecture remains unapproved. MODELS and later lifecycle stages remain unauthorized. No application generation occurred.
 
-## Current checkpoint
+## Historical resolved checkpoint
 
 - Architecture: `arcadev_architecture_1365b59c168d82ba7d9ac0fb604afadf`
 - Initial finalization: `arcadev_architecture_final_cca8f5b914aeeefc41b86ab649989135`
@@ -79,7 +83,7 @@ Trusted repository constants and pinned digests reject changed authority before 
 
 The original five files under `production_architecture/` remain immutable historical authority. The four new files are under `production_architecture/architecture_resolution/`.
 
-Unqualified current validation and `--require-architecture-resolution` both require the complete resolution package; missing or partial resolution cannot downgrade to unresolved architecture. Current validation rejects ApprovedArchitecture, ARCHITECTURE-to-MODELS handoffs, MODELS projects, DomainModel, backend, frontend, and unknown authority.
+`--require-architecture-resolution` explicitly selects this complete historical resolution package; missing or partial resolution cannot downgrade to unresolved architecture. Unqualified validation now requires architecture approval and MODELS entry, as does `--require-models-entry`. Current validation rejects DomainModel, model approval, MODELS-to-BACKEND handoffs, backend, frontend and unknown authority.
 
 Explicit historical gates remain available: `--seed-only`, `--require-current` (IDEA resolution), `--require-plan`, `--require-plan-resolution`, `--require-plan-approval`, and `--require-architecture` (generated unresolved architecture). As before, the historical minimum gates validate later historical packages when present; `--require-architecture` explicitly selects the unresolved checkpoint even when resolution is present.
 

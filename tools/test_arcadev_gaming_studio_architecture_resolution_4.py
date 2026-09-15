@@ -28,8 +28,8 @@ class ArchitectureResolutionAuthorityTest(unittest.TestCase):
         self.assertNotEqual(target, self.root.resolve())
         shutil.rmtree(target)
 
-    def test_unqualified_current_selects_resolved_checkpoint_and_retains_history(self):
-        result = authority.validate_production_authority(self.root)
+    def test_explicit_historical_resolution_selects_checkpoint_and_retains_history(self):
+        result = authority.validate_production_authority(self.root, require_architecture_resolution=True)
         raw = (self.root / RESOLUTION_AREA / "checkpoint.json").read_bytes()
         self.assertTrue(result["valid"])
         self.assertEqual(result["checkpoint"], json.loads(raw))

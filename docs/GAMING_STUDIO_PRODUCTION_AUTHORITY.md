@@ -1,14 +1,14 @@
 # Gaming Studio production authority
 
-## Current production architecture
+## Current production MODELS entry
 
-Current production authority extends through the first generated ArchitectureSpecification
-and its unresolved ArchitectureFinalization. The project is `IN_PROGRESS / ARCHITECTURE`,
-with status `BLOCKED_PENDING_ARCHITECTURE_CLARIFICATION`. Architecture is not approved and MODELS is not authorized.
+Current production authority includes explicit complete-architecture approval and
+the certified ARCHITECTURE → MODELS handoff. Gaming Studio is `IN_PROGRESS / MODELS`.
+DomainModel has **not** been generated; generation requires separate explicit authority.
 
-Use `python -m arcadev.gaming_studio_authority --require-architecture` to validate the
-complete current package. See [production architecture](GAMING_STUDIO_PRODUCTION_ARCHITECTURE.md)
-for the exact identities, counts, unresolved questions, source lineage and authority boundary.
+Unqualified validation and `python -m arcadev.gaming_studio_authority --require-models-entry`
+require the complete newest checkpoint. See [architecture approval and MODELS entry](GAMING_STUDIO_ARCHITECTURE_APPROVAL.md)
+for exact identities, the preserved consistency warning, source lineage and stop boundary.
 
 The certification below records the immutable original seed batch and its historical scope.
 

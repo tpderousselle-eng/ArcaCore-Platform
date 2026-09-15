@@ -167,7 +167,7 @@ class GamingStudioAuthorityTest(unittest.TestCase):
         # Keep an exact dependency allowlist, now including the read-only
         # approval/checkpoint and architecture-resolution extensions. No
         # generator or executor is added.
-        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_transition", "gaming_studio_plan", "gaming_studio_plan_checkpoint", "gaming_studio_plan_approval_checkpoint", "gaming_studio_architecture_checkpoint", "gaming_studio_architecture_resolution_checkpoint"})
+        self.assertEqual(imports, {"argparse", "ast", "pathlib", "gaming_studio_intent", "gaming_studio_idea", "idea_intake", "gaming_studio_transition", "gaming_studio_plan", "gaming_studio_plan_checkpoint", "gaming_studio_plan_approval_checkpoint", "gaming_studio_architecture_checkpoint", "gaming_studio_architecture_resolution_checkpoint", "gaming_studio_models_entry_checkpoint"})
 
     def test_no_execution_network_generation_project_or_writes(self):
         before = {p.name: p.read_bytes() for p in self.directory.iterdir()}
